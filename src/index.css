@@ -1,0 +1,54 @@
+:root {
+  --game-w: 1280;
+  --game-h: 720;
+  --game-scale: 1;
+
+  color-scheme: dark;
+  font-family: ui-monospace, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  background: #0b0f14;
+  color: #e6f0ff;
+  overflow: hidden;
+}
+
+#root {
+  height: 100%;
+}
+
+/* Fixed-size "Flash-like" viewport scaled uniformly. */
+.stageRoot {
+  height: 100%;
+  width: 100%;
+  display: grid;
+  place-items: center;
+}
+
+.stageScaled {
+  width: calc(var(--game-w) * 1px);
+  height: calc(var(--game-h) * 1px);
+  transform: scale(var(--game-scale));
+  transform-origin: top left;
+}
+
+.stageFrame {
+  width: calc(var(--game-w) * 1px);
+  height: calc(var(--game-h) * 1px);
+  background: radial-gradient(1200px 800px at 50% 30%, #141c28 0%, #0b0f14 60%, #070a0d 100%);
+  border: 2px solid #223049;
+  box-shadow: 0 16px 60px rgba(0, 0, 0, 0.5);
+  image-rendering: pixelated;
+  position: relative;
+  overflow: hidden;
+}
+
+button {
+  font-family: inherit;
+}
