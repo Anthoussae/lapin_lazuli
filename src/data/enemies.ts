@@ -29,6 +29,8 @@ export type EnemyTemplate = Readonly<{
   name: string
   level: number
   boss?: boolean
+  /** When true, clearing this enemy ends the run in GAME_WIN (see resolveEvents). */
+  gameWinOnVictory?: boolean
   hp: DiceSpec
   /** Added to attack damage when the enemy hits (per point). Defaults to 0. */
   strength?: number
@@ -573,6 +575,7 @@ export const Enemies: Readonly<Record<EnemyId, EnemyTemplate>> = {
     name: 'Miso Tyrant',
     level: 32,
     boss: true,
+    gameWinOnVictory: true,
     hp: { count: 36, sides: 12, plus: 40 },
     intents: [
       {

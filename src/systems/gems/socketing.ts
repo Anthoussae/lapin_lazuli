@@ -1,10 +1,20 @@
 import type { CardInstance, GameState } from '../../core/types/state'
 import type { CardInstanceId, GemId } from '../../core/types/ids'
 import { Cards } from '../../data/cards'
+import { Gems } from '../../data/gems'
+import { cardInstanceHasDestiny } from '../cards/cardEffects'
 
 export function isCardSocketable(card: CardInstance): boolean {
   const tmpl = Cards[card.templateId]
   if (!tmpl || tmpl.unsocketable || card.unsocketable) return false
+  return true
+}
+
+function isCardSocketableForGem(inst: CardInstance, gemId: GemId | null | undefined): boolean {
+  if (!isCardSocketable(inst)) return false
+  if (!gemId) return true
+  const gem = Gems[gemId]
+  if (gem?.requiresTargetWithoutDestiny && cardInstanceHasDestiny(inst)) return false
   return true
 }
 
@@ -13,8 +23,9 @@ export function deckHasSocketableCard(cardById: Readonly<Record<CardInstanceId, 
 }
 
 export function socketableDeckCards(state: GameState): ReadonlyArray<CardInstance> {
+  const gemId = state.gemstoneCavern?.socketing?.gemId ?? null
   return Object.values(state.player.deck.cardById)
-    .filter(isCardSocketable)
+    .filter((inst) => isCardSocketableForGem(inst, gemId))
     .sort((a, b) => a.id.localeCompare(b.id))
 }
 
@@ -37,7 +48,7 @@ export function toggleGemstoneSocketingCard(state: GameState, cardInstanceId: Ca
   const gc = state.gemstoneCavern
   if (!gc?.socketing) return state
   const inst = state.player.deck.cardById[cardInstanceId]
-  if (!inst || !isCardSocketable(inst)) return state
+  if (!inst || !isCardSocketableForGem(inst, gc.socketing.gemId)) return state
 
   const selected = gc.socketing.selectedCardInstanceId
   const nextSelected = selected === cardInstanceId ? null : cardInstanceId
@@ -57,7 +68,7 @@ export function confirmGemstoneSocketing(state: GameState): GameState {
   if (!selectedCardInstanceId) return state
 
   const inst = state.player.deck.cardById[selectedCardInstanceId]
-  if (!inst || !isCardSocketable(inst)) return state
+  if (!inst || !isCardSocketableForGem(inst, gemId)) return state
 
   const nextInst: CardInstance = { ...inst, socketedGemId: gemId, unsocketable: true }
   return {

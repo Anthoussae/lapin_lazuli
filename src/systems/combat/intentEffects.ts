@@ -1,14 +1,53 @@
 import type { CardId } from '../../core/types/ids'
+import type { DiceSpec } from '../../core/rng/dice'
 import type { EnemyIntent, EnemyIntentExtraEffect } from '../../core/types/state'
 
 export type EnemyMoveKind = 'attack' | 'buff' | 'debuff'
 
+/** Discriminant of {@link EnemyIntentExtraEffect}; keep metadata tables below in sync when adding kinds. */
+export type EnemyIntentExtraEffectKind = EnemyIntentExtraEffect['effect']
+
+/**
+ * Extra effects that count as self-buffs on the enemy for tagging (display / hybrid move kinds).
+ * Must match {@link INTENT_EXTRA_EFFECT_MOVE_KIND} entries that map to `'buff'`.
+ */
+const INTENT_EXTRA_EFFECT_ENEMY_BUFF: ReadonlySet<EnemyIntentExtraEffectKind> = new Set([
+  'strengthgain',
+  'enemyLockedShieldGain',
+  'vampiric',
+])
+
+/**
+ * Extra effects that apply negative pressure on the player for tagging.
+ * Must match {@link INTENT_EXTRA_EFFECT_MOVE_KIND} entries that map to `'debuff'`.
+ */
+const INTENT_EXTRA_EFFECT_PLAYER_DEBUFF: ReadonlySet<EnemyIntentExtraEffectKind> = new Set([
+  'playerTurnStartBunnyDrain',
+  'shuffleBurdenIntoDeck',
+])
+
+/** Maps each intent extra kind to a move tag from its extra line (null = no extra tag). */
+const INTENT_EXTRA_EFFECT_MOVE_KIND: Readonly<Record<EnemyIntentExtraEffectKind, EnemyMoveKind | null>> = {
+  strengthgain: 'buff',
+  enemyLockedShieldGain: 'buff',
+  vampiric: 'buff',
+  playerTurnStartBunnyDrain: 'debuff',
+  shuffleBurdenIntoDeck: 'debuff',
+}
+
 export function isEnemyBuffEffect(effect: EnemyIntentExtraEffect): boolean {
-  return effect.effect === 'strengthgain' || effect.effect === 'enemyLockedShieldGain' || effect.effect === 'vampiric'
+  return INTENT_EXTRA_EFFECT_ENEMY_BUFF.has(effect.effect)
 }
 
 export function isPlayerDebuffEffect(effect: EnemyIntentExtraEffect): boolean {
-  return effect.effect === 'playerTurnStartBunnyDrain' || effect.effect === 'shuffleBurdenIntoDeck'
+  return INTENT_EXTRA_EFFECT_PLAYER_DEBUFF.has(effect.effect)
+}
+
+/** True when this row must be rolled into a numeric amount (preserves one dice roll per row, in array order). */
+export function isEnemyLockedShieldGainDiceRoll(
+  fx: EnemyIntentExtraEffect,
+): fx is Readonly<{ effect: 'enemyLockedShieldGain'; roll: DiceSpec }> {
+  return fx.effect === 'enemyLockedShieldGain' && 'roll' in fx
 }
 
 /** Move tags for display and future rules; hybrid attacks can include multiple kinds. */
@@ -19,8 +58,8 @@ export function enemyIntentMoveKinds(intent: EnemyIntent): ReadonlyArray<EnemyMo
   if (intent.kind === 'BUFF') kinds.add('buff')
   if (intent.kind === 'DEBUFF') kinds.add('debuff')
   for (const fx of intent.effects ?? []) {
-    if (isEnemyBuffEffect(fx)) kinds.add('buff')
-    if (isPlayerDebuffEffect(fx)) kinds.add('debuff')
+    const mk = INTENT_EXTRA_EFFECT_MOVE_KIND[fx.effect]
+    if (mk) kinds.add(mk)
   }
   const ordered: EnemyMoveKind[] = ['attack', 'buff', 'debuff']
   return ordered.filter((k) => kinds.has(k))
@@ -33,7 +72,8 @@ export function strengthDeltaFromIntentEffects(
   if (!effects?.length) return 0
   let d = 0
   for (const e of effects) {
-    if (e.effect === 'strengthgain') d += e.value
+    if (e.effect !== 'strengthgain') continue
+    d += e.value
   }
   return d
 }
@@ -45,19 +85,21 @@ export function playerTurnStartBunnyDrainFromIntentEffects(
   if (!effects?.length) return 0
   let d = 0
   for (const e of effects) {
-    if (e.effect === 'playerTurnStartBunnyDrain') d += e.amount
+    if (e.effect !== 'playerTurnStartBunnyDrain') continue
+    d += e.amount
   }
   return d
 }
 
-/** Locked shield granted to the acting enemy when an attack resolves. */
+/** Locked shield granted to the acting enemy when an attack resolves (pre-rolled amounts only). */
 export function enemyLockedShieldGainFromIntentEffects(
   effects: ReadonlyArray<EnemyIntentExtraEffect> | undefined,
 ): number {
   if (!effects?.length) return 0
   let d = 0
   for (const e of effects) {
-    if (e.effect === 'enemyLockedShieldGain' && 'amount' in e) d += e.amount
+    if (e.effect !== 'enemyLockedShieldGain') continue
+    if ('amount' in e) d += e.amount
   }
   return d
 }

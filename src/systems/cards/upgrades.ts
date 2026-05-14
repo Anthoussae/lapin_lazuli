@@ -7,11 +7,11 @@ export function isCardUpgradeable(templateId: CardId): boolean {
   return !Cards[templateId]?.unupgradeable
 }
 
-/** Upgrade counters added to a card instance after {@link CardTemplate.upgradeMultiplier}. */
+/** Upgrade counters added to a card instance after {@link CardTemplate.upgradeMultiplier} (ceiled to an integer). */
 export function effectiveCardUpgradeDelta(templateId: CardId, amount: number): number {
   if (amount <= 0) return 0
   const mult = Cards[templateId]?.upgradeMultiplier ?? 1
-  return amount * mult
+  return Math.ceil(amount * mult)
 }
 
 /** Shop/reward upgrade tiers → same counter units as {@link scaleCardEffects} and card instances. */
@@ -27,19 +27,22 @@ export function displayUpgradeTierCount(templateId: CardId, effectScalingUpgrade
   return Math.floor(effectScalingUpgrades / mult)
 }
 
+function ceilScaledAmount(base: number, perUpgrade: number, upgrades: number): number {
+  return Math.ceil(base + perUpgrade * upgrades)
+}
+
 export function scaleCardEffects(effects: ReadonlyArray<Effect>, upgrades: number): ReadonlyArray<Effect> {
   if (upgrades <= 0) return effects
   return effects.map((fx) => {
-    if (fx.kind === 'DRAW_CARDS') return { ...fx, amount: fx.amount + 1 * upgrades }
-    if (fx.kind === 'GAIN_INK') return { ...fx, amount: fx.amount + 1 * upgrades }
-    if (fx.kind === 'HEAL') return { ...fx, amount: fx.amount + 10 * upgrades }
-    if (fx.kind === 'GAIN_SHIELD') return { ...fx, amount: fx.amount + 6 * upgrades }
-    if (fx.kind === 'GAIN_LOCKED_SHIELD') return { ...fx, amount: fx.amount + 4 * upgrades }
-    if (fx.kind === 'DEAL_DAMAGE') return { ...fx, amount: fx.amount + 6 * upgrades }
-    if (fx.kind === 'ADD_BUNNIES') return { ...fx, amount: fx.amount + 3 * upgrades }
+    if (fx.kind === 'DRAW_CARDS') return { ...fx, amount: ceilScaledAmount(fx.amount, 1, upgrades) }
+    if (fx.kind === 'GAIN_INK') return { ...fx, amount: ceilScaledAmount(fx.amount, 1, upgrades) }
+    if (fx.kind === 'HEAL') return { ...fx, amount: ceilScaledAmount(fx.amount, 10, upgrades) }
+    if (fx.kind === 'GAIN_SHIELD') return { ...fx, amount: ceilScaledAmount(fx.amount, 6, upgrades) }
+    if (fx.kind === 'GAIN_LOCKED_SHIELD') return { ...fx, amount: ceilScaledAmount(fx.amount, 4, upgrades) }
+    if (fx.kind === 'DEAL_DAMAGE') return { ...fx, amount: ceilScaledAmount(fx.amount, 6, upgrades) }
+    if (fx.kind === 'ADD_BUNNIES') return { ...fx, amount: ceilScaledAmount(fx.amount, 3, upgrades) }
     if (fx.kind === 'MULTIPLY_BUNNIES') {
-      const next = fx.amount + 0.5 * upgrades
-      return { ...fx, amount: Math.round(next * 2) / 2 }
+      return { ...fx, amount: ceilScaledAmount(fx.amount, 0.5, upgrades) }
     }
     // Practice+: each card upgrade adds one selectable target; upgrade depth per target stays at template upgradeAmount.
     if (fx.kind === 'UPGRADE_SELECTED_CARD') return { ...fx, numberOfTargets: fx.numberOfTargets + upgrades }

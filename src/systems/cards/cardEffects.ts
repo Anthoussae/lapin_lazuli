@@ -20,8 +20,7 @@ export function cardInstanceBaseEffects(inst: CardInstance): ReadonlyArray<Effec
 }
 
 export function cardInstanceHasDestiny(inst: CardInstance): boolean {
-  if (!inst.socketedGemId) return false
-  return Gems[inst.socketedGemId]?.effects.some((fx) => fx.kind === 'DESTINY') ?? false
+  return cardInstanceBaseEffects(inst).some((fx) => fx.kind === 'DESTINY')
 }
 
 /** Card effects resolved when the card is played (excludes combat-start-only effects). */

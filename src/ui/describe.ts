@@ -89,14 +89,17 @@ function capitalizeFirst(text: string): string {
   return text.length ? text[0].toUpperCase() + text.slice(1) : text
 }
 
+const RELIC_TRIGGER_LINE: Partial<Record<TriggerDef['on'], (eff: string) => string>> = {
+  onPickup: (eff) => capitalizeFirst(eff),
+  combat_start: (eff) => `At combat start, ${eff}.`,
+  turn_start: (eff) => `At turn start, ${eff}.`,
+  draw_starting_hand: (eff) => `When drawing your starting hand, ${eff}.`,
+  onRest: (eff) => `When you rest, ${eff}.`,
+}
+
 export function describeRelicTrigger(trig: TriggerDef): string {
   const eff = describeEffect(trig.effect)
-  if (trig.on === 'onPickup') return capitalizeFirst(eff)
-  if (trig.on === 'combat_start') return `At combat start, ${eff}.`
-  if (trig.on === 'turn_start') return `At turn start, ${eff}.`
-  if (trig.on === 'draw_starting_hand') return `When drawing your starting hand, ${eff}.`
-  if (trig.on === 'onRest') return `When you rest, ${eff}.`
-  return eff
+  return RELIC_TRIGGER_LINE[trig.on]?.(eff) ?? eff
 }
 
 export function describeRelic(relic: RelicTemplate): string {

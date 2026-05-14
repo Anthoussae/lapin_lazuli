@@ -346,7 +346,7 @@ function rollPaths(
     if (!path || path.minimumLevel > level) return false
     const until = pathCooldownUntil[id]
     if (until !== undefined && level < until) return false
-    if (id === 'GEMSTONE_CAVERN' && !gemstoneCavernOfferable) return false
+    if (path.requiresSocketableCard && !gemstoneCavernOfferable) return false
     return true
   })
   const offered: PathId[] = []
@@ -492,103 +492,108 @@ function choosePath(state: GameState, pathId: PathId, slotIndex: number): GameSt
   if (slotLocked[slotIndex]) return state
 
   const baseState: GameState = withPathCooldownApplied({ ...state, pathSelection: null }, pathId)
+  const mapRoute = Paths[pathId]?.mapRoute ?? 'combat'
 
-  if (pathId === 'SHOP') {
-    const ownedRelics = new Set(baseState.player.relics.map((r) => r.templateId))
-    const stockOut = populateShop(baseState.rng, ownedRelics, baseState.level, baseState.player.luck)
-    const priced = assignShopPrices(stockOut.rng, stockOut.stock, {
-      stock: stockOut.stock,
-      ownedRelicTemplateIds: ownedRelics,
-      playerGold: baseState.player.gold,
-      level: baseState.level,
-    })
-    return setPhase(
-      {
-        ...baseState,
-        rng: priced.rng,
-        restOutcome: null,
-        cardReward: null,
-        treasureRoom: null,
-        shop: { items: priced.items },
-      },
-      'SHOP',
-    )
-  }
-
-  if (pathId === 'REST') {
-    const p = baseState.player
-    const healCap = Math.floor(p.maxHp * 0.25)
-    const healedHp = Math.min(healCap, Math.max(0, p.maxHp - p.hp))
-    const nextHp = p.hp + healedHp
-
-    let s: GameState = {
-      ...baseState,
-      player: { ...p, hp: nextHp },
-      restOutcome: { healedHp },
-      treasureRoom: null,
-    }
-
-    for (const rInst of s.player.relics) {
-      s = applyRelicTriggers(s, rInst.templateId, 'onRest')
-    }
-
-    return setPhase(s, 'REST')
-  }
-
-  if (pathId === 'TREASURE_ROOM') {
-    const ownedRelics = new Set(baseState.player.relics.map((r) => r.templateId))
-    const relicPick = pickThreeShopRelics(baseState.rng, ownedRelics)
-    return setPhase(
-      {
-        ...baseState,
-        rng: relicPick.rng,
-        restOutcome: null,
-        cardReward: null,
-        shop: null,
-        treasureRoom: { offered: relicPick.relicIds, selectionComplete: false },
-      },
-      'TREASURE_ROOM',
-    )
-  }
-
-  if (pathId === 'CARD_REWARD') {
-    const rewardOut = populateCardReward({
-      rng: baseState.rng,
-      baseRewardLevel: baseState.level,
-      luck: baseState.player.luck,
-      count: 3,
-    })
-    return setPhase(
-      {
-        ...baseState,
-        rng: rewardOut.rng,
-        restOutcome: null,
-        treasureRoom: null,
-        cardReward: {
-          kind: 'CARD',
-          offered: rewardOut.offered,
-          goldEarned: 0,
-          keysEarned: 0,
+  // Branch order irrelevant (each path id maps to one route). Combat reuses pre-rolled previews when present;
+  // otherwise {@link rollPathCombatEncounter} runs here (same RNG contract as before the mapRoute switch).
+  switch (mapRoute) {
+    case 'shop': {
+      const ownedRelics = new Set(baseState.player.relics.map((r) => r.templateId))
+      const stockOut = populateShop(baseState.rng, ownedRelics, baseState.level, baseState.player.luck)
+      const priced = assignShopPrices(stockOut.rng, stockOut.stock, {
+        stock: stockOut.stock,
+        ownedRelicTemplateIds: ownedRelics,
+        playerGold: baseState.player.gold,
+        level: baseState.level,
+      })
+      return setPhase(
+        {
+          ...baseState,
+          rng: priced.rng,
+          restOutcome: null,
+          cardReward: null,
+          treasureRoom: null,
+          shop: { items: priced.items },
         },
-      },
-      'REWARD',
-    )
-  }
+        'SHOP',
+      )
+    }
+    case 'rest': {
+      const p = baseState.player
+      const healCap = Math.floor(p.maxHp * 0.25)
+      const healedHp = Math.min(healCap, Math.max(0, p.maxHp - p.hp))
+      const nextHp = p.hp + healedHp
 
-  if (pathId === 'GEMSTONE_CAVERN') {
-    const gemRoll = rollGemOffers(baseState.rng, 3)
-    return setPhase(
-      {
+      let s: GameState = {
         ...baseState,
-        rng: gemRoll.rng,
-        restOutcome: null,
-        cardReward: null,
+        player: { ...p, hp: nextHp },
+        restOutcome: { healedHp },
         treasureRoom: null,
-        shop: null,
-        gemstoneCavern: { offered: gemRoll.offered, socketing: null },
-      },
-      'GEMSTONE_CAVERN',
-    )
+      }
+
+      for (const rInst of s.player.relics) {
+        s = applyRelicTriggers(s, rInst.templateId, 'onRest')
+      }
+
+      return setPhase(s, 'REST')
+    }
+    case 'treasure_room': {
+      const ownedRelics = new Set(baseState.player.relics.map((r) => r.templateId))
+      const relicPick = pickThreeShopRelics(baseState.rng, ownedRelics)
+      return setPhase(
+        {
+          ...baseState,
+          rng: relicPick.rng,
+          restOutcome: null,
+          cardReward: null,
+          shop: null,
+          treasureRoom: { offered: relicPick.relicIds, selectionComplete: false },
+        },
+        'TREASURE_ROOM',
+      )
+    }
+    case 'card_reward': {
+      const rewardOut = populateCardReward({
+        rng: baseState.rng,
+        baseRewardLevel: baseState.level,
+        luck: baseState.player.luck,
+        count: 3,
+      })
+      return setPhase(
+        {
+          ...baseState,
+          rng: rewardOut.rng,
+          restOutcome: null,
+          treasureRoom: null,
+          cardReward: {
+            kind: 'CARD',
+            offered: rewardOut.offered,
+            goldEarned: 0,
+            keysEarned: 0,
+          },
+        },
+        'REWARD',
+      )
+    }
+    case 'gemstone_cavern': {
+      const gemRoll = rollGemOffers(baseState.rng, 3)
+      return setPhase(
+        {
+          ...baseState,
+          rng: gemRoll.rng,
+          restOutcome: null,
+          cardReward: null,
+          treasureRoom: null,
+          shop: null,
+          gemstoneCavern: { offered: gemRoll.offered, socketing: null },
+        },
+        'GEMSTONE_CAVERN',
+      )
+    }
+    case 'combat':
+    default: {
+      break
+    }
   }
 
   let preview: PathCombatPreview | null = combatPreview

@@ -41,17 +41,17 @@ export const Cards: Readonly<Record<CardId, CardTemplate>> = {
     poolFrequency: 5,
     cost: 1,
     tags: ['addBunnies'],
-    effects: [{ kind: 'ADD_BUNNIES', amount: 5 }],
+    effects: [{ kind: 'ADD_BUNNIES', amount: 6 }],
   },
   MULTIBUNNIES: {
     id: 'MULTIBUNNIES',
     name: 'Multibunnies',
     starter: true,
     starterDeckNumber: 1,
-    poolFrequency: 2,
-    cost: 1,
+    poolFrequency: 1,
+    cost: 2,
     tags: ['multBunnies'],
-    effects: [{ kind: 'MULTIPLY_BUNNIES', amount: 1.5 }],
+    effects: [{ kind: 'MULTIPLY_BUNNIES', amount: 2 }],
   },
   PRACTICE: {
     id: 'PRACTICE',
@@ -62,7 +62,7 @@ export const Cards: Readonly<Record<CardId, CardTemplate>> = {
     cost: 2,
     exhaust: true,
     tags: ['upgrade'],
-    effects: [{ kind: 'UPGRADE_SELECTED_CARD', numberOfTargets: 1, upgradeAmount: 1 }],
+    effects: [{ kind: 'DESTINY' }, { kind: 'UPGRADE_SELECTED_CARD', numberOfTargets: 1, upgradeAmount: 1 }],
   },
   PONDER: {
     id: 'PONDER',
@@ -80,7 +80,8 @@ export const Cards: Readonly<Record<CardId, CardTemplate>> = {
     poolFrequency: 2,
     cost: 1,
     tags: ['addShield', 'drawcards'],
-    effects: [{ kind: 'GAIN_SHIELD', amount: 5 }, { kind: 'DRAW_CARDS', amount: 1 }],
+    effects: [{ kind: 'GAIN_SHIELD', amount: 2 }, { kind: 'DRAW_CARDS', amount: 1 }],
+    upgradeMultiplier: 0.7,
   },
   WISE_BUNNIES: {
     id: 'WISE_BUNNIES',
@@ -90,6 +91,7 @@ export const Cards: Readonly<Record<CardId, CardTemplate>> = {
     cost: 1,
     tags: ['drawcards', 'addBunnies'],
     effects: [{ kind: 'ADD_BUNNIES', amount: 3 }, { kind: 'DRAW_CARDS', amount: 2 }],
+    upgradeMultiplier: 0.7,
   },
   INKSWELL: {
     id: 'INKSWELL_RITUAL',
@@ -167,6 +169,7 @@ export const Cards: Readonly<Record<CardId, CardTemplate>> = {
     cost: 0,
     tags: ['addShield', 'lockShield'],
     effects: [{ kind: 'GAIN_SHIELD', amount: 4 }, { kind: 'LOCK_ALL_SHIELD' }],
+    upgradeMultiplier: 0.5,
   },
   FIREBALL_POTION: {
     id: 'FIREBALL_POTION',

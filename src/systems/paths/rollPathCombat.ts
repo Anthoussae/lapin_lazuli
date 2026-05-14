@@ -4,6 +4,7 @@ import { rollDice } from '../../core/rng/dice'
 import type { EnemyId, PathId } from '../../core/types/ids'
 import type { PathCombatPreview } from '../../core/types/state'
 import { Enemies } from '../../data/enemies'
+import { Paths } from '../../data/paths'
 import {
   enemyBoonHpMultiplierProduct,
   rollWeightedEnemyBoon,
@@ -12,18 +13,46 @@ import {
 } from '../../data/enemyBoons'
 
 export function isCombatPath(pathId: PathId): boolean {
-  return (
-    pathId === 'EASY_ENEMY' ||
-    pathId === 'MEDIUM_ENEMY' ||
-    pathId === 'HARD_ENEMY' ||
-    pathId === 'MINIBOSS' ||
-    pathId === 'BOSS'
-  )
+  const k = Paths[pathId]?.kind
+  return k === 'combat' || k === 'boss'
+}
+
+/** Per-path enemy template level window relative to the current game level (non-boss pool). */
+const ENEMY_LEVEL_OFFSET_BY_PATH: Readonly<
+  Partial<Record<PathId, Readonly<{ minOffset: number; maxOffset: number }>>>
+> = {
+  EASY_ENEMY: { minOffset: -3, maxOffset: 0 },
+  MEDIUM_ENEMY: { minOffset: -1, maxOffset: 1 },
+  HARD_ENEMY: { minOffset: 0, maxOffset: 3 },
+  /** Matches prior fallback branch shared with {@link HARD_ENEMY}. */
+  MINIBOSS: { minOffset: 0, maxOffset: 3 },
+}
+
+export type CombatBoonChanceCurve = Readonly<{ base: number; perLevel: number }>
+
+export type CombatBoonRule =
+  | { readonly type: 'none' }
+  | { readonly type: 'chanceOne'; readonly curve: CombatBoonChanceCurve }
+  | { readonly type: 'minibossTwoUnique' }
+
+const COMBAT_BOON_RULE_BY_PATH: Readonly<Partial<Record<PathId, CombatBoonRule>>> = {
+  EASY_ENEMY: { type: 'chanceOne', curve: { base: -5, perLevel: 1 } },
+  MEDIUM_ENEMY: { type: 'chanceOne', curve: { base: 5, perLevel: 1 } },
+  HARD_ENEMY: { type: 'chanceOne', curve: { base: 5, perLevel: 2 } },
+  MINIBOSS: { type: 'minibossTwoUnique' },
+}
+
+/** Boon roll chance for normal combat paths (0–1). Miniboss uses fixed two boons, not this curve. */
+function combatPathBoonChance(curve: CombatBoonChanceCurve, gameLevel: number): number {
+  const pct = curve.perLevel * gameLevel + curve.base
+  return Math.min(1, Math.max(0, pct / 100))
 }
 
 /** Boss fights only: closest {@link Enemies}[id].level to `level`, then stable id order. */
 export function pickBossEnemyTemplateForLevel(level: number): EnemyId {
-  const bosses = (Object.keys(Enemies) as EnemyId[]).filter((id) => Enemies[id]?.boss).sort()
+  const bosses = Object.keys(Enemies)
+    .filter((id) => Enemies[id]?.boss)
+    .sort()
   if (!bosses.length) return 'CARROT_GOBLIN'
 
   let picked = bosses[0]!
@@ -38,29 +67,15 @@ export function pickBossEnemyTemplateForLevel(level: number): EnemyId {
   return picked
 }
 
-/** Boon roll chance for normal combat paths (0–1). Miniboss uses fixed two boons, not this curve. */
-function combatPathBoonChance(pathId: PathId, gameLevel: number): number {
-  let pct = 0
-  if (pathId === 'EASY_ENEMY') pct = gameLevel - 5
-  else if (pathId === 'MEDIUM_ENEMY') pct = gameLevel + 5
-  else if (pathId === 'HARD_ENEMY') pct = gameLevel * 2 + 5
-  else return 0
-  return Math.min(1, Math.max(0, pct / 100))
-}
-
 export function rollEnemyTemplateForPath(
   rng: RngState,
   level: number,
   pathId: PathId,
 ): { rng: RngState; enemyTemplateId: EnemyId } {
-  const range =
-    pathId === 'EASY_ENEMY'
-      ? { min: level - 3, max: level }
-      : pathId === 'MEDIUM_ENEMY'
-        ? { min: level - 1, max: level + 1 }
-        : { min: level, max: level + 3 }
+  const offsets = ENEMY_LEVEL_OFFSET_BY_PATH[pathId] ?? { minOffset: 0, maxOffset: 3 }
+  const range = { min: level + offsets.minOffset, max: level + offsets.maxOffset }
 
-  const all = (Object.keys(Enemies) as EnemyId[]).sort()
+  const all = Object.keys(Enemies).sort()
   const rollable = (id: EnemyId) => !Enemies[id]?.boss
   const eligible = all.filter((id) => {
     const e = Enemies[id]
@@ -84,7 +99,8 @@ export function rollPathCombatEncounter(
 ): { rng: RngState; preview: PathCombatPreview } {
   let r = rng
   let enemyTemplateId: EnemyId
-  if (pathId === 'BOSS') {
+  // Boss paths use scripted boss pool (not the normal level-band enemy table).
+  if (Paths[pathId]?.kind === 'boss') {
     enemyTemplateId = pickBossEnemyTemplateForLevel(level)
   } else {
     const t1 = rollEnemyTemplateForPath(r, level, pathId)
@@ -92,16 +108,17 @@ export function rollPathCombatEncounter(
     enemyTemplateId = t1.enemyTemplateId
   }
 
+  const boonRule: CombatBoonRule = COMBAT_BOON_RULE_BY_PATH[pathId] ?? { type: 'none' }
   const boons: EnemyBoonId[] = []
-  if (pathId === 'MINIBOSS') {
+  if (boonRule.type === 'minibossTwoUnique') {
     const b1 = rollWeightedEnemyBoon(r)
     r = b1.rng
     boons.push(b1.boonId)
     const b2 = rollWeightedEnemyBoonExcluding(r, [b1.boonId])
     r = b2.rng
     boons.push(b2.boonId)
-  } else if (pathId === 'EASY_ENEMY' || pathId === 'MEDIUM_ENEMY' || pathId === 'HARD_ENEMY') {
-    const p = combatPathBoonChance(pathId, level)
+  } else if (boonRule.type === 'chanceOne') {
+    const p = combatPathBoonChance(boonRule.curve, level)
     const [rChance, u] = rngNext(r)
     r = rChance
     if (u < p) {

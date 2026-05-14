@@ -1,6 +1,7 @@
 import type { GameState } from '../../core/types/state'
 import type { GameEvent } from '../events'
 import type { PathId } from '../../core/types/ids'
+import { Paths, pathVictoryOffersRelicPick } from '../../data/paths'
 import { Relics } from '../../data/relics'
 import { setPhase } from '../reduceGame'
 import { shuffleDiscardIntoDrawIfNeeded, shuffleDrawPile } from '../../systems/combat/zones'
@@ -14,12 +15,10 @@ import { clearActiveCombat } from '../../systems/combat/endCombat'
 
 /** Key drop chance from combat path + luck; at most one key is rolled elsewhere. */
 function combatKeyChance(pathId: PathId | null, luck: number): number {
-  const L = luck
-  let pct = 0
-  if (pathId === 'EASY_ENEMY') pct = 10 + L * 2
-  else if (pathId === 'MEDIUM_ENEMY') pct = 20 + L * 3
-  else if (pathId === 'HARD_ENEMY' || pathId === 'MINIBOSS' || pathId === 'BOSS') pct = 30 + L * 4
-  else return 0
+  if (!pathId) return 0
+  const curve = Paths[pathId]?.postVictoryKeyChance
+  if (!curve) return 0
+  const pct = curve.basePct + luck * curve.perLuck
   return Math.min(1, Math.max(0, pct / 100))
 }
 
@@ -104,9 +103,9 @@ function maybeEndCombat(state: GameState): { state: GameState; events: GameEvent
     const combatSnapshot = state.combat
     const entryPathId = state.currentCombatPathId ?? combatSnapshot.combatEntryPathId
     const isFinalBossVictory = Object.values(combatSnapshot.enemies.enemyById).some(
-      (enemy) => enemy.templateId === 'MISO_TYRANT',
+      (enemy) => Enemies[enemy.templateId]?.gameWinOnVictory,
     )
-    const isRelicRewardFight = entryPathId === 'MINIBOSS' || entryPathId === 'BOSS'
+    const isRelicRewardFight = pathVictoryOffersRelicPick(entryPathId)
 
     const level =
       Object.values(combatSnapshot.enemies.enemyById)
@@ -209,6 +208,7 @@ function computeVictoryGoldAndKeys(
   if (isRelicRewardFight) {
     keysEarned = 1
   } else {
+    // After gold dice: one rngNext for optional key (must stay after boon gold rolls).
     const keyChance = combatKeyChance(entryPathId, luck)
     const [rKey, uKey] = rngNext(rng)
     rng = rKey

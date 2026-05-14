@@ -3,6 +3,7 @@ import type { DiceSpec } from '../../core/rng/dice'
 import { rngInt } from '../../core/rng/rng'
 import { rollDice } from '../../core/rng/dice'
 import { Enemies } from '../../data/enemies'
+import { isEnemyLockedShieldGainDiceRoll } from './intentEffects'
 
 function rollIntentEffects(
   rng: GameState['rng'],
@@ -12,7 +13,7 @@ function rollIntentEffects(
   let nextRng = rng
   const rolled: EnemyIntentExtraEffect[] = []
   for (const fx of effects) {
-    if (fx.effect === 'enemyLockedShieldGain' && 'roll' in fx) {
+    if (isEnemyLockedShieldGainDiceRoll(fx)) {
       const [r2, amount] = rollDice(nextRng, fx.roll)
       nextRng = r2
       rolled.push({ effect: 'enemyLockedShieldGain', amount })
