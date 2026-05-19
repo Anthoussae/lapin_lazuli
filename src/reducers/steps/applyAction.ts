@@ -18,6 +18,7 @@ import { PathPool, Paths } from '../../data/paths'
 import { determineLocks } from '../../systems/paths/determineLocks'
 import { isCombatPath, rollPathCombatEncounter } from '../../systems/paths/rollPathCombat'
 import { populateCardReward } from '../../systems/rewards/cardRewards'
+import { isRewardLootFullyCollected } from '../../systems/rewards/rewardLoot'
 import { pickThreeShopRelics, populateShop } from '../../systems/shop/populateShop'
 import { assignShopPrices } from '../../systems/shop/assignPrice'
 import { effectiveCardUpgradeDelta } from '../../systems/cards/upgrades'
@@ -85,6 +86,10 @@ function applyPlayerAction(state: GameState, action: PlayerAction): { state: Gam
       return pickRewardCard(state, action.cardId)
     case 'REWARD/PICK_RELIC':
       return pickRewardRelic(state, action.relicId)
+    case 'REWARD/PICK_GOLD':
+      return pickRewardGold(state)
+    case 'REWARD/PICK_KEYS':
+      return pickRewardKeys(state)
     case 'REST/CONTINUE':
       return continueAfterRest(state)
     case 'TREASURE_ROOM/PICK_RELIC':
@@ -115,10 +120,38 @@ function resetToTitle(state: GameState): GameState {
   return s1
 }
 
+function pickRewardGold(state: GameState): { state: GameState; events: GameEvent[] } {
+  if (state.phase !== 'REWARD') return { state, events: [] }
+  const rw = state.cardReward
+  if (!rw || rw.goldEarned <= 0 || rw.goldPickedUp) return { state, events: [] }
+  return {
+    state: {
+      ...state,
+      cardReward: { ...rw, goldPickedUp: true },
+      player: { ...state.player, gold: state.player.gold + rw.goldEarned },
+    },
+    events: [],
+  }
+}
+
+function pickRewardKeys(state: GameState): { state: GameState; events: GameEvent[] } {
+  if (state.phase !== 'REWARD') return { state, events: [] }
+  const rw = state.cardReward
+  if (!rw || rw.keysEarned <= 0 || rw.keysPickedUp) return { state, events: [] }
+  return {
+    state: {
+      ...state,
+      cardReward: { ...rw, keysPickedUp: true },
+      player: { ...state.player, keys: state.player.keys + rw.keysEarned },
+    },
+    events: [],
+  }
+}
+
 function pickRewardCard(state: GameState, cardId: CardId): { state: GameState; events: GameEvent[] } {
   if (state.phase !== 'REWARD') return { state, events: [] }
   const rw = state.cardReward
-  if (!rw || rw.kind !== 'CARD') return { state, events: [] }
+  if (!rw || rw.kind !== 'CARD' || !isRewardLootFullyCollected(rw)) return { state, events: [] }
   const offer = rw.offered.find((o) => o.cardId === cardId)
   if (!offer) return { state, events: [] }
 
@@ -159,7 +192,7 @@ function pickRewardCard(state: GameState, cardId: CardId): { state: GameState; e
 function pickRewardRelic(state: GameState, relicId: RelicId): { state: GameState; events: GameEvent[] } {
   if (state.phase !== 'REWARD') return { state, events: [] }
   const rw = state.cardReward
-  if (!rw || rw.kind !== 'RELIC') return { state, events: [] }
+  if (!rw || rw.kind !== 'RELIC' || !isRewardLootFullyCollected(rw)) return { state, events: [] }
   if (!rw.offered.includes(relicId)) return { state, events: [] }
 
   const nextIdx = state.player.relics.length + 1
@@ -570,6 +603,8 @@ function choosePath(state: GameState, pathId: PathId, slotIndex: number): GameSt
             offered: rewardOut.offered,
             goldEarned: 0,
             keysEarned: 0,
+            goldPickedUp: true,
+            keysPickedUp: true,
           },
         },
         'REWARD',

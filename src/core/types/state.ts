@@ -88,12 +88,17 @@ export type CardRewardState = Readonly<
       goldEarned: number
       /** Key drops use path rules + luck (non-combat rewards use 0). */
       keysEarned: number
+      /** Victory gold is applied on `REWARD/PICK_GOLD`; true when none offered or already collected. */
+      goldPickedUp: boolean
+      keysPickedUp: boolean
     }
   | {
       kind: 'RELIC'
       offered: ReadonlyArray<RelicId>
       goldEarned: number
       keysEarned: number
+      goldPickedUp: boolean
+      keysPickedUp: boolean
     }
 >
 

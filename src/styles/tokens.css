@@ -1,0 +1,161 @@
+:root {
+  --font-main: 'Luminari', serif;
+
+  --color-bg: #f2d0aa;
+  --color-hud-text: #000000;
+  --color-shield-hud: #1a3a6b;
+  --color-locked-shield-hud: #1b5e20;
+
+  --color-button: #8f09e3;
+  --color-button-hover: #4d0878;
+  --color-button-text: #ffffff;
+  --font-button-size: 28px;
+  --font-combat-end-turn-button-size: calc(var(--font-button-size) * 0.7);
+
+  --duration-button-hover: 400ms;
+  --duration-ticking-number: 400ms;
+  --ink-jar-size: 216px;
+  --font-ink-jar-label-size: 48px;
+  --ink-jar-label-nudge-x: -6px;
+  --cauldron-size: 330px;
+  --font-cauldron-label-size: 83px;
+  --cauldron-label-nudge-y: -14px;
+  --cauldron-offset-y: -40px;
+  --cauldron-end-turn-button-offset-y: -90px;
+  --ease-button-hover: ease;
+  --transition-button:
+    background var(--duration-button-hover) var(--ease-button-hover),
+    border-color var(--duration-button-hover) var(--ease-button-hover);
+
+  --color-title-start: #2f0574;
+  --color-title-end: #a868ec;
+
+  --font-title: 'Luminari', serif;
+
+  --font-size-title-main-menu: 100px;
+  --font-size-title-screen: 36px;
+
+  --title-gradient: linear-gradient(180deg, var(--color-title-start), var(--color-title-end));
+
+  --relic-icon-height: calc(72px * 1.3);
+  --relic-icon-fallback-font-size: calc(32px * 1.3);
+  --game-hud-height: calc(var(--relic-icon-height) + 16px);
+  --relic-icon-hover-scale: 1.2;
+  --relic-thumb-height: 54px;
+  --relic-thumb-fallback-font-size: 22px;
+  --relic-icon-hover-duration: 0.5s;
+  --relic-icon-fallback-color: #e6f0ff;
+  --relic-tooltip-border: #2b3a56;
+  --relic-tooltip-bg: rgba(10, 14, 20, 0.92);
+  --relic-tooltip-gap: 4px;
+  --relic-tooltip-nudge-x: -8px;
+  --relic-tooltip-nudge-y: -10px;
+
+  --game-card-w: 134px;
+  --game-card-h: 196px;
+  --game-card-hover-scale: 1.3;
+  --game-card-hover-duration: 0.3s;
+
+  --hand-fan-overlap: 36px;
+  --hand-fan-deg-per-slot: 4deg;
+  --hand-fan-arc-lift-center: 18px;
+  --hand-fan-arc-lift-edge: 3px;
+  --hand-fan-highlight-scale: 1.2;
+  --hand-fan-highlight-duration: 0.1s;
+  --hand-fan-hover-lift: -18px;
+
+  /* Card travel: deck → hand (combat draw) */
+  --duration-card-draw-travel: 158ms;
+  --duration-card-draw-flip: 152ms;
+  --duration-card-draw-finish-buffer: 10ms;
+
+  /* Card typography: name (header), ink (top-right), text (description). */
+  --font-card: var(--font-main);
+  --color-card-ink: #3d2914;
+  --font-card-ink-size: 19px;
+  --font-card-ink-weight: bold;
+  --font-card-ink-line-height: 1;
+  --color-card-name: #3d2914;
+  --color-card-name-upgraded: #166534;
+  --font-card-name-size: 14px;
+  --font-card-name-weight: 800;
+  --font-card-name-line-height: 1.1;
+  --color-card-text: #3d2914;
+  --font-card-text-size: 16px;
+  --font-card-text-weight: 800;
+  --font-card-text-line-height: 1.2;
+  --color-card-text-amt-up: #166534;
+  --color-card-text-amt-down: #991b1b;
+  --color-card-text-bunny-up: var(--color-card-text-amt-up);
+  --color-card-text-bunny-down: var(--color-card-text-amt-down);
+  --color-card-exhausted-shade: rgba(26, 58, 107, 0.38);
+  --card-exhausted-brightness: 0.75;
+  --color-keyword-tooltip-border: #2b3a56;
+  --color-keyword-tooltip-bg: rgba(10, 14, 20, 0.92);
+  --font-card-text-emphasis-weight: 900;
+  --color-card-tags: var(--color-card-text);
+  --font-card-tags-size: 16px;
+  --card-font-scale-name-default: 1;
+  --card-font-scale-ink-default: 1;
+  --card-font-scale-text-default: 1;
+  --card-font-scale-min: 0.5;
+  --font-card-tags-weight: 400;
+  --font-card-tags-line-height: 1.1;
+
+  --path-door-width: calc(132px * 1.35 * 1.2);
+  --path-door-hover-brightness: 1.25;
+  --path-door-hover-glow-combat:
+    drop-shadow(0 0 6px rgba(255, 55, 75, 0.92))
+    drop-shadow(0 0 14px rgba(230, 30, 55, 0.68))
+    drop-shadow(0 0 28px rgba(190, 15, 45, 0.48));
+  --path-door-hover-glow-shop:
+    drop-shadow(0 0 6px rgba(255, 238, 168, 0.8))
+    drop-shadow(0 0 14px rgba(255, 228, 140, 0.55))
+    drop-shadow(0 0 28px rgba(255, 218, 115, 0.38));
+  --path-door-hover-glow-rest:
+    drop-shadow(0 0 6px rgba(188, 248, 198, 0.8))
+    drop-shadow(0 0 14px rgba(168, 235, 178, 0.55))
+    drop-shadow(0 0 28px rgba(148, 225, 162, 0.38));
+  --path-door-hover-glow-default:
+    drop-shadow(0 0 6px rgba(196, 232, 255, 0.8))
+    drop-shadow(0 0 14px rgba(180, 220, 255, 0.55))
+    drop-shadow(0 0 28px rgba(165, 210, 255, 0.38));
+  --path-door-hover-duration: 0.2s;
+  --path-door-caption-offset: calc(var(--path-door-width) * 0.12);
+  --path-door-caption-font-size: calc(16px * 1.4);
+  --path-door-combat-preview-font-size: calc(14px * 1.4);
+  --path-door-locked-badge-font-size: calc(14px * 1.4);
+  --path-select-title-lift: calc(var(--game-h) * -0.1 * 1px);
+
+  --inspect-deck-icon-height: 96px;
+  --inspect-discard-icon-height: calc(var(--inspect-deck-icon-height) * 1.1);
+
+  /*
+   * Gilt rim — metallic gold outline for HUD bars, panels, text boxes, etc.
+   * Apply the global `.gilt-rim` class; tweak stops/width/shadows here only.
+   */
+  --gilt-rim-width: 1px;
+  --gilt-rim-z-index: 10;
+
+  --gilt-color-highlight: #fff0b3;
+  --gilt-color-light: #f5dc7a;
+  --gilt-color-mid: #d4af37;
+  --gilt-color-base: #b8860b;
+  --gilt-color-shadow: #8b6914;
+  --gilt-color-deep: #5c4a1a;
+
+  --gilt-rim-gradient: linear-gradient(
+    160deg,
+    var(--gilt-color-highlight) 0%,
+    var(--gilt-color-light) 18%,
+    var(--gilt-color-mid) 40%,
+    var(--gilt-color-base) 58%,
+    var(--gilt-color-shadow) 78%,
+    var(--gilt-color-deep) 100%
+  );
+
+  --gilt-rim-outer-shadow: 0 1px 3px rgba(42, 28, 6, 0.5);
+  --gilt-rim-inner-highlight: inset 0 1px 1px rgba(255, 245, 200, 0.4);
+  --gilt-rim-inner-shadow: inset 0 -1px 2px rgba(0, 0, 0, 0.35);
+  --gilt-rim-glow: 0 0 6px rgba(212, 175, 55, 0.35);
+}

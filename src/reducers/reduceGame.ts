@@ -90,6 +90,8 @@ export function isPlayerAction(a: GameAction): a is PlayerAction {
     a.type === 'COMBAT/END_TURN' ||
     a.type === 'REWARD/PICK_CARD' ||
     a.type === 'REWARD/PICK_RELIC' ||
+    a.type === 'REWARD/PICK_GOLD' ||
+    a.type === 'REWARD/PICK_KEYS' ||
     a.type === 'REST/CONTINUE' ||
     a.type === 'TREASURE_ROOM/PICK_RELIC' ||
     a.type === 'TREASURE_ROOM/PROCEED' ||

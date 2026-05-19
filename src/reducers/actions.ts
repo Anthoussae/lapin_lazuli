@@ -23,6 +23,8 @@ export type PlayerAction =
   | { type: 'COMBAT/END_TURN' }
   | { type: 'REWARD/PICK_CARD'; cardId: CardId }
   | { type: 'REWARD/PICK_RELIC'; relicId: RelicId }
+  | { type: 'REWARD/PICK_GOLD' }
+  | { type: 'REWARD/PICK_KEYS' }
   | { type: 'REST/CONTINUE' }
   | { type: 'TREASURE_ROOM/PICK_RELIC'; relicId: RelicId }
   | { type: 'TREASURE_ROOM/PROCEED' }

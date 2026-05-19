@@ -1,13 +1,20 @@
 import type { CardTemplate } from '../data/cards'
 import { cardTemplateHasNullInkCost } from '../systems/cards/inkCost'
 import type { Effect } from '../data/effects'
-import { Gems } from '../data/gems'
+import { Gems, type GemTemplate } from '../data/gems'
 import type { RelicTemplate, TriggerDef } from '../data/relics'
 import type { GemId } from '../core/types/ids'
 import type { CardInstance } from '../core/types/state'
 import { cardBaseEffects } from '../systems/cards/cardEffects'
 import { boostFireDealDamage, cardHasFireDamageTags } from '../systems/cards/firepower'
 import { displayUpgradeTierCount, offeredUpgradeTiersToEffectScaling, scaleCardEffects } from '../systems/cards/upgrades'
+import {
+  cardKeywordIds,
+  CARD_KEYWORDS,
+  gemKeywordIds,
+  type CardKeywordId,
+  isKeywordEffectKind,
+} from './cardKeywords'
 
 function plural(n: number, one: string, many = `${one}s`): string {
   return n === 1 ? one : many
@@ -89,6 +96,15 @@ function capitalizeFirst(text: string): string {
   return text.length ? text[0].toUpperCase() + text.slice(1) : text
 }
 
+/** First word of card description text is always capitalized. */
+export function capitalizeCardDescriptionText(text: string): string {
+  return capitalizeFirst(text)
+}
+
+function plainCardDescLine(text: string): { kind: 'plain'; text: string } {
+  return { kind: 'plain', text: capitalizeCardDescriptionText(text) }
+}
+
 const RELIC_TRIGGER_LINE: Partial<Record<TriggerDef['on'], (eff: string) => string>> = {
   onPickup: (eff) => capitalizeFirst(eff),
   combat_start: (eff) => `At combat start, ${eff}.`,
@@ -108,13 +124,23 @@ export function describeRelic(relic: RelicTemplate): string {
   return relic.triggers.map((t) => describeRelicTrigger(t)).join('\n')
 }
 
+/** Effect/description text only (excludes relic name; for tooltips). */
+export function describeRelicEffect(relic: RelicTemplate): string {
+  if (relic.text) return relic.text
+  if (!relic.triggers.length) return ''
+  return relic.triggers.map((t) => describeRelicTrigger(t)).join('\n')
+}
+
 function unplayableDescriptionLine(card: CardTemplate): string | null {
   return cardTemplateHasNullInkCost(card) ? 'Unplayable.' : null
 }
 
-function cardShowsExhaust(card: CardTemplate, socketedGemId: GemId | null = null): boolean {
-  if (card.exhaust) return true
-  return cardBaseEffects(card.id, socketedGemId).some((fx) => fx.kind === 'EXHAUST')
+function isDescriptionKeywordEffect(fx: Effect): boolean {
+  return isKeywordEffectKind(fx.kind)
+}
+
+function formatKeywordLabelsLine(ids: ReadonlyArray<CardKeywordId>): string {
+  return `${ids.map((id) => CARD_KEYWORDS[id].label).join(', ')}.`
 }
 
 function describeEffectsOrConsumeFallback(
@@ -125,10 +151,11 @@ function describeEffectsOrConsumeFallback(
   const lines: string[] = []
   const unplayable = unplayableDescriptionLine(card)
   if (unplayable) lines.push(unplayable)
-  const visibleFx = scaled.filter((fx) => fx.kind !== 'EXHAUST')
-  if (visibleFx.length) lines.push(...visibleFx.map((fx) => `${describeEffect(fx)}.`))
+  const visibleFx = scaled.filter((fx) => !isDescriptionKeywordEffect(fx))
+  if (visibleFx.length) lines.push(...visibleFx.map((fx) => capitalizeCardDescriptionText(`${describeEffect(fx)}.`)))
   else if (card.tags.includes('consume')) lines.push('Consume.')
-  if (cardShowsExhaust(card, socketedGemId)) lines.push('Exhaust.')
+  const keywordIds = cardKeywordIds(card, socketedGemId)
+  if (keywordIds.length) lines.push(capitalizeCardDescriptionText(formatKeywordLabelsLine(keywordIds)))
   return lines.join('\n')
 }
 
@@ -178,53 +205,254 @@ export function describeOfferedCardWithUpgrades(card: CardTemplate, upgradeAppli
   return describeCardWithUpgrades(card, scaling)
 }
 
-export type CombatHandDescLine =
+export type CardDescAmountFormat = 'integer' | 'multiplier'
+
+export type CardDescSegment =
+  | { kind: 'text'; text: string }
+  | { kind: 'amount'; base: number; display: number; format?: CardDescAmountFormat }
+
+export type CardDescLine =
   | { kind: 'plain'; text: string }
-  | { kind: 'addBunnies'; baseAmount: number; displayAmount: number }
+  | { kind: 'segments'; segments: ReadonlyArray<CardDescSegment> }
+  | { kind: 'keywords'; ids: ReadonlyArray<CardKeywordId> }
+
+function amtSeg(base: number, display: number, format: CardDescAmountFormat = 'integer'): CardDescSegment {
+  return { kind: 'amount', base, display, format }
+}
+
+function txt(text: string): CardDescSegment {
+  return { kind: 'text', text }
+}
+
+function capitalizeFirstSegment(segments: CardDescSegment[]): CardDescSegment[] {
+  if (!segments.length || segments[0].kind !== 'text' || !segments[0].text.length) return segments
+  const first = segments[0]
+  return [{ kind: 'text', text: capitalizeFirst(first.text) }, ...segments.slice(1)]
+}
+
+function effectDescriptionLine(
+  card: CardTemplate,
+  baseFx: Effect,
+  displayFx: Effect,
+  power: number,
+  firepowerMultiplier: number,
+): CardDescLine {
+  const segments = capitalizeFirstSegment(
+    buildEffectSegments(card, baseFx, displayFx, power, firepowerMultiplier),
+  )
+  return { kind: 'segments', segments }
+}
+
+function buildEffectSegments(
+  card: CardTemplate,
+  baseFx: Effect,
+  displayFx: Effect,
+  power: number,
+  firepowerMultiplier: number,
+): CardDescSegment[] {
+  switch (displayFx.kind) {
+    case 'DRAW_CARDS':
+      return [
+        txt('draw '),
+        amtSeg(baseFx.kind === 'DRAW_CARDS' ? baseFx.amount : displayFx.amount, displayFx.amount),
+        txt(` ${plural(displayFx.amount, 'card')}.`),
+      ]
+    case 'ADD_BUNNIES': {
+      const base = baseFx.kind === 'ADD_BUNNIES' ? baseFx.amount : displayFx.amount
+      const display = power > 0 ? displayFx.amount + power : displayFx.amount
+      return [
+        txt('add '),
+        amtSeg(base, display),
+        txt(` ${plural(display, 'bunny', 'bunnies')}.`),
+      ]
+    }
+    case 'MULTIPLY_BUNNIES':
+      return [
+        txt('multiply your bunnies by '),
+        amtSeg(
+          baseFx.kind === 'MULTIPLY_BUNNIES' ? baseFx.amount : displayFx.amount,
+          displayFx.amount,
+          'multiplier',
+        ),
+        txt('.'),
+      ]
+    case 'HEAL':
+      return [
+        txt('heal '),
+        amtSeg(baseFx.kind === 'HEAL' ? baseFx.amount : displayFx.amount, displayFx.amount),
+        txt(` ${plural(displayFx.amount, 'hp')}.`),
+      ]
+    case 'GAIN_SHIELD': {
+      const base = baseFx.kind === 'GAIN_SHIELD' ? baseFx.amount : displayFx.amount
+      const t = displayFx.target ?? 'player'
+      if (t === 'selectedEnemy') {
+        return [
+          txt('give the targeted enemy '),
+          amtSeg(base, displayFx.amount),
+          txt(` ${plural(displayFx.amount, 'shield')}.`),
+        ]
+      }
+      return [
+        txt('gain '),
+        amtSeg(base, displayFx.amount),
+        txt(` ${plural(displayFx.amount, 'shield')}.`),
+      ]
+    }
+    case 'GAIN_LOCKED_SHIELD':
+      return [
+        txt('gain '),
+        amtSeg(
+          baseFx.kind === 'GAIN_LOCKED_SHIELD' ? baseFx.amount : displayFx.amount,
+          displayFx.amount,
+        ),
+        txt(` locked ${plural(displayFx.amount, 'shield')}.`),
+      ]
+    case 'DEAL_DAMAGE': {
+      const base = baseFx.kind === 'DEAL_DAMAGE' ? baseFx.amount : displayFx.amount
+      const display = cardHasFireDamageTags(card.tags)
+        ? boostFireDealDamage(displayFx.amount, firepowerMultiplier)
+        : displayFx.amount
+      return [txt('deal '), amtSeg(base, display), txt(' damage.')]
+    }
+    case 'GAIN_MAX_HP':
+      return [
+        txt('gain '),
+        amtSeg(baseFx.kind === 'GAIN_MAX_HP' ? baseFx.amount : displayFx.amount, displayFx.amount),
+        txt(` max hp.`),
+      ]
+    case 'GAIN_GOLD':
+      return [
+        txt('gain '),
+        amtSeg(baseFx.kind === 'GAIN_GOLD' ? baseFx.amount : displayFx.amount, displayFx.amount),
+        txt(` gold.`),
+      ]
+    case 'GAIN_KEYS':
+      return [
+        txt('gain '),
+        amtSeg(baseFx.kind === 'GAIN_KEYS' ? baseFx.amount : displayFx.amount, displayFx.amount),
+        txt(` ${plural(displayFx.amount, 'key')}.`),
+      ]
+    case 'GAIN_POWER':
+      return [
+        txt('gain '),
+        amtSeg(baseFx.kind === 'GAIN_POWER' ? baseFx.amount : displayFx.amount, displayFx.amount),
+        txt(` ${plural(displayFx.amount, 'power')}.`),
+      ]
+    case 'GAIN_FIREPOWER_MULTIPLIER':
+      return [
+        txt('gain '),
+        amtSeg(
+          baseFx.kind === 'GAIN_FIREPOWER_MULTIPLIER' ? baseFx.amount : displayFx.amount,
+          displayFx.amount,
+        ),
+        txt(` firepower.`),
+      ]
+    case 'GAIN_LUCK':
+      return [
+        txt('gain '),
+        amtSeg(baseFx.kind === 'GAIN_LUCK' ? baseFx.amount : displayFx.amount, displayFx.amount),
+        txt(` luck.`),
+      ]
+    case 'GAIN_INK':
+      return [
+        txt('gain '),
+        amtSeg(baseFx.kind === 'GAIN_INK' ? baseFx.amount : displayFx.amount, displayFx.amount),
+        txt(` ink.`),
+      ]
+    case 'GAIN_MAX_INK':
+      return [
+        txt('gain '),
+        amtSeg(baseFx.kind === 'GAIN_MAX_INK' ? baseFx.amount : displayFx.amount, displayFx.amount),
+        txt(` max ink.`),
+      ]
+    case 'UPGRADE_SELECTED_CARD':
+      return [
+        txt('upgrade '),
+        amtSeg(
+          baseFx.kind === 'UPGRADE_SELECTED_CARD' ? baseFx.numberOfTargets : displayFx.numberOfTargets,
+          displayFx.numberOfTargets,
+        ),
+        txt(` ${plural(displayFx.numberOfTargets, 'card')} in your hand.`),
+      ]
+    case 'CONSUME_SELECTED_CARD':
+      if (displayFx.numberOfTargets === 1) return [txt('consume a selected card.')]
+      return [
+        txt('consume up to '),
+        amtSeg(
+          baseFx.kind === 'CONSUME_SELECTED_CARD' ? baseFx.numberOfTargets : displayFx.numberOfTargets,
+          displayFx.numberOfTargets,
+        ),
+        txt(' selected cards.'),
+      ]
+    case 'UPGRADE_SPECIFIC_CARD': {
+      const pretty = displayFx.target === 'MULTIBUNNIES' ? 'Multibunnies' : displayFx.target
+      const baseTargets =
+        baseFx.kind === 'UPGRADE_SPECIFIC_CARD' ? baseFx.numberOfTargets : displayFx.numberOfTargets
+      if (displayFx.numberOfTargets === 1) return [txt(`upgrade your ${pretty}.`)]
+      return [
+        txt('upgrade '),
+        amtSeg(baseTargets, displayFx.numberOfTargets),
+        txt(` of your ${pretty}.`),
+      ]
+    }
+    default:
+      return [txt(`${describeEffect(displayFx)}.`)]
+  }
+}
 
 /**
- * Combat hand only: lines for card text. ADD_BUNNIES rows carry base (scaled, no power) vs display (with power bonus when power > 0).
- * Other zones should use {@link describeCardWithUpgrades}.
+ * Structured card description lines. ADD_BUNNIES rows carry base (scaled, no power) vs display (with power bonus when power > 0).
  */
-export function combatHandDescriptionLines(
+export function cardDescriptionLines(
   card: CardTemplate,
   upgrades: number,
   power: number,
   socketedGemId: GemId | null = null,
   firepowerMultiplier = 0,
-): CombatHandDescLine[] {
+): CardDescLine[] {
   const baseEffects = cardBaseEffects(card.id, socketedGemId)
-  const lines: CombatHandDescLine[] = []
+  const lines: CardDescLine[] = []
   const unplayable = unplayableDescriptionLine(card)
-  if (unplayable) lines.push({ kind: 'plain', text: unplayable })
+  if (unplayable) lines.push(plainCardDescLine(unplayable))
   if (!baseEffects.length) {
-    if (!lines.length && card.tags.includes('consume')) return [{ kind: 'plain', text: 'Consume.' }]
+    if (!lines.length && card.tags.includes('consume')) return [plainCardDescLine('Consume.')]
     return lines
   }
-  if (cardShowsExhaust(card, socketedGemId)) lines.push({ kind: 'plain', text: 'Exhaust.' })
-  const scaled = scaleCardEffects(baseEffects, upgrades)
-    .filter((fx) => fx.kind !== 'EXHAUST')
-    .map((fx): CombatHandDescLine => {
-    if (fx.kind === 'ADD_BUNNIES') {
-      const baseAmount = fx.amount
-      const displayAmount = power > 0 ? fx.amount + power : fx.amount
-      return { kind: 'addBunnies', baseAmount, displayAmount }
-    }
-    if (fx.kind === 'DEAL_DAMAGE' && cardHasFireDamageTags(card.tags)) {
-      const displayAmount = boostFireDealDamage(fx.amount, firepowerMultiplier)
-      return { kind: 'plain', text: `deal ${displayAmount} damage.` }
-    }
-    return { kind: 'plain', text: `${describeEffect(fx)}.` }
-  })
-  return [...lines, ...scaled]
+  const baseScaled = scaleCardEffects(baseEffects, 0).filter((fx) => !isDescriptionKeywordEffect(fx))
+  const scaled = scaleCardEffects(baseEffects, upgrades).filter((fx) => !isDescriptionKeywordEffect(fx))
+  const effectLines: CardDescLine[] = scaled.map((fx, i) =>
+    effectDescriptionLine(card, baseScaled[i] ?? fx, fx, power, firepowerMultiplier),
+  )
+  const keywordIds = cardKeywordIds(card, socketedGemId)
+  const keywordLines: CardDescLine[] = keywordIds.length ? [{ kind: 'keywords', ids: keywordIds }] : []
+  return [...lines, ...effectLines, ...keywordLines]
 }
 
-export function combatHandDescriptionLinesForInstance(
+export function gemOfferDescriptionLines(gem: GemTemplate): CardDescLine[] {
+  const lines: CardDescLine[] = gem.effects
+    .filter((fx) => !isKeywordEffectKind(fx.kind))
+    .map((fx) => plainCardDescLine(`${describeEffect(fx)}.`))
+  const keywordIds = gemKeywordIds(gem)
+  if (keywordIds.length) lines.push({ kind: 'keywords', ids: keywordIds })
+  return lines
+}
+
+export function cardDescriptionLinesForInstance(
   card: CardTemplate,
   inst: CardInstance,
   power: number,
   firepowerMultiplier = 0,
-): CombatHandDescLine[] {
-  return combatHandDescriptionLines(card, inst.upgrades, power, inst.socketedGemId ?? null, firepowerMultiplier)
+): CardDescLine[] {
+  return cardDescriptionLines(card, inst.upgrades, power, inst.socketedGemId ?? null, firepowerMultiplier)
+}
+
+export function cardDescriptionLinesForOffer(
+  card: CardTemplate,
+  upgradeApplications: number,
+  power = 0,
+  firepowerMultiplier = 0,
+): CardDescLine[] {
+  const scaling = offeredUpgradeTiersToEffectScaling(card.id, upgradeApplications)
+  return cardDescriptionLines(card, scaling, power, null, firepowerMultiplier)
 }
 

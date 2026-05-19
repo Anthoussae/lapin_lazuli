@@ -1,0 +1,38 @@
+/*
+ * Gilt rim — reusable metallic gold frame.
+ *
+ * Usage: add class `gilt-rim` to any element with a defined border-radius.
+ * Tokens live in tokens.css (--gilt-rim-*, --gilt-color-*).
+ *
+ * Example:
+ *   <motion.div className="myPanel gilt-rim">...</motion.div>
+ */
+
+.gilt-rim {
+  position: relative;
+  isolation: isolate;
+  box-shadow:
+    var(--gilt-rim-outer-shadow),
+    var(--gilt-rim-inner-highlight),
+    var(--gilt-rim-inner-shadow);
+}
+
+.gilt-rim::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: var(--gilt-rim-width);
+  background: var(--gilt-rim-gradient);
+  pointer-events: none;
+  z-index: var(--gilt-rim-z-index);
+  box-shadow: var(--gilt-rim-glow);
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+}

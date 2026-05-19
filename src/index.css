@@ -1,10 +1,13 @@
+@import './styles/tokens.css';
+@import './styles/gilt-rim.css';
+
 :root {
   --game-w: 1280;
   --game-h: 720;
   --game-scale: 1;
 
-  color-scheme: dark;
-  font-family: ui-monospace, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  color-scheme: light;
+  font-family: var(--font-main);
   text-rendering: geometricPrecision;
   -webkit-font-smoothing: none;
   -moz-osx-font-smoothing: grayscale;
@@ -41,12 +44,22 @@ body {
 .stageFrame {
   width: calc(var(--game-w) * 1px);
   height: calc(var(--game-h) * 1px);
-  background: radial-gradient(1200px 800px at 50% 30%, #141c28 0%, #0b0f14 60%, #070a0d 100%);
-  border: 2px solid #223049;
-  box-shadow: 0 16px 60px rgba(0, 0, 0, 0.5);
+  background: var(--color-bg);
+  border: 2px solid #c4a574;
+  box-shadow: 0 16px 60px rgba(0, 0, 0, 0.25);
   image-rendering: pixelated;
   position: relative;
   overflow: hidden;
+  cursor: default;
+  user-select: none;
+}
+
+.stageFrame button:not(:disabled) {
+  cursor: pointer;
+}
+
+.stageFrame button:disabled {
+  cursor: not-allowed;
 }
 
 button {

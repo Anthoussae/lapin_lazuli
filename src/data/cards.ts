@@ -17,6 +17,8 @@ export type CardTemplate = Readonly<{
   /** Null ink cost: cannot be cast; clutters the hand. */
   cost: number | null
   exhaust?: boolean
+  /** When true, this card is not discarded from hand at player turn end. */
+  retain?: boolean
   tags: ReadonlyArray<string>
   effects: ReadonlyArray<Effect>
   /**
@@ -61,8 +63,9 @@ export const Cards: Readonly<Record<CardId, CardTemplate>> = {
     poolFrequency: 0,
     cost: 2,
     exhaust: true,
+    retain: true,
     tags: ['upgrade'],
-    effects: [{ kind: 'DESTINY' }, { kind: 'UPGRADE_SELECTED_CARD', numberOfTargets: 1, upgradeAmount: 1 }],
+    effects: [{ kind: 'UPGRADE_SELECTED_CARD', numberOfTargets: 1, upgradeAmount: 1 }, { kind: 'DESTINY' }],
   },
   PONDER: {
     id: 'PONDER',

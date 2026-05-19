@@ -10,6 +10,7 @@ import { rollDice } from '../../core/rng/dice'
 import { rngNext } from '../../core/rng/rng'
 import { applyRelicEffect } from '../../systems/relics/applyRelicEffects'
 import { populateCardReward } from '../../systems/rewards/cardRewards'
+import { initialRewardLootFlags } from '../../systems/rewards/rewardLoot'
 import { pickThreeShopRelics } from '../../systems/shop/populateShop'
 import { clearActiveCombat } from '../../systems/combat/endCombat'
 
@@ -122,21 +123,14 @@ function maybeEndCombat(state: GameState): { state: GameState; events: GameEvent
       }
     }
 
-    // Gold/keys are calculated the same way for normal fights and minibosses:
-    //   - Baseline: 1d4 × encounter level.
-    //   - Each boon on any enemy adds an extra 1d4 × encounter level (rolled per boon; minibosses can have two).
-    //   - Minibosses always grant 1 key.
+    // Gold/keys are rolled the same way for normal fights and minibosses (see `computeVictoryGoldAndKeys`);
+    // amounts are stored on `cardReward` and applied when the player picks them up on the reward screen.
     const goldKeys = computeVictoryGoldAndKeys(sTrig.rng, combatSnapshot, level, entryPathId, sTrig.player.luck, isRelicRewardFight)
     const { goldGain, keysEarned } = goldKeys
 
     sTrig = {
       ...sTrig,
       rng: goldKeys.rng,
-      player: {
-        ...sTrig.player,
-        gold: sTrig.player.gold + goldGain,
-        keys: sTrig.player.keys + keysEarned,
-      },
     }
 
     let s2: GameState = shuffleAllZonesIntoDeck(sTrig)
@@ -156,15 +150,30 @@ function maybeEndCombat(state: GameState): { state: GameState; events: GameEvent
     // The only thing that actually differs between normal and miniboss is the offer kind.
     let nextRng = s2.rng
     let cardReward: NonNullable<GameState['cardReward']>
+    const lootFlags = initialRewardLootFlags(goldGain, keysEarned)
     if (isRelicRewardFight) {
       const ownedRelics = new Set(s2.player.relics.map((r) => r.templateId))
       const relicPick = pickThreeShopRelics(nextRng, ownedRelics)
       nextRng = relicPick.rng
-      cardReward = { kind: 'RELIC', offered: relicPick.relicIds, goldEarned: goldGain, keysEarned }
+      cardReward = {
+        kind: 'RELIC',
+        offered: relicPick.relicIds,
+        goldEarned: goldGain,
+        keysEarned,
+        goldPickedUp: lootFlags.goldPickedUp,
+        keysPickedUp: lootFlags.keysPickedUp,
+      }
     } else {
       const rewardOut = populateCardReward({ rng: nextRng, baseRewardLevel: level, luck: s2.player.luck, count: 3 })
       nextRng = rewardOut.rng
-      cardReward = { kind: 'CARD', offered: rewardOut.offered, goldEarned: goldGain, keysEarned }
+      cardReward = {
+        kind: 'CARD',
+        offered: rewardOut.offered,
+        goldEarned: goldGain,
+        keysEarned,
+        goldPickedUp: lootFlags.goldPickedUp,
+        keysPickedUp: lootFlags.keysPickedUp,
+      }
     }
 
     s2 = setPhase(

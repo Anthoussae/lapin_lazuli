@@ -1,5 +1,6 @@
 import type { GameState } from '../../core/types/state'
 import type { PlayerAction } from '../actions'
+import { isRewardLootFullyCollected } from '../../systems/rewards/rewardLoot'
 
 export function isActionLegalNow(state: GameState, action: PlayerAction): boolean {
   if (state.phase === 'BOOT') return false
@@ -36,7 +37,11 @@ export function isActionLegalNow(state: GameState, action: PlayerAction): boolea
 
   if (state.phase === 'REWARD') {
     const rw = state.cardReward
-    if (rw?.kind === 'RELIC') return action.type === 'REWARD/PICK_RELIC'
+    if (!rw) return false
+    if (action.type === 'REWARD/PICK_GOLD') return rw.goldEarned > 0 && !rw.goldPickedUp
+    if (action.type === 'REWARD/PICK_KEYS') return rw.keysEarned > 0 && !rw.keysPickedUp
+    if (!isRewardLootFullyCollected(rw)) return false
+    if (rw.kind === 'RELIC') return action.type === 'REWARD/PICK_RELIC'
     return action.type === 'REWARD/PICK_CARD'
   }
 

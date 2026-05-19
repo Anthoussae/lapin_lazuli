@@ -1,3 +1,4 @@
+import type { CardInstanceId } from '../../core/types/ids'
 import type { GameState } from '../../core/types/state'
 import type { GameEvent } from '../../reducers/events'
 import { setPhase } from '../../reducers/reduceGame'
@@ -15,7 +16,7 @@ import { applyTurnStartRelicTriggers } from '../relics/triggers'
 import { Enemies } from '../../data/enemies'
 import { applyDrainingAtPlayerTurnStart } from './drainingBoon'
 import { damageEnemy } from './damageEnemy'
-import { cardInstanceConsumesIfInHandAtTurnEnd } from '../cards/cardEffects'
+import { cardInstanceConsumesIfInHandAtTurnEnd, cardInstanceRetains } from '../cards/cardEffects'
 import { consumeCardFromDeck } from './zones'
 
 export function endPlayerTurn(state: GameState): { state: GameState; events: GameEvent[] } {
@@ -56,9 +57,19 @@ export function endPlayerTurn(state: GameState): { state: GameState; events: Gam
     s = consumeCardFromDeck(s, cardInstanceId)
   }
 
-  // Discard hand.
-  const disc = [...s.player.deck.discardPile, ...s.player.deck.hand]
-  s = { ...s, player: { ...s.player, deck: { ...s.player.deck, hand: [], discardPile: disc } } }
+  // Discard hand (retained cards stay in hand).
+  const retainedHand: CardInstanceId[] = []
+  const discardedFromHand: CardInstanceId[] = []
+  for (const cardInstanceId of s.player.deck.hand) {
+    const inst = s.player.deck.cardById[cardInstanceId]
+    if (inst && cardInstanceRetains(inst)) retainedHand.push(cardInstanceId)
+    else discardedFromHand.push(cardInstanceId)
+  }
+  const disc = [...s.player.deck.discardPile, ...discardedFromHand]
+  s = {
+    ...s,
+    player: { ...s.player, deck: { ...s.player.deck, hand: retainedHand, discardPile: disc } },
+  }
 
   // Enemy turn.
   const out = enemyTakeTurn(s)

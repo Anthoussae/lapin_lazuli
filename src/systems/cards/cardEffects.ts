@@ -3,6 +3,7 @@ import type { GemId } from '../../core/types/ids'
 import type { Effect } from '../../data/effects'
 import { cardTemplateById, Cards } from '../../data/cards'
 import { Gems } from '../../data/gems'
+import { scaleCardEffects } from './upgrades'
 
 export function cardBaseEffects(templateId: string, socketedGemId: GemId | null = null): ReadonlyArray<Effect> {
   const card = cardTemplateById(templateId)
@@ -41,6 +42,10 @@ export function cardInstanceExhausts(inst: CardInstance): boolean {
   return cardInstanceBaseEffects(inst).some((fx) => fx.kind === 'EXHAUST')
 }
 
+export function cardInstanceRetains(inst: CardInstance): boolean {
+  return cardTemplateById(inst.templateId)?.retain === true
+}
+
 export function cardInstanceConsumesIfInHandAtTurnEnd(inst: CardInstance): boolean {
   return cardInstanceBaseEffects(inst).some((fx) => fx.kind === 'CONSUME_IF_IN_HAND_AT_TURN_END')
 }
@@ -53,4 +58,16 @@ export function cardInstanceConsumes(inst: CardInstance): boolean {
   const tmpl = Cards[inst.templateId]
   if (tmpl?.tags.includes('consume')) return true
   return cardInstanceBaseEffects(inst).some((fx) => fx.kind === 'CONSUME')
+}
+
+/** True when playing this card opens the hand-selection modal instead of resolving immediately. */
+export function cardInstanceOpensHandSelection(inst: CardInstance): boolean {
+  const scaled = scaleCardEffects(cardInstancePlayEffects(inst), inst.upgrades)
+  const handSelectionEffect = scaled.find(
+    (fx): fx is Extract<Effect, { kind: 'UPGRADE_SELECTED_CARD' | 'CONSUME_SELECTED_CARD' }> =>
+      fx.kind === 'UPGRADE_SELECTED_CARD' || fx.kind === 'CONSUME_SELECTED_CARD',
+  )
+  if (!handSelectionEffect || handSelectionEffect.numberOfTargets <= 0) return false
+  if (handSelectionEffect.kind === 'CONSUME_SELECTED_CARD') return true
+  return handSelectionEffect.upgradeAmount > 0
 }

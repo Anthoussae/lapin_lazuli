@@ -41,15 +41,15 @@ export const Relics: Readonly<Record<RelicId, RelicTemplate>> = {
   },
   INKPOT: {
     id: 'INKPOT',
-    name: 'Inkpot',
-    thumb: 'I',
+    name: 'Eternal Inkstone',
+    thumb: 'E',
     starter: true,
     unique: true,
     triggers: [{ id: 'INKPOT_PICKUP', on: 'onPickup', effect: { kind: 'GAIN_MAX_INK', amount: 1 } }],
   },
   HEART: {
     id: 'HEART',
-    name: 'Heart',
+    name: 'Hydrangea',
     thumb: 'H',
     starter: true,
     unique: true,
@@ -57,7 +57,7 @@ export const Relics: Readonly<Record<RelicId, RelicTemplate>> = {
   },
   SCROLL: {
     id: 'SCROLL',
-    name: 'Scroll',
+    name: 'Arcane Scroll',
     thumb: 'S',
     starter: true,
     unique: true,
@@ -65,15 +65,15 @@ export const Relics: Readonly<Record<RelicId, RelicTemplate>> = {
   },
   FLASK: {
     id: 'FLASK',
-    name: 'Flask',
-    thumb: 'F',
+    name: 'Magic Staff',
+    thumb: 'M',
     starter: true,
     unique: true,
     triggers: [{ id: 'FLASK_TURN_START', on: 'turn_start', effect: { kind: 'ADD_BUNNIES', amount: 3 } }],
   },
   GOLD_COIN: {
     id: 'GOLD_COIN',
-    name: 'Gold Coin',
+    name: 'Gold Ingot',
     thumb: 'G',
     starter: true,
     unique: true,
@@ -82,7 +82,7 @@ export const Relics: Readonly<Record<RelicId, RelicTemplate>> = {
   },
   WAND: {
     id: 'WAND',
-    name: 'Wand',
+    name: 'Magic Wand',
     thumb: 'W',
     starter: true,
     unique: true,
@@ -90,8 +90,8 @@ export const Relics: Readonly<Record<RelicId, RelicTemplate>> = {
   },
   BOOK: {
     id: 'BOOK',
-    name: 'Book',
-    thumb: 'B',
+    name: 'Enchanted Encyclopaedia',
+    thumb: 'E',
     starter: true,
     unique: true,
     triggers: [
@@ -112,16 +112,16 @@ export const Relics: Readonly<Record<RelicId, RelicTemplate>> = {
   },
   LUCKY_CLOVER: {
     id: 'LUCKY_CLOVER',
-    name: 'Lucky Clover',
-    thumb: 'C',
+    name: 'Lucky Egg',
+    thumb: 'E',
     starter: true,
     unique: true,
     triggers: [{ id: 'LUCKY_CLOVER_PICKUP', on: 'onPickup', effect: { kind: 'GAIN_LUCK', amount: 2 } }],
   },
   GARNET_TIARA: {
     id: 'GARNET_TIARA',
-    name: 'Garnet Tiara',
-    thumb: 'T',
+    name: 'Shakujo',
+    thumb: 'S',
     starter: true,
     unique: true,
     triggers: [
