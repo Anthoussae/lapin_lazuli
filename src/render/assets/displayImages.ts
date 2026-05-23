@@ -1,25 +1,43 @@
 import mapBackground from '../../assets/images/displayElements/mapBackground.png'
+import openDoor from '../../assets/images/displayElements/openDoor.png'
 import deckInspectSprite from '../../assets/images/displayElements/deck.png'
 import discardInspectSprite from '../../assets/images/displayElements/discarded cards.png'
 import coin1Sprite from '../../assets/images/displayElements/coin1.png'
 import coin2Sprite from '../../assets/images/displayElements/coin2.png'
 import goldBagSprite from '../../assets/images/displayElements/GoldBag.png'
 import keySprite from '../../assets/images/displayElements/key.png'
+import pathDoorLockSprite from '../../assets/images/displayElements/lock.png'
 import senjafudaFrame from '../../assets/images/displayElements/senjafudaFrame.png'
 import tallscroll from '../../assets/images/displayElements/tallscroll.png'
+import bunnyIrisOutline from '../../assets/images/displayElements/bunnyIrisOutline.png'
 import blueCarpet from '../../assets/images/displayElements/blueCarpet.png'
+import blackCarpet from '../../assets/images/displayElements/blackCarpet.png'
+import blackCarpet2 from '../../assets/images/displayElements/blackCarpet2.png'
+import greenCarpet from '../../assets/images/displayElements/greenCarpet.png'
 import mythicCarpet from '../../assets/images/displayElements/mythicCarpet.png'
 import leapingBunnyBack from '../../assets/images/displayElements/leapingBunnyBack.png'
 import leapingBunnyFront from '../../assets/images/displayElements/leapingBunnyFront.png'
 import tinyBunny from '../../assets/images/displayElements/tinyBunny.png'
 import tinypoof from '../../assets/images/displayElements/tinypoof.png'
+import poof from '../../assets/images/displayElements/poof.png'
+import bigPoof from '../../assets/images/displayElements/bigPoof.png'
 import castStar from '../../assets/images/displayElements/castStar.png'
+import spark1Sprite from '../../assets/images/displayElements/spark1.png'
+import spark2Sprite from '../../assets/images/displayElements/spark2.png'
+import consumeCardAftermath from '../../assets/images/displayElements/consumeCardAftermath.png'
+import xtoCloseIcon from '../../assets/images/displayElements/xtoCloseIcon.png'
 import cauldronSprite from '../../assets/images/displayElements/cauldron.png'
+import shopShelvesSprite from '../../assets/images/displayElements/shopShelves.png'
+import playerPlaceholderSprite from '../../assets/images/displayElements/playerPlaceholder1.png'
+import shieldSprite from '../../assets/images/displayElements/shield.png'
+import brokenShieldSprite from '../../assets/images/displayElements/brokenShield.png'
+import lockedShieldSprite from '../../assets/images/displayElements/buffedShield2.png'
 import inkJarEmpty from '../../assets/images/displayElements/inkjars/emptyInk.png'
 import inkJar1 from '../../assets/images/displayElements/inkjars/1Ink.png'
 import inkJar2 from '../../assets/images/displayElements/inkjars/2Ink.png'
 import inkJar3 from '../../assets/images/displayElements/inkjars/3Ink.png'
 import inkJar4Plus from '../../assets/images/displayElements/inkjars/4+ink.png'
+import { hash01 } from '../bunnyLeapPath'
 
 /** Ink jar art keyed by fill tier: 0 = empty … 4 = four or more. */
 export const INK_JAR_SPRITES: readonly [string, string, string, string, string] = [
@@ -41,19 +59,31 @@ export function inkJarSpriteForCount(ink: number): string {
 
 export {
   mapBackground,
+  openDoor,
   tinypoof as relicRejectPoofSprite,
   castStar as castBurstSprite,
   deckInspectSprite,
   discardInspectSprite,
+  xtoCloseIcon as inspectPileCloseIcon,
   senjafudaFrame,
   tallscroll,
+  bunnyIrisOutline,
   blueCarpet,
+  blackCarpet,
+  blackCarpet2,
+  greenCarpet,
   mythicCarpet,
   coin1Sprite,
   coin2Sprite,
   goldBagSprite,
   keySprite,
+  pathDoorLockSprite,
   cauldronSprite,
+  shopShelvesSprite,
+  playerPlaceholderSprite,
+  shieldSprite,
+  brokenShieldSprite,
+  lockedShieldSprite,
 }
 
 export const GOLD_COIN_SPRITES: readonly [string, string] = [coin1Sprite, coin2Sprite]
@@ -81,6 +111,52 @@ export const RELIC_REJECT_PUFF_SPRITES: readonly string[] = [
   tinyBunny,
   leapingBunnyBack,
 ]
+
+/** Sprites pool for end-of-turn bunny release (one picked per released bunny). */
+export const BUNNY_RELEASE_PUFF_SPRITE_POOL: readonly string[] = [
+  leapingBunnyFront,
+  leapingBunnyBack,
+  tinyBunny,
+  poof,
+  bigPoof,
+  tinypoof,
+]
+
+export {
+  poof as bunnyReleasePoofSprite,
+  bigPoof as bunnyReleaseBigPoofSprite,
+  tinypoof as bunnyReleaseTinyPoofSprite,
+  consumeCardAftermath as consumeCardAftermathSprite,
+}
+
+/** Sprites for card-consume smoke puffs (poof family only). */
+export const CARD_CONSUME_PUFF_SPRITE_POOL: readonly string[] = [
+  poof,
+  bigPoof,
+  tinypoof,
+  poof,
+  tinypoof,
+  bigPoof,
+]
+
+export const BUNNY_LEAP_SPRITES: readonly [string, string] = [leapingBunnyBack, tinyBunny]
+
+export function bunnyLeapSpriteForSeed(seed: number): string {
+  return BUNNY_LEAP_SPRITES[Math.floor(hash01(seed, 3) * BUNNY_LEAP_SPRITES.length)] ?? BUNNY_LEAP_SPRITES[0]
+}
+
+/** Sprites pool for fire-tagged card casts (alternating spark art). */
+export const FIRE_RELEASE_SPARK_SPRITE_POOL: readonly string[] = [spark1Sprite, spark2Sprite]
+
+export const SPARK_LEAP_SPRITES: readonly [string, string] = [spark1Sprite, spark2Sprite]
+
+export function sparkLeapSpriteForSeed(seed: number): string {
+  return SPARK_LEAP_SPRITES[Math.floor(hash01(seed, 3) * SPARK_LEAP_SPRITES.length)] ?? SPARK_LEAP_SPRITES[0]
+}
+
+export function sparkLeapLandSpriteForSeed(seed: number): string {
+  return SPARK_LEAP_SPRITES[Math.floor(hash01(seed, 7) * SPARK_LEAP_SPRITES.length)] ?? SPARK_LEAP_SPRITES[0]
+}
 
 /** Sprites used for card-cast star bursts (same sprite, varied motion per particle). */
 export const CAST_BURST_SPRITES: readonly string[] = [

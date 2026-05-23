@@ -24,9 +24,9 @@ export function cardInstanceHasDestiny(inst: CardInstance): boolean {
   return cardInstanceBaseEffects(inst).some((fx) => fx.kind === 'DESTINY')
 }
 
-/** Card effects resolved when the card is played (excludes combat-start-only effects). */
-export function cardInstancePlayEffects(inst: CardInstance): ReadonlyArray<Effect> {
-  return cardInstanceBaseEffects(inst).filter(
+/** Effects that resolve when a card is played (excludes combat-start / deck-meta kinds). */
+export function effectsResolvedOnCardPlay(effects: ReadonlyArray<Effect>): ReadonlyArray<Effect> {
+  return effects.filter(
     (fx) =>
       fx.kind !== 'DESTINY' &&
       fx.kind !== 'CONSUME' &&
@@ -34,6 +34,11 @@ export function cardInstancePlayEffects(inst: CardInstance): ReadonlyArray<Effec
       fx.kind !== 'UPGRADE_AFTER_CASTING' &&
       fx.kind !== 'CONSUME_IF_IN_HAND_AT_TURN_END',
   )
+}
+
+/** Card effects resolved when the card is played (excludes combat-start-only effects). */
+export function cardInstancePlayEffects(inst: CardInstance): ReadonlyArray<Effect> {
+  return effectsResolvedOnCardPlay(cardInstanceBaseEffects(inst))
 }
 
 export function cardInstanceExhausts(inst: CardInstance): boolean {

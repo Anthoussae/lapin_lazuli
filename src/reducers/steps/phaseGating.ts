@@ -5,6 +5,13 @@ import { isRewardLootFullyCollected } from '../../systems/rewards/rewardLoot'
 export function isActionLegalNow(state: GameState, action: PlayerAction): boolean {
   if (state.phase === 'BOOT') return false
 
+  if (
+    (state.combat?.monsterDefeatPending || state.combat?.playerDefeatPending) &&
+    action.type.startsWith('COMBAT/')
+  ) {
+    return false
+  }
+
   if (state.phase === 'TITLE') {
     return action.type === 'TITLE/NEW_GAME'
   }
@@ -50,9 +57,6 @@ export function isActionLegalNow(state: GameState, action: PlayerAction): boolea
   }
 
   if (state.phase === 'TREASURE_ROOM') {
-    if (state.treasureRoom?.selectionComplete) {
-      return action.type === 'TREASURE_ROOM/PROCEED'
-    }
     return action.type === 'TREASURE_ROOM/PICK_RELIC'
   }
 

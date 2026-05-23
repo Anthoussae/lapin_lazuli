@@ -7,7 +7,7 @@ export type GemTemplate = Readonly<{
   effects: ReadonlyArray<Effect>
   /**
    * When true, this gem may only be socketed onto cards that do not already have destiny
-   * (template or prior gem). Used for Bismuth so destiny cannot be stacked.
+   * (template or prior gem). Used for Topaz so destiny cannot be stacked.
    */
   requiresTargetWithoutDestiny?: boolean
 }>
@@ -43,9 +43,9 @@ export const Gems: Readonly<Record<GemId, GemTemplate>> = {
     name: 'Amethyst',
     effects: [{ kind: 'MULTIPLY_BUNNIES', amount: 1.5 }],
   },
-  BISMUTH: {
-    id: 'BISMUTH',
-    name: 'Bismuth',
+  TOPAZ: {
+    id: 'TOPAZ',
+    name: 'Topaz',
     requiresTargetWithoutDestiny: true,
     effects: [{ kind: 'DESTINY' }],
   },

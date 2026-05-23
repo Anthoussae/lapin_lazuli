@@ -9,7 +9,7 @@ export type TickingNumberProps = Readonly<
 
 export function TickingNumber(props: TickingNumberProps) {
   const { value, className, durationMs } = props
-  const display = useTickingNumber(value, { durationMs })
+  const { display } = useTickingNumber(value, { durationMs })
   const classes = className ? `tickingNumber ${className}` : 'tickingNumber'
   return <span className={classes}>{display}</span>
 }

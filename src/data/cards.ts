@@ -258,6 +258,11 @@ export function cardTemplateById(templateId: CardId): CardTemplate | undefined {
   return Object.values(Cards).find((card) => card.id === templateId)
 }
 
+/** Potion cards use full-color illustrations; other cards use silhouetted art. */
+export function isPotionCardId(cardId: CardId | undefined): boolean {
+  return cardId != null && cardId.endsWith('_POTION')
+}
+
 export type StarterDeckBuild = Readonly<{
   cardById: Readonly<Record<CardInstanceId, CardInstance>>
   drawPile: ReadonlyArray<CardInstanceId>

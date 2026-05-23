@@ -29,13 +29,16 @@ export function damageEnemy(
     ...combat.enemies.enemyById,
     [enemyId]: { ...enemy, shield: nextSh, lockedShield: nextLockedSh, hp: nextHp },
   }
-  const aliveIds2 = died ? combat.enemies.aliveIds.filter((id) => id !== enemyId) : combat.enemies.aliveIds
   if (died) events.push({ type: 'EVT/UNIT_DIED', unit: enemyId })
 
   return {
     state: {
       ...state,
-      combat: { ...combat, enemies: { ...combat.enemies, enemyById: enemyById2, aliveIds: aliveIds2 } },
+      combat: {
+        ...combat,
+        monsterDefeatPending: died ? enemyId : combat.monsterDefeatPending,
+        enemies: { ...combat.enemies, enemyById: enemyById2 },
+      },
     },
     events,
   }

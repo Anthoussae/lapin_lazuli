@@ -1,70 +1,113 @@
+import { useRef } from 'react'
 import { Cards } from '../../data/cards'
 import { Gems } from '../../data/gems'
-import { collectKeywordIdsFromDescriptionLines } from '../../ui/cardKeywords'
-import { gemOfferDescriptionLines } from '../../ui/describe'
 import { socketableDeckCards } from '../../systems/gems/socketing'
+import { useCardSocketFlip } from '../CardSocketFlipContext'
+import { cardSocketFlipPayload } from '../cardSocketFlipPayload'
 import { GameCardView } from '../primitives/GameCardView'
 import { CenteredPanel } from '../primitives/CenteredPanel'
-import { GemOfferDesc } from '../primitives/GemOfferDesc'
-import { KeywordHoverHost } from '../primitives/KeywordHoverHost'
-import { OfferButton } from '../primitives/OfferButton'
+import { GemOfferRow } from '../primitives/GemOfferRow'
+import { GemSocketPedestal } from '../primitives/GemSocketPedestal'
 import type { ScreenProps } from './types'
 
 export function GemstoneCavernScreen(props: ScreenProps) {
   const { state, enqueue } = props
   const cavern = state.gemstoneCavern
+  const { playCardSocketFlip, animatingCardInstanceId, isSocketFlipPlaying } = useCardSocketFlip()
+  const cardSlotRefs = useRef(new Map<string, HTMLDivElement>())
 
   if (cavern?.socketing) {
-    const gemName = Gems[cavern.socketing.gemId]?.name ?? cavern.socketing.gemId
+    const gemId = cavern.socketing.gemId
+    const gem = Gems[gemId]
+    const selectedId = cavern.socketing.selectedCardInstanceId
+    const canSocket = selectedId != null && !isSocketFlipPlaying
     return (
-      <CenteredPanel title={`Socket (${gemName}) into a card`}>
-        <button type="button" className="btn" onClick={() => enqueue({ type: 'GEMSTONE_CAVERN/SKIP_SOCKETING' })}>
-          Skip
-        </button>
-        <div className="gemstoneSocketCardList">
-          {socketableDeckCards(state).map((inst) => {
-            const t = Cards[inst.templateId]
-            const selected = cavern.socketing?.selectedCardInstanceId === inst.id
-            return (
-              <GameCardView
-                key={inst.id}
-                inst={inst}
-                template={t}
-                power={state.player.power}
-                firepowerMultiplier={state.player.firepowerMultiplier}
-                selected={selected}
-                className="gemstoneSocketCard"
-                onClick={() => enqueue({ type: 'GEMSTONE_CAVERN/SELECT_SOCKET_CARD', cardInstanceId: inst.id })}
-              />
-            )
-          })}
-        </div>
-        {cavern.socketing.selectedCardInstanceId ? (
-          <button type="button" className="btn" onClick={() => enqueue({ type: 'GEMSTONE_CAVERN/CONFIRM_SOCKETING' })}>
-            Confirm socketing {gemName}
+      <CenteredPanel panelClassName="gemstoneSocketPanel">
+        <GemSocketPedestal gemId={gemId} gem={gem} />
+        <div className="gemstoneSocketActions">
+          <button
+            type="button"
+            className="btn gemstoneSocketBackBtn"
+            disabled={isSocketFlipPlaying}
+            onClick={() => enqueue({ type: 'GEMSTONE_CAVERN/SKIP_SOCKETING' })}
+          >
+            Back
           </button>
-        ) : null}
+          <button
+            type="button"
+            className="btn gemstoneSocketSocketBtn"
+            disabled={!canSocket}
+            onClick={() => {
+              if (!selectedId) return
+              const inst = state.player.deck.cardById[selectedId]
+              const template = inst ? Cards[inst.templateId] : undefined
+              const slotEl = cardSlotRefs.current.get(selectedId)
+              if (!inst || !template || !slotEl) {
+                enqueue({ type: 'GEMSTONE_CAVERN/CONFIRM_SOCKETING' })
+                return
+              }
+              const power = state.player.power
+              const firepowerMultiplier = state.player.firepowerMultiplier
+              playCardSocketFlip({
+                cardInstanceId: selectedId,
+                sourceEl: slotEl,
+                cardBefore: cardSocketFlipPayload(template, inst, power, firepowerMultiplier, null),
+                cardAfter: cardSocketFlipPayload(template, inst, power, firepowerMultiplier, gemId),
+                onComplete: () => enqueue({ type: 'GEMSTONE_CAVERN/CONFIRM_SOCKETING' }),
+              })
+            }}
+          >
+            Socket
+          </button>
+        </div>
+        <div className="gemstoneSocketCardPanel">
+          <div className="gemstoneSocketCardList">
+            {socketableDeckCards(state).map((inst) => {
+              const t = Cards[inst.templateId]
+              const selected = selectedId === inst.id
+              const animating = animatingCardInstanceId === inst.id
+              return (
+                <div
+                  key={inst.id}
+                  ref={(el) => {
+                    if (el) cardSlotRefs.current.set(inst.id, el)
+                    else cardSlotRefs.current.delete(inst.id)
+                  }}
+                  className={animating ? 'gemstoneSocketCardSlot gemstoneSocketCardSlot--animating' : 'gemstoneSocketCardSlot'}
+                >
+                  <GameCardView
+                    inst={inst}
+                    template={t}
+                    power={state.player.power}
+                    firepowerMultiplier={state.player.firepowerMultiplier}
+                    selected={selected}
+                    className="gemstoneSocketCard"
+                    onClick={
+                      isSocketFlipPlaying
+                        ? undefined
+                        : () => enqueue({ type: 'GEMSTONE_CAVERN/SELECT_SOCKET_CARD', cardInstanceId: inst.id })
+                    }
+                  />
+                </div>
+              )
+            })}
+          </div>
+        </div>
       </CenteredPanel>
     )
   }
 
   return (
-    <CenteredPanel title="Gemstone Cavern">
-      {(cavern?.offered ?? []).map((gemId, idx) => {
-        const gem = Gems[gemId]
-        const descLines = gem ? gemOfferDescriptionLines(gem) : []
-        const keywordIds = collectKeywordIdsFromDescriptionLines(descLines)
-        return (
-          <KeywordHoverHost key={`${gemId}-${idx}`} keywordIds={keywordIds}>
-            <OfferButton
-              title={gem?.name ?? gemId}
-              description={descLines.length ? <GemOfferDesc lines={descLines} /> : undefined}
-              onClick={() => enqueue({ type: 'GEMSTONE_CAVERN/PICK_GEM', gemId })}
-            />
-          </KeywordHoverHost>
-        )
-      })}
-      <button type="button" className="btn" onClick={() => enqueue({ type: 'GEMSTONE_CAVERN/PROCEED' })}>
+    <CenteredPanel panelClassName="jewellersPanel">
+      <GemOfferRow
+        gemIds={cavern?.offered ?? []}
+        onPick={(gemId) => enqueue({ type: 'GEMSTONE_CAVERN/PICK_GEM', gemId })}
+      />
+      <button
+        type="button"
+        className="btn jewellersProceedBtn"
+        onClick={() => enqueue({ type: 'GEMSTONE_CAVERN/PROCEED' })}
+      >
         Proceed
       </button>
     </CenteredPanel>

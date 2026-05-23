@@ -4,4 +4,11 @@ import cardIllustrationPlaceholder from '../../assets/images/displayElements/ink
 
 export { cardFrontArt, cardBackArt, cardIllustrationPlaceholder }
 
-export const CARD_PRELOAD_URLS: readonly string[] = [cardFrontArt, cardBackArt, cardIllustrationPlaceholder]
+import { CARD_ILLUSTRATION_PRELOAD_URLS } from './cardIllustrationImages'
+
+export const CARD_PRELOAD_URLS: readonly string[] = [
+  cardFrontArt,
+  cardBackArt,
+  cardIllustrationPlaceholder,
+  ...CARD_ILLUSTRATION_PRELOAD_URLS,
+]

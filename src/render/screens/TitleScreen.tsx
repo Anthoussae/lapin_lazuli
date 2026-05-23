@@ -1,9 +1,11 @@
 import { tallscroll } from '../assets/displayImages'
+import { useIrisTransition } from '../IrisTransitionContext'
 import { CenteredPanel } from '../primitives/CenteredPanel'
 import type { ScreenProps } from './types'
 
 export function TitleScreen(props: ScreenProps) {
   const { enqueue } = props
+  const { isActive, runIrisTransition } = useIrisTransition()
 
   return (
     <CenteredPanel panelClassName="titleScreenPanelGame">
@@ -15,7 +17,16 @@ export function TitleScreen(props: ScreenProps) {
           Lazuli
         </div>
       </div>
-      <button className="btn" type="button" onClick={() => enqueue({ type: 'TITLE/NEW_GAME' })}>
+      <button
+        className="btn"
+        type="button"
+        disabled={isActive}
+        onClick={() =>
+          runIrisTransition(() => {
+            enqueue({ type: 'TITLE/NEW_GAME' })
+          })
+        }
+      >
         New Game
       </button>
     </CenteredPanel>

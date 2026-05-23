@@ -3,14 +3,67 @@
 
   --color-bg: #f2d0aa;
   --color-hud-text: #000000;
-  --color-shield-hud: #1a3a6b;
-  --color-locked-shield-hud: #1b5e20;
+
+  /* Player shield HUD icons (combat) — regular shield + locked shield. */
+  --player-shield-icon-size: 82px;
+  --player-shield-icon-offset-x: 0px;
+  --player-shield-icon-offset-y: -10px;
+  --font-player-shield-value-size: 28px;
+  --player-shield-value-offset-x: -4px;
+  --player-shield-value-offset-y: 0px;
+  --color-player-shield-value: #000000;
+  --player-locked-shield-icon-size: 82px;
+  --player-locked-shield-icon-offset-x: 0px;
+  --player-locked-shield-icon-offset-y: -10px;
+  --font-player-locked-shield-value-size: 28px;
+  --player-locked-shield-value-offset-x: -4px;
+  --player-locked-shield-value-offset-y: 0px;
+  --color-player-locked-shield-value: #ffffff;
+  --color-player-shield-tick-up-glow: rgb(143, 9, 227);
+  --color-player-shield-tick-up-glow-soft: rgba(143, 9, 227, 0.55);
+  --color-player-shield-tick-down-glow: rgb(239, 68, 68);
+  --color-player-shield-tick-down-glow-soft: rgba(239, 68, 68, 0.55);
+  --duration-player-shield-tick-glow: var(--duration-ticking-number);
+  --duration-player-broken-shield-display: 300ms;
+
+  /* Monster shield HUD icons (combat) — regular shield + locked shield. */
+  --monster-shield-icon-size: 82px;
+  --monster-shield-icon-offset-x: 0px;
+  --monster-shield-icon-offset-y: -10px;
+  --font-monster-shield-value-size: 28px;
+  --monster-shield-value-offset-x: -4px;
+  --monster-shield-value-offset-y: 0px;
+  --color-monster-shield-value: #000000;
+  --monster-locked-shield-icon-size: 82px;
+  --monster-locked-shield-icon-offset-x: 0px;
+  --monster-locked-shield-icon-offset-y: -10px;
+  --font-monster-locked-shield-value-size: 28px;
+  --monster-locked-shield-value-offset-x: -4px;
+  --monster-locked-shield-value-offset-y: 0px;
+  --color-monster-locked-shield-value: #ffffff;
+  --color-monster-shield-tick-up-glow: rgb(143, 9, 227);
+  --color-monster-shield-tick-up-glow-soft: rgba(143, 9, 227, 0.55);
+  --color-monster-shield-tick-down-glow: rgb(239, 68, 68);
+  --color-monster-shield-tick-down-glow-soft: rgba(239, 68, 68, 0.55);
+  --duration-monster-shield-tick-glow: var(--duration-ticking-number);
+  --duration-monster-broken-shield-display: 300ms;
 
   --color-button: #8f09e3;
   --color-button-hover: #4d0878;
   --color-button-text: #ffffff;
   --font-button-size: 28px;
   --font-combat-end-turn-button-size: calc(var(--font-button-size) * 0.7);
+  --color-combat-end-turn-nudge-glow-halo: rgb(255, 137, 202);
+  --color-combat-end-turn-nudge-glow-halo-strong: rgb(255, 255, 255);
+  --color-combat-end-turn-nudge-glow-core: color-mix(in srgb, var(--color-button)55%, transparent);
+  --color-combat-end-turn-nudge-glow-core-strong: color-mix(in srgb, var(--color-button) 75%, transparent);
+  --combat-end-turn-nudge-glow:
+    0 0 12px var(--color-combat-end-turn-nudge-glow-halo),
+    0 0 24px var(--color-combat-end-turn-nudge-glow-core);
+  --combat-end-turn-nudge-glow-strong:
+    0 0 18px var(--color-combat-end-turn-nudge-glow-halo-strong),
+    0 0 152px var(--color-combat-end-turn-nudge-glow-core-strong);
+  --duration-combat-end-turn-nudge-pulse: 1.6s;
 
   --duration-button-hover: 400ms;
   --duration-ticking-number: 400ms;
@@ -22,6 +75,97 @@
   --cauldron-label-nudge-y: -14px;
   --cauldron-offset-y: -40px;
   --cauldron-end-turn-button-offset-y: -90px;
+  /* Combat player placeholder — offset from arena center (bunny meter anchor). */
+  --combat-player-placeholder-size: 350px;
+  --combat-player-placeholder-x: calc(
+    (-0.5 * var(--cauldron-size)) + 36px - (0.5 * var(--combat-player-placeholder-size))
+  );
+  --combat-player-placeholder-y: calc(var(--cauldron-offset-y) + 20px);
+
+  /* Combat monster placeholder — offset from arena center (mirrors player, right side). */
+  --combat-monster-placeholder-size: 350px;
+  --combat-monster-placeholder-x: calc(
+    (0.5 * var(--cauldron-size)) + 100px + (0.5 * var(--combat-monster-placeholder-size))
+  );
+  --combat-monster-placeholder-y: calc(var(--cauldron-offset-y) + 20px);
+  --combat-monster-placeholder-z: 0;
+
+  /* Combat monster name — sits below placeholder art (relative to placeholder box). */
+  --combat-monster-name-gap: 9px;
+  --combat-monster-name-x-offset: -20px;
+  --combat-monster-name-y-offset: -90px;
+  --combat-monster-name-max-width: 320px;
+  --combat-monster-name-font-size: 28px;
+  --font-combat-monster-name-weight: 700;
+  --combat-monster-name-letter-spacing: 0.02em;
+  --color-combat-monster-name: var(--color-hud-text);
+
+  /*
+   * Combat monster health bar — offset from arena center (same anchor as monster placeholder).
+   * Default sits just above the placeholder art; shields overlay above the bar (out of flow).
+   */
+  --combat-monster-bar-min-width: 248px;
+  --combat-monster-bar-height: 38px;
+  --combat-monster-bar-font-size: 20px;
+  --combat-monster-bar-gap: 8px;
+  --combat-monster-shield-icon-gap: 8px;
+  --combat-monster-bar-x: var(--combat-monster-placeholder-x);
+  --combat-monster-bar-y: calc(
+    var(--combat-monster-placeholder-y) -
+      (0.5 * var(--combat-monster-placeholder-size)) - var(--combat-monster-bar-gap) -
+      (0.5 * var(--combat-monster-bar-height))
+  );
+  --combat-monster-bar-z: 1;
+
+  /* Combat monster intent icon — offset from arena center (same anchor as placeholder). */
+  --combat-monster-intent-size: 188px;
+  --combat-monster-intent-x: calc(var(--combat-monster-placeholder-x) - 228px);
+  --combat-monster-intent-y: calc(var(--combat-monster-placeholder-y) - 30px);
+  --combat-monster-intent-z: 2;
+  --combat-monster-intent-idle-lean-deg: 20deg;
+  --duration-combat-monster-intent-idle-sway: 3.4s;
+
+  /* Attack value above intent icon (any intent with damage). */
+  --combat-monster-intent-attack-value-gap: 2px;
+  --combat-monster-intent-attack-value-x-offset: 0px;
+  --combat-monster-intent-attack-value-y-offset: 0px;
+  --combat-monster-intent-attack-value-font-size: 38px;
+  --font-combat-monster-intent-attack-value-weight: 800;
+  --combat-monster-intent-attack-value-letter-spacing: 0.02em;
+  --color-combat-monster-intent-attack-value: #920000;
+
+  /* Intent name below the icon. */
+  --combat-monster-intent-name-gap: 6px;
+  --combat-monster-intent-name-x-offset: 0px;
+  --combat-monster-intent-name-y-offset: 0px;
+  --combat-monster-intent-name-max-width: 220px;
+  --combat-monster-intent-name-font-size: 22px;
+  --font-combat-monster-intent-name-weight: 700;
+  --combat-monster-intent-name-letter-spacing: 0.02em;
+  --color-combat-monster-intent-name: #920000;
+
+  /*
+   * Combat player health bar — offset from bunny meter center (same anchor as placeholder).
+   * Default sits just above the placeholder art; shields overlay above the bar (out of flow).
+   */
+  --combat-player-bar-min-width: 248px;
+  --combat-player-bar-height: 38px;
+  --combat-player-bar-font-size: 20px;
+  --combat-player-bar-gap: 8px;
+  --combat-player-shield-icon-gap: 8px;
+  --combat-player-bar-x: var(--combat-player-placeholder-x);
+  --combat-player-bar-y: calc(
+    var(--combat-player-placeholder-y) -
+      (0.5 * var(--combat-player-placeholder-size)) - var(--combat-player-bar-gap) -
+      (0.5 * var(--combat-player-bar-height))
+  );
+
+  /* Bunny meter stacking — End Turn stays above decorative PNGs / health bar. */
+  --combat-bunny-meter-placeholder-z: 0;
+  --combat-bunny-meter-bar-z: 1;
+  --combat-bunny-meter-cauldron-z: 1;
+  --combat-bunny-meter-end-turn-z: 2;
+
   --ease-button-hover: ease;
   --transition-button:
     background var(--duration-button-hover) var(--ease-button-hover),
@@ -51,10 +195,127 @@
   --relic-tooltip-nudge-x: -8px;
   --relic-tooltip-nudge-y: -10px;
 
+  /* Treasure room (greenCarpet.png under relic offers). */
+  --treasure-room-carpet-size: min(720px, 80%);
+
+  /* Gem offer icons (Jewellers). */
+  --gem-icon-size: calc(72px * 1.7);
+  --gem-icon-hover-scale: 1.2;
+  --gem-icon-hover-duration: 0.5s;
+  --gem-icon-fallback-font-size: calc(32px * 1.3);
+  --gem-icon-fallback-color: #e6f0ff;
+  --gem-offer-row-gap: 40px;
+  --gem-offer-row-padding-y: 8px 0 16px;
+  --gem-offer-carpet-size: min(920px, 140%);
+  --gem-offer-carpet-x: 50%;
+  --gem-offer-carpet-y: 50%;
+  --gem-offer-proceed-size: var(--font-button-size);
+  --gem-offer-proceed-x: 50%;
+  --gem-offer-proceed-y: 88%;
+  /* Shop shelf display (3×3 over shopShelves.png). */
+  --shop-shelves-width: min(800px, 90vw);
+  --shop-shelves-bg-nudge-x: 0px;
+  --shop-shelves-bg-nudge-y: 30px;
+  --shop-shelves-grid-nudge-x: 20px;
+  --shop-shelves-grid-nudge-y: 17px;
+  --shop-shelves-grid-width: 73%;
+  --shop-shelves-grid-height: 73%;
+  --shop-shelves-grid-gap: 3.2%;
+  --shop-shelves-cell-pad-bottom: 6%;
+  --shop-shelves-card-scale: 0.80;
+  --shop-relic-opacity: 1;
+  /** Greyscale filter for shelf items the player cannot afford (cards, relics, keys). */
+  --shop-item-disabled-filter: grayscale(1);
+  --duration-shop-unaffordable-reject: 450ms;
+  --shop-unaffordable-reject-color: #ef4444;
+  --shop-hud-gold-reject-glow: 0 0 12px color-mix(in srgb, var(--shop-unaffordable-reject-color) 80%, transparent);
+  /* Leave Shop button (fixed over the shop screen). */
+  --shop-leave-x: 1024px;
+  --shop-leave-y: 48%;
+  --shop-leave-z-index: 51;
+  --shop-leave-font-size: calc(var(--font-button-size) * 0.65);
+  --shop-leave-padding-x: 10px;
+  --shop-leave-padding-y: 6px;
+  --shop-leave-border-radius: 8px;
+
+  /* Gem socket display (over gemSocket.png). */
+  --gem-tooltip-gap: 4px;
+  --gem-tooltip-nudge-x: -8px;
+  --gem-tooltip-nudge-y: -10px;
+  --gem-socket-carpet-size: 280px;
+  --gem-socket-carpet-x: 8px;
+  --gem-socket-carpet-y: 50%;
+  --gem-socket-actions-x: calc(var(--gem-socket-carpet-x) + var(--gem-socket-carpet-size) / 2);
+  --gem-socket-actions-y: calc(var(--gem-socket-carpet-y) + var(--gem-socket-carpet-size) / 2 + var(--gem-socket-actions-below-carpet-gap));
+  --gem-socket-actions-below-carpet-gap: -32px;
+  --gem-socket-actions-gap: 12px;
+  --gem-socket-back-bg: rgb(105, 6, 6);
+  --gem-socket-back-border-width: 1px;
+  --gem-socket-back-border-color: rgb(105, 6, 6);
+  --gem-socket-back-color: var(--color-button-text);
+  --gem-socket-back-hover-bg: rgb(235, 65, 65);;
+  --gem-socket-back-font-size: var(--font-button-size);
+  --gem-socket-back-padding: 10px 14px;
+  --gem-socket-back-border-radius: 10px;
+  --gem-socket-socket-bg: var(--color-button);
+  --gem-socket-socket-border-width: 1px;
+  --gem-socket-socket-border-color: var(--color-button-hover);
+  --gem-socket-socket-color: var(--color-button-text);
+  --gem-socket-socket-hover-bg: var(--color-button-hover);
+  --gem-socket-socket-disabled-opacity: 0.5;
+  --gem-socket-socket-font-size: var(--font-button-size);
+  --gem-socket-socket-padding: 10px 14px;
+  --gem-socket-socket-border-radius: 10px;
+  --gem-socket-cards-x: 58%;
+  --gem-socket-cards-y: 55%;
+  --gem-socket-cards-width: min(92vw, 820px);
+  --gem-socket-cards-max-height: min(60vh, 520px);
+  --gem-socket-cards-gap: 10px;
+  --gem-socket-cards-padding-y: calc(var(--gem-socket-card-h) * 0.15);
+  --gem-socket-cards-padding-x: calc(var(--gem-socket-card-w) * 0.15);
+  --gem-socket-cards-border-radius: 12px;
+  --gem-socket-cards-rim-width: 1px;
+  --gem-socket-cards-rim-color:var(--inspect-deck-list-rim-color);
+  --gem-socket-cards-bg: rgb(40, 24, 1);
+  --gem-socket-card-w: var(--game-card-w);
+  --gem-socket-card-h: var(--game-card-h);
+  --gem-socket-card-hover-scale: var(--game-card-hover-scale);
+  --gem-socket-card-selected-outline-width: 3px;
+  --gem-socket-card-selected-outline-color: #34d399;
+  --gem-socket-card-selected-shadow: 0 0 0 2px rgba(0, 0, 0, 0.35);
+
+  /*
+   * Gem socket flip — card flips to reverse, back to upgraded front, brief glow.
+   * Total hold = 2 × flip half + glow + buffer (see cardSocketFlipConfig.ts).
+   */
+  --card-socket-flip-perspective: 900px;
+  --duration-card-socket-flip-half: 280ms;
+  --ease-card-socket-flip: ease-in-out;
+  --duration-card-socket-flip-glow: 520ms;
+  --ease-card-socket-flip-glow: ease-out;
+  --card-socket-flip-glow-color: #e69138;
+  --card-socket-flip-glow-spread: 14px;
+  --card-socket-flip-glow-opacity-peak: 0.85;
+  --card-socket-flip-glow-scale-peak: 1.04;
+  --duration-card-socket-flip-buffer: 48ms;
+  --card-socket-flip-fx-z: 10003;
+
   --game-card-w: 134px;
   --game-card-h: 196px;
   --game-card-hover-scale: 1.3;
   --game-card-hover-duration: 0.3s;
+
+  /* Card illustration — centered in .gameCard__art; override per card via layout map. */
+  --card-illustration-default-w: 52%;
+  --card-illustration-default-h: 88%;
+  --card-illustration-default-x: 0;
+  --card-illustration-default-y: 0;
+  /* Non-potion illustrations: colored PNGs → black silhouette (alpha preserved). */
+  --card-illustration-filter: brightness(0%);
+  /* Potion illustrations: full-color art (no silhouette). */
+  --card-illustration-potion-filter: brightness(100%);
+  /* Card front frame (basic.png) → pure black/white (no gray midtones). */
+  --card-front-filter: none;
 
   --hand-fan-overlap: 36px;
   --hand-fan-deg-per-slot: 4deg;
@@ -64,10 +325,12 @@
   --hand-fan-highlight-duration: 0.1s;
   --hand-fan-hover-lift: -18px;
 
-  /* Card travel: deck → hand (combat draw) */
+  /* Card travel: deck → hand (combat draw) / hand → discard (reverse) */
   --duration-card-draw-travel: 158ms;
   --duration-card-draw-flip: 152ms;
   --duration-card-draw-finish-buffer: 10ms;
+  --duration-card-discard-travel: var(--duration-card-draw-travel);
+  --duration-card-discard-finish-buffer: var(--duration-card-draw-finish-buffer);
 
   /* Card typography: name (header), ink (top-right), text (description). */
   --font-card: var(--font-main);
@@ -121,20 +384,139 @@
     drop-shadow(0 0 14px rgba(180, 220, 255, 0.55))
     drop-shadow(0 0 28px rgba(165, 210, 255, 0.38));
   --path-door-hover-duration: 0.2s;
-  --path-door-caption-offset: calc(var(--path-door-width) * 0.12);
+  --path-door-caption-offset: calc(var(--path-door-width) * -0.100000012);
+  --path-door-locked-caption-offset: calc(var(--path-door-width) * -0.2500000012);
   --path-door-caption-font-size: calc(16px * 1.4);
-  --path-door-combat-preview-font-size: calc(14px * 1.4);
+  --path-door-caption-gap: 4px;
+  --path-door-caption-line-height: 1.2;
+  --path-door-combat-preview-font-size: calc(16px * 1.4);
+  --path-door-combat-preview-gap: 2px;
+  --path-door-combat-preview-opacity: 0.9;
+  --path-door-combat-preview-level-font-size: var(--path-door-combat-preview-font-size);
+  --path-door-combat-preview-boons-font-size: var(--path-door-combat-preview-font-size);
+  --path-door-combat-preview-name-font-size: var(--path-door-combat-preview-font-size);
+  --path-door-combat-preview-level-font-weight: 400;
+  --path-door-combat-preview-boons-font-weight: 400;
+  --path-door-combat-preview-name-font-weight: 600;
   --path-door-locked-badge-font-size: calc(14px * 1.4);
-  --path-select-title-lift: calc(var(--game-h) * -0.1 * 1px);
+  --path-door-locked-badge-color: rgb(105, 6, 6);
+  /* Locked-path lock overlay width (% of .pathDoor__art; see .pathDoor__lockOverlay). */
+  --path-door-lock-size: 66%;
+  /* Locked door art — dimmer/darker (see .pathDoor--locked .pathDoor__img). */
+  --path-door-locked-brightness: 0.52;
+  --path-door-locked-saturate: 0.88;
+  --path-door-locked-opacity: 0.9;
+  /* Locked door hover — highlight lock, not door (see .pathDoor--locked … .pathDoor__lock). */
+  --path-door-lock-hover-brightness: 1.22;
+  --path-door-lock-hover-glow:
+    drop-shadow(0 0 6px rgba(255, 215, 120, 0.92))
+    drop-shadow(0 0 14px rgba(255, 195, 70, 0.6))
+    drop-shadow(0 0 24px rgba(230, 170, 40, 0.4));
+  --duration-path-door-open: 350ms;
 
   --inspect-deck-icon-height: 96px;
   --inspect-discard-icon-height: calc(var(--inspect-deck-icon-height) * 1.1);
+
+  /* Inspect deck / discard pile overlays — separate tokens (defaults match). */
+  --inspect-deck-overlay-z: 20000;
+  --inspect-pile-backdrop-color: rgba(0, 0, 0, 0.55);
+  --duration-inspect-pile-expand: 220ms;
+  --duration-inspect-pile-collapse: 180ms;
+  --ease-inspect-pile-expand: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-inspect-pile-collapse: cubic-bezier(0.4, 0, 0.2, 1);
+  --inspect-pile-panel-collapsed-scale: 0.9;
+  --inspect-pile-panel-collapsed-opacity: 0;
+  --inspect-pile-panel-transform-origin: center center;
+  --inspect-deck-title-color: #efac1a;
+  --inspect-deck-title-font-size: 22px;
+  --inspect-deck-panel-bg: rgba(45, 20, 1, 0.96);
+  --inspect-deck-panel-rim-width: 2px;
+  --inspect-deck-panel-rim-color: #91560e;
+  --inspect-deck-list-bg: rgba(68, 29, 4, 0.45);
+  --inspect-deck-list-rim-width: 1px;
+  --inspect-deck-list-rim-color: #b66f1a;
+
+  --inspect-discard-title-color: #1ad3ef;
+  --inspect-discard-title-font-size: 22px;
+  --inspect-discard-panel-bg: rgba(16, 1, 45, 0.96);
+  --inspect-discard-panel-rim-width: 2px;
+  --inspect-discard-panel-rim-color: #0e8291;
+  --inspect-discard-list-bg: rgba(13, 4, 68, 0.45);
+  --inspect-discard-list-rim-width: 1px;
+  --inspect-discard-list-rim-color: #1a8ab6;
+
+  /* Inspect pile close (X PNG): size, position (inset from panel top-right → CSS right/top), hover brightness. */
+  --inspect-close-size: 96px;
+  --inspect-close-x: -10px;
+  --inspect-close-y: -12px;
+  --inspect-close-hover-brightness: 1.58;
+
+  /*
+   * HUD box display — framed counter cluster (level, keys, gold).
+   * Defaults match the inspect-deck deck panel.
+   */
+  --hud-box-display-width: 100px;
+  --hud-box-display-border-width: var(--inspect-deck-panel-rim-width);
+  --hud-box-display-border-color: var(--inspect-deck-panel-rim-color);
+  --hud-box-display-bg: var(--inspect-deck-panel-bg);
+  --hud-box-display-border-radius: 14px;
+  --hud-box-display-padding: 10px 12px;
+  --hud-box-display-gap: 6px;
+  --hud-box-display-text-color: var(--inspect-deck-title-color);
+  --hud-box-display-font-size: 16px;
+  --hud-box-display-font-weight: 800;
+  --hud-box-display-line-height: 1.3;
+  --hud-box-display-icon-height: calc(22px * 1.75);
+  --hud-box-display-icon-gap: 6px;
+
+  /*
+   * Upgrade subscreen — combat hand selection (upgrade / consume cards).
+   * Independent from inspect-deck / discard pile overlays.
+   */
+  --upgrade-subscreen-overlay-bg: rgba(0, 0, 0, 0.55);
+  --upgrade-subscreen-overlay-z: 40;
+  --upgrade-subscreen-panel-width: min(860px, calc(100% - 40px));
+  --upgrade-subscreen-panel-height: min(520px, calc(100% - 40px));
+  --upgrade-subscreen-panel-border-radius: 14px;
+  --upgrade-subscreen-panel-padding: 18px;
+  --upgrade-subscreen-panel-gap: 12px;
+  --upgrade-subscreen-panel-box-shadow: 0 16px 60px rgba(0, 0, 0, 0.6);
+  --upgrade-subscreen-panel-rim-width: 2px;
+  --upgrade-subscreen-panel-rim-color: #0e9149;
+  --upgrade-subscreen-panel-bg: rgba(1, 45, 8, 0.96);
+  --upgrade-subscreen-title-font-size: 22px;
+  --upgrade-subscreen-title-color: #7dff7f;
+  --upgrade-subscreen-title-letter-spacing: 0.06em;
+  --upgrade-subscreen-title-close-padding: 6px;
+  --upgrade-subscreen-sub-font-size: 14px;
+  --upgrade-subscreen-sub-color: rgba(198, 255, 193, 0.92);
+  --upgrade-subscreen-hand-border-radius: 12px;
+  --upgrade-subscreen-hand-rim-width: 1px;
+  --upgrade-subscreen-hand-rim-color: #1ab646;
+  --upgrade-subscreen-hand-bg: rgba(4, 68, 13, 0.45);
+  --upgrade-subscreen-hand-padding-y: calc(var(--game-card-h) * 0.15);
+  --upgrade-subscreen-hand-padding-x: calc(var(--game-card-w) * 0.15);
+  --upgrade-subscreen-hand-gap: 16px;
+  --upgrade-subscreen-actions-gap: 10px;
+  --upgrade-subscreen-close-size: 96px;
+  --upgrade-subscreen-close-x: -10px;
+  --upgrade-subscreen-close-y: -12px;
+  --upgrade-subscreen-close-hover-brightness: 1.58;
+  --upgrade-subscreen-submit-border: 1px solid #256f4c;
+  --upgrade-subscreen-submit-bg: rgba(16, 95, 62, 0.9);
+  --upgrade-subscreen-submit-color: #e8fff4;
+  --upgrade-subscreen-submit-hover-bg: rgba(22, 120, 78, 0.95);
+  --upgrade-subscreen-submit-disabled-opacity: 0.45;
+  --upgrade-subscreen-submit-padding: 8px 14px;
+  --upgrade-subscreen-submit-border-radius: 10px;
+  --upgrade-subscreen-submit-font-size: 15px;
+  --upgrade-subscreen-submit-font-weight: 800;
 
   /*
    * Gilt rim — metallic gold outline for HUD bars, panels, text boxes, etc.
    * Apply the global `.gilt-rim` class; tweak stops/width/shadows here only.
    */
-  --gilt-rim-width: 1px;
+  --gilt-rim-width: 2px;
   --gilt-rim-z-index: 10;
 
   --gilt-color-highlight: #fff0b3;
@@ -158,4 +540,202 @@
   --gilt-rim-inner-highlight: inset 0 1px 1px rgba(255, 245, 200, 0.4);
   --gilt-rim-inner-shadow: inset 0 -1px 2px rgba(0, 0, 0, 0.35);
   --gilt-rim-glow: 0 0 6px rgba(212, 175, 55, 0.35);
+
+  /*
+   * Vanish puff — shared particle burst visuals (relic reject, bunny release).
+   * Motion/randomness for bunny release lives under --bunny-release-* below.
+   */
+  --vanish-puff-height-sm: 44px;
+  --vanish-puff-height-poof: 88px;
+  --vanish-puff-height-big: 112px;
+  --duration-vanish-puff-fade: 550ms;
+  --ease-vanish-puff-fade: ease-out;
+  --vanish-puff-start-opacity: 0.92;
+  --vanish-puff-end-scale-mult: 1.12;
+  --vanish-puff-z-host: 9998;
+  /*
+   * Card consume — hand card permanently destroyed (self-consume, Void Fox, turn-end).
+   * Total hold = max(puff fade + stagger, aftermath delay + fade) + buffer (see cardConsumeConfig.ts).
+   */
+  --card-consume-puff-count: 6;
+  --card-consume-puff-spread-base: 12px;
+  --card-consume-puff-spread-range: 18px;
+  --card-consume-puff-drift-min: 36px;
+  --card-consume-puff-drift-range: 44px;
+  --card-consume-puff-rot-max: 48deg;
+  --card-consume-puff-scale-min: 0.7;
+  --card-consume-puff-scale-range: 0.35;
+  --card-consume-puff-delay-steps: 3;
+  --card-consume-puff-delay-step: 25ms;
+  --card-consume-puff-height-tiny: 40px;
+  --card-consume-puff-height-poof: 72px;
+  --card-consume-puff-height-big: 96px;
+  --duration-card-consume-puff-fade: 420ms;
+  --ease-card-consume-puff-fade: ease-out;
+  --card-consume-puff-start-opacity: 0.95;
+  --card-consume-puff-end-scale-mult: 1.15;
+  --card-consume-aftermath-w: var(--game-card-w);
+  --card-consume-aftermath-h: var(--game-card-h);
+  --card-consume-aftermath-delay: 50ms;
+  --duration-card-consume-aftermath-fade: 580ms;
+  --ease-card-consume-aftermath-fade: ease-out;
+  --card-consume-aftermath-start-opacity: 0.92;
+  --card-consume-aftermath-start-scale: 1;
+  --card-consume-aftermath-end-scale: 1.04;
+  --duration-card-consume-buffer: 32ms;
+  --card-consume-fx-z: 10001;
+  /* Leaping bunnies + landing poofs: above HUD, hand, and card/relic travel flyers. */
+  --bunny-release-fx-z: 10002;
+
+  /*
+   * Bunny release — end-of-turn cauldron poof + stat tick-down (particle layout + timing).
+   * Total hold = fade + max stagger delay + buffer (see bunnyReleaseConfig.ts).
+   */
+  /* Burst anchor: offset from cauldron center on Y (negative = up, positive = down). */
+  --bunny-release-anchor-y: -100px;
+  --bunny-release-sprite-max: 50;
+  --bunny-release-spread-base: 48px;
+  --bunny-release-spread-range: 26px;
+  --bunny-release-spread-y-min: 0.6;
+  --bunny-release-spread-y-range: 0.3;
+  --bunny-release-drift-scale-min: 0.85;
+  --bunny-release-drift-scale-range: 0.55;
+  --bunny-release-drift-x-max: 28px;
+  --bunny-release-drift-y-base: 12px;
+  --bunny-release-drift-y-range: 24px;
+  --bunny-release-rot-max: 36deg;
+  --bunny-release-scale-min: 0.55;
+  --bunny-release-scale-range: 0.45;
+  --bunny-release-delay-steps: 5;
+  --bunny-release-delay-step: 35ms;
+  --duration-bunny-release-buffer: 60ms;
+
+  /*
+   * Fire release — spark burst when a fire-tagged card is played (player placeholder anchor).
+   * Total hold = fade + max stagger delay + buffer (see fireReleaseConfig.ts).
+   */
+  --fire-release-fx-z: 10002;
+  --fire-release-anchor-x: 0px;
+  --fire-release-anchor-y: -40px;
+  --fire-release-sprite-max: 50;
+  --fire-release-spark-height: 72px;
+  --fire-release-spread-base: 56px;
+  --fire-release-spread-range: 32px;
+  --fire-release-spread-y-min: 0.55;
+  --fire-release-spread-y-range: 0.35;
+  --fire-release-drift-scale-min: 0.9;
+  --fire-release-drift-scale-range: 0.5;
+  --fire-release-drift-x-max: 36px;
+  --fire-release-drift-y-base: 14px;
+  --fire-release-drift-y-range: 28px;
+  --fire-release-rot-max: 42deg;
+  --fire-release-scale-min: 0.5;
+  --fire-release-scale-range: 0.5;
+  --fire-release-delay-steps: 5;
+  --fire-release-delay-step: 35ms;
+  --duration-fire-release-buffer: 60ms;
+
+  /*
+   * Monster defeat — fall + red glow + poof before reward transition.
+   */
+  --duration-monster-defeat: 500ms;
+  --ease-monster-defeat: ease-in;
+  --monster-defeat-fall-y: 350px;
+  --monster-defeat-rotate-deg: 30deg;
+  --monster-defeat-glow-color: #ff2a2a;
+  --monster-defeat-glow-blur: 14px;
+  --monster-defeat-glow-art-spread: 0 0 18px var(--monster-defeat-glow-color),
+    0 0 32px color-mix(in srgb, var(--monster-defeat-glow-color) 55%, transparent);
+  --monster-defeat-glow-name-spread: 0 0 10px var(--monster-defeat-glow-color),
+    0 0 22px color-mix(in srgb, var(--monster-defeat-glow-color) 50%, transparent);
+  --color-monster-defeat-name: var(--monster-defeat-glow-color);
+  --duration-monster-defeat-poof-fade: 550ms;
+  --ease-monster-defeat-poof: ease-out;
+  --monster-defeat-poof-height: 88px;
+  --monster-defeat-poof-start-opacity: 0.92;
+  --monster-defeat-fx-z: 3;
+
+  /*
+   * Leaping bunnies — one per cauldron tick during release (spawn scatter + bounce arcs).
+   */
+  --bunny-leap-spawn-center-x: 0px;
+  --bunny-leap-spawn-center-y: -40px;
+  --bunny-leap-scatter-x: 36px;
+  --bunny-leap-scatter-y: 28px;
+  --bunny-leap-size: 40px;
+  --bunny-leap-arc-min: 2;
+  --bunny-leap-arc-max: 5;
+  --bunny-leap-apex-min: 22px;
+  --bunny-leap-apex-max: 64px;
+  --duration-bunny-release-leap: 180ms;
+  --bunny-leap-land-puff-distance-min: 150px;
+  --bunny-leap-land-puff-distance-max: 300px;
+  --bunny-leap-land-puff-duration-min: 50ms;
+  --bunny-leap-land-puff-duration-max: 100ms;
+
+  /*
+   * Spark leap — one per damage tick during fire release (player → selected enemy).
+   */
+  --spark-leap-spawn-center-x: 0px;
+  --spark-leap-spawn-center-y: 0px;
+  --spark-leap-scatter-x: 36px;
+  --spark-leap-scatter-y: 28px;
+  --spark-leap-size: 140px;
+  --spark-leap-arc-min: 2;
+  --spark-leap-arc-max: 5;
+  --spark-leap-apex-min: 22px;
+  --spark-leap-apex-max: 64px;
+  --duration-spark-release-leap: 180ms;
+  --spark-leap-land-puff-distance-min: 150px;
+  --spark-leap-land-puff-distance-max: 300px;
+  --spark-leap-land-puff-duration-min: 50ms;
+  --spark-leap-land-puff-duration-max: 100ms;
+  /* Flame aura on leaping sparks and land puffs. */
+  --spark-leap-glow-hot: #fff6b8;
+  --spark-leap-glow-core: #ffcc44;
+  --spark-leap-glow-mid: #ff6a18;
+  --spark-leap-glow-outer: #ff3d0a;
+  --spark-leap-glow-blur: 14px;
+  --spark-leap-glow-opacity: 0.9;
+  --spark-leap-glow-inset: -38%;
+  --spark-leap-sprite-glow: 0 0 6px var(--spark-leap-glow-hot), 0 0 14px var(--spark-leap-glow-core),
+    0 0 26px color-mix(in srgb, var(--spark-leap-glow-mid) 75%, transparent);
+  --spark-leap-land-glow-spread: 0 0 12px var(--spark-leap-glow-core),
+    0 0 28px color-mix(in srgb, var(--spark-leap-glow-outer) 65%, transparent);
+
+  /* Iris screen transition (title → starter relic). */
+  --iris-shape: bunny; /* circle | bunny */
+  --iris-center-x: 50%;
+  --iris-center-y: 50%;
+  --iris-color: #37045b;
+  --iris-color-black: #000000;
+  --iris-out-start: 350vmax;
+  --iris-out-end: 0px;
+  --iris-in-start: 0px;
+  --iris-in-end: 350vmax;
+  --duration-iris-out: 1000ms;
+  --duration-iris-in: 1000ms;
+  --ease-iris: cubic-bezier(0.4, 0, 0.2, 1);
+  --iris-overlay-z: 5000;
+
+  /*
+   * Iris path transition — two iris-outs when choosing a path (centered on door art).
+   * 1) color-out: matte closes with --iris-path-color.
+   * 2) clear-out: same shape re-opens (hole 0 → max) to remove the color layer.
+   */
+  --iris-path-shape: bunny; /* circle | bunny */
+  --iris-path-center-x-offset: 0px;
+  --iris-path-center-y-offset: 0px;
+  --iris-path-left-center-x-offset: -10px;
+  --iris-path-left-center-y-offset: 0px;
+  --iris-path-right-center-x-offset: 10px;
+  --iris-path-right-center-y-offset: 0px;
+  --iris-path-color: #37045b;
+  --iris-path-out-start: 450vmax;
+  --iris-path-out-end: 0px;
+  --duration-iris-path-out-color: 800ms;
+  --duration-iris-path-out-clear: 1000ms;
+  --iris-second-path-delay: 500ms;
+  --ease-iris-path: cubic-bezier(0.4, 0, 0.2, 1);
+  --iris-path-overlay-z: 5000;
 }

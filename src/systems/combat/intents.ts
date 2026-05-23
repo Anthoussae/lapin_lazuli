@@ -3,6 +3,7 @@ import type { DiceSpec } from '../../core/rng/dice'
 import { rngInt } from '../../core/rng/rng'
 import { rollDice } from '../../core/rng/dice'
 import { Enemies } from '../../data/enemies'
+import { ENEMY_INTENT_KINDS } from '../../data/enemyIntentKinds'
 import { isEnemyLockedShieldGainDiceRoll } from './intentEffects'
 
 function rollIntentEffects(
@@ -26,11 +27,17 @@ function rollIntentEffects(
 
 function rollMoveIntent(
   rng: GameState['rng'],
-  move: { kind: 'ATTACK'; intentName: string; damage: DiceSpec; effects?: EnemyIntentEffects },
+  move: {
+    kind: 'ATTACK'
+    intentKind: EnemyIntent['intentKind']
+    intentName: string
+    damage: DiceSpec
+    effects?: EnemyIntentEffects
+  },
 ): readonly [GameState['rng'], EnemyIntent] {
   const [rngAfterDamage, dmg] = rollDice(rng, move.damage)
   const [nextRng, effects] = rollIntentEffects(rngAfterDamage, move.effects)
-  return [nextRng, { kind: 'ATTACK', intentName: move.intentName, damage: dmg, effects }]
+  return [nextRng, { kind: 'ATTACK', intentKind: move.intentKind, intentName: move.intentName, damage: dmg, effects }]
 }
 
 export function rollEnemyIntent(state: GameState): GameState {
@@ -39,6 +46,7 @@ export function rollEnemyIntent(state: GameState): GameState {
   const enemyById = { ...state.combat.enemies.enemyById }
   for (const id of state.combat.enemies.aliveIds) {
     const inst = enemyById[id]
+    if (!inst || inst.hp <= 0) continue
     const tmpl = Enemies[inst.templateId]
     const script = tmpl.intentScript
 
@@ -52,7 +60,12 @@ export function rollEnemyIntent(state: GameState): GameState {
         rng = nextRng
         intent = rolled
       } else {
-        intent = { kind: step.kind, intentName: step.intentName, effects: step.effects }
+        intent = {
+          kind: step.kind,
+          intentKind: step.intentKind,
+          intentName: step.intentName,
+          effects: step.effects,
+        }
       }
       enemyById[id] = {
         ...inst,
@@ -64,7 +77,7 @@ export function rollEnemyIntent(state: GameState): GameState {
 
     const weighted = tmpl.intents ?? []
     if (!weighted.length) {
-      enemyById[id] = { ...inst, intent: { kind: 'WAIT' } }
+      enemyById[id] = { ...inst, intent: { kind: 'WAIT', intentKind: ENEMY_INTENT_KINDS.special } }
       continue
     }
     const total = weighted.reduce((acc, i) => acc + i.weight, 0)
@@ -89,8 +102,15 @@ export function rollEnemyIntent(state: GameState): GameState {
               return rolled
             })()
           : picked?.kind === 'BUFF' || picked?.kind === 'DEBUFF'
-            ? { kind: picked.kind, intentName: picked.intentName, effects: picked.effects }
-            : { kind: 'WAIT' },
+            ? {
+                kind: picked.kind,
+                intentKind: picked.intentKind,
+                intentName: picked.intentName,
+                effects: picked.effects,
+              }
+            : picked?.kind === 'WAIT'
+              ? { kind: 'WAIT', intentKind: picked.intentKind }
+              : { kind: 'WAIT', intentKind: ENEMY_INTENT_KINDS.special },
     }
   }
   return { ...state, rng, combat: { ...state.combat, enemies: { ...state.combat.enemies, enemyById } } }

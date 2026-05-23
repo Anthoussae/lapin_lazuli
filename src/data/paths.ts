@@ -29,7 +29,7 @@ export type PathTemplate = Readonly<{
    * Omitted on paths that never roll the optional post-combat key.
    */
   postVictoryKeyChance?: Readonly<{ basePct: number; perLuck: number }>
-  /** When true, path cannot be rolled unless the deck has a socketable card (Gemstone Cavern). */
+  /** When true, path cannot be rolled unless the deck has a socketable card (Jewellers). */
   requiresSocketableCard?: boolean
   name: string
   frequency: number
@@ -146,7 +146,7 @@ export const Paths: Readonly<Record<PathId, PathTemplate>> = {
     kind: 'event',
     mapRoute: 'gemstone_cavern',
     requiresSocketableCard: true,
-    name: 'Gemstone Cavern',
+    name: 'Jewellers',
     frequency: 1,
     duplicatesAllowed: false,
     minimumLevel: 3,

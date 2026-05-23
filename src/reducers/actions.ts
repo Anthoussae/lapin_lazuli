@@ -6,6 +6,10 @@ export type GameAction =
   | { type: 'TICK/FIXED'; frames: number } // fixed-timestep UI/animation updates
   | { type: 'INPUT/INTENT_ENQUEUE'; action: PlayerAction }
   | { type: 'INPUT/INTENT_FLUSH' }
+  | { type: 'COMBAT/COMPLETE_BUNNY_RELEASE' }
+  | { type: 'COMBAT/COMPLETE_MONSTER_DEFEAT' }
+  | { type: 'COMBAT/COMPLETE_PLAYER_DEFEAT' }
+  | { type: 'COMBAT/COMPLETE_TURN_START_DRAW' }
   | PlayerAction
 
 export type PlayerAction =
@@ -27,7 +31,6 @@ export type PlayerAction =
   | { type: 'REWARD/PICK_KEYS' }
   | { type: 'REST/CONTINUE' }
   | { type: 'TREASURE_ROOM/PICK_RELIC'; relicId: RelicId }
-  | { type: 'TREASURE_ROOM/PROCEED' }
   | { type: 'SHOP/LEAVE' }
   | { type: 'SHOP/BUY_ITEM'; slotIndex: number }
   | { type: 'GEMSTONE_CAVERN/PROCEED' }

@@ -22,7 +22,7 @@ export function RewardScreen(props: ScreenProps) {
   const title = !hasLoot ? (
     <>{choiceLine}</>
   ) : !lootComplete ? (
-    <>Pick up your spoils.</>
+    <>Victory! Pick up your spoils:</>
   ) : (
     <>{choiceLine}</>
   )

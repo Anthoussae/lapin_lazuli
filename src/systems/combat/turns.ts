@@ -18,6 +18,9 @@ import { applyDrainingAtPlayerTurnStart } from './drainingBoon'
 import { damageEnemy } from './damageEnemy'
 import { cardInstanceConsumesIfInHandAtTurnEnd, cardInstanceRetains } from '../cards/cardEffects'
 import { consumeCardFromDeck } from './zones'
+import { bunnyReleaseSpriteCount } from '../bunnies'
+import { bunnyReleaseTargetEnemyId } from './bunnyReleaseTarget'
+import { livingEnemyCount } from './livingEnemies'
 
 export function endPlayerTurn(state: GameState): { state: GameState; events: GameEvent[] } {
   if (!state.combat) return { state, events: [] }
@@ -34,14 +37,56 @@ export function endPlayerTurn(state: GameState): { state: GameState; events: Gam
     }
   }
 
+  if (s.player.bunnies !== 0) {
+    const combat0 = s.combat
+    if (!combat0) return { state: s, events }
+    const sprites = bunnyReleaseSpriteCount(s.player.bunnies)
+    return {
+      state: {
+        ...s,
+        combat: {
+          ...combat0,
+          bunnyReleasePending: true,
+          bunnyReleaseSpriteCount: sprites,
+          bunnyReleaseTargetEnemyId: bunnyReleaseTargetEnemyId(combat0),
+        },
+      },
+      events: [...events, { type: 'EVT/BUNNIES_RELEASING', count: s.player.bunnies }],
+    }
+  }
+
+  return finishPlayerTurnAfterBunnies(s, events)
+}
+
+export function completeBunnyRelease(state: GameState): { state: GameState; events: GameEvent[] } {
+  const combat = state.combat
+  if (!combat?.bunnyReleasePending) return { state, events: [] }
+  const s: GameState = {
+    ...state,
+    combat: {
+      ...combat,
+      bunnyReleasePending: false,
+      bunnyReleaseSpriteCount: 0,
+      bunnyReleaseTargetEnemyId: null,
+    },
+  }
+  return finishPlayerTurnAfterBunnies(s, [])
+}
+
+function finishPlayerTurnAfterBunnies(
+  state: GameState,
+  eventsIn: GameEvent[],
+): { state: GameState; events: GameEvent[] } {
+  if (!state.combat) return { state, events: eventsIn }
+  let s = state
+  let events = [...eventsIn]
+
   // Unleash the bunnies: damage = max(0, bunnies); negative bunnies release for 0 damage. Always clear bunnies after.
   const bunnyDmg = Math.max(0, s.player.bunnies)
   if (bunnyDmg > 0) {
     const combat0 = s.combat
     if (combat0) {
-      const selected = combat0.targeting.selectedEnemyId
-      const enemyId =
-        (selected && combat0.enemies.enemyById[selected] ? selected : null) ?? (combat0.enemies.aliveIds[0] ?? null)
+      const enemyId = combat0.bunnyReleaseTargetEnemyId ?? bunnyReleaseTargetEnemyId(combat0)
       if (enemyId) {
         const out = damageEnemy(s, enemyId, bunnyDmg)
         s = out.state
@@ -77,11 +122,37 @@ export function endPlayerTurn(state: GameState): { state: GameState; events: Gam
   events = events.concat(out.events)
   events.push({ type: 'EVT/TURN_ENDED', by: 'ENEMIES' })
 
-  if (s.player.hp > 0 && s.combat?.enemies.aliveIds.length) {
-    s = beginPlayerTurn(s)
-    s = setPhase(s, 'COMBAT_PLAYER_READY')
+  if (s.combat && s.player.hp > 0 && livingEnemyCount(s.combat) > 0) {
+    const combat0 = s.combat
+    if (combat0) {
+      s = {
+        ...s,
+        combat: { ...combat0, pendingTurnStartDraw: true },
+      }
+    }
   }
   return { state: s, events }
+}
+
+/** Draw the new player hand after end-of-turn discards (and UI discard animations) have finished. */
+export function completeTurnStartDraw(state: GameState): { state: GameState; events: GameEvent[] } {
+  const combat = state.combat
+  if (!combat?.pendingTurnStartDraw) return { state, events: [] }
+  if (state.player.hp <= 0 || livingEnemyCount(combat) === 0) {
+    return {
+      state: { ...state, combat: { ...combat, pendingTurnStartDraw: false } },
+      events: [],
+    }
+  }
+
+  let s = beginPlayerTurn(state)
+  const combatAfter = s.combat
+  if (!combatAfter) return { state: s, events: [] }
+  s = setPhase(
+    { ...s, combat: { ...combatAfter, pendingTurnStartDraw: false } },
+    'COMBAT_PLAYER_READY',
+  )
+  return { state: s, events: [] }
 }
 
 function enemyTakeTurn(state: GameState): { state: GameState; events: GameEvent[] } {
@@ -124,7 +195,14 @@ function enemyTakeTurn(state: GameState): { state: GameState; events: GameEvent[
     if (resolved.playerDied) {
       const name = Enemies[enemyNow.templateId]?.name ?? enemyNow.templateId
       const lvl = Enemies[enemyNow.templateId]?.level ?? s.level
-      s = setPhase({ ...s, defeat: { enemyName: name, level: lvl } }, 'DEFEAT')
+      const combatAfterDeath = s.combat
+      if (combatAfterDeath) {
+        s = {
+          ...s,
+          defeat: { enemyName: name, level: lvl },
+          combat: { ...combatAfterDeath, playerDefeatPending: true },
+        }
+      }
       events.push({ type: 'EVT/UNIT_DIED', unit: 'PLAYER' })
       break
     }
@@ -135,7 +213,7 @@ function enemyTakeTurn(state: GameState): { state: GameState; events: GameEvent[
 
 function beginPlayerTurn(state: GameState): GameState {
   const combat0 = state.combat
-  if (!combat0 || combat0.enemies.aliveIds.length === 0) return state
+  if (!combat0 || livingEnemyCount(combat0) === 0) return state
 
   // Turn 1 drain is applied in startCombat; later turns drain here.
   let sDrain = combat0.turn > 1 ? applyDrainingAtPlayerTurnStart(state) : state

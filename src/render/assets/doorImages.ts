@@ -1,3 +1,5 @@
+import openDoor from '../../assets/images/displayElements/openDoor.png'
+import { pathDoorLockSprite } from './displayImages'
 import bossDoor from '../../assets/images/doors/bossDoor.png'
 import cardDoor from '../../assets/images/doors/cardDoor.png'
 import fallbackDoor from '../../assets/images/doors/fallbackDoor.png'
@@ -19,6 +21,8 @@ export {
 }
 
 export const PATH_DOOR_PRELOAD_URLS: readonly string[] = [
+  openDoor,
+  pathDoorLockSprite,
   bossDoor,
   cardDoor,
   fallbackDoor,

@@ -44,26 +44,34 @@ export function startCombat(
     enemies: { enemyById, aliveIds: [e1.id] },
     targeting: { selectedEnemyId: e1.id },
     handSelection: null,
+    bunnyReleasePending: false,
+    pendingTurnStartDraw: false,
+    bunnyReleaseSpriteCount: 0,
+    bunnyReleaseTargetEnemyId: null,
+    monsterDefeatPending: null,
+    playerDefeatPending: false,
   }
 
+  const player0 = spawned.state.player
   let s: GameState = {
     ...spawned.state,
     currentCombatPathId: combatEntryPathId,
     combat: combatInit,
     player: {
-      ...state.player,
+      ...player0,
+      bunnies: 0,
       shield: 0,
       energy: combatEffectiveMaxEnergy({
         ...spawned.state,
         currentCombatPathId: combatEntryPathId,
         combat: combatInit,
-        player: state.player,
+        player: player0,
       }),
       deck: {
-        ...state.player.deck,
+        ...player0.deck,
         hand: [],
         discardPile: [],
-        drawPile: state.player.deck.drawPile,
+        drawPile: player0.deck.drawPile,
       },
     },
   }

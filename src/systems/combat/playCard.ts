@@ -14,21 +14,8 @@ import { applyEffects, scaleCardEffects } from './resolveEffects'
 import { setPhase } from '../../reducers/reduceGame'
 import { Relics } from '../../data/relics'
 import { applyRelicEffect } from '../relics/applyRelicEffects'
-import { endPlayerTurn } from './turns'
 import { consumeCardFromDeck } from './zones'
-import { cardInstanceInkCost, cardInstanceIsPlayable } from '../cards/inkCost'
-
-function hasPlayableCard(state: GameState): boolean {
-  const hand = state.player.deck.hand
-  for (const id of hand) {
-    const inst = state.player.deck.cardById[id]
-    if (!inst) continue
-    const tmpl = Cards[inst.templateId]
-    if (!tmpl) continue
-    if (cardInstanceIsPlayable(inst, tmpl, state.player.energy)) return true
-  }
-  return false
-}
+import { cardInstanceInkCost } from '../cards/inkCost'
 
 export function playCard(state: GameState, cardInstanceId: CardInstanceId): { state: GameState; events: GameEvent[] } {
   if (!state.combat) return { state, events: [] }
@@ -148,12 +135,6 @@ export function playCard(state: GameState, cardInstanceId: CardInstanceId): { st
       })()
 
   const s4 = setPhase(sAfterDiscard, 'COMBAT_PLAYER_READY')
-
-  // MVP: auto-end turn when the player has no playable cards remaining.
-  if (!hasPlayableCard(s4)) {
-    const outEnd = endPlayerTurn(s4)
-    return { state: outEnd.state, events: events.concat(outEnd.events) }
-  }
 
   return { state: s4, events }
 }

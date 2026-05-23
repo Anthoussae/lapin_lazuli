@@ -1,11 +1,13 @@
 import { AssetManifest } from '../assets/manifest'
 import { PATH_DOOR_PRELOAD_URLS } from '../render/assets/doorImages'
+import { GEM_PRELOAD_URLS } from '../render/assets/gemImages'
 import { RELIC_PRELOAD_URLS } from '../render/assets/relicImages'
 import { CARD_PRELOAD_URLS } from '../render/assets/cardImages'
 
 const PRELOAD_IMAGES = [
   ...AssetManifest.images,
   ...RELIC_PRELOAD_URLS,
+  ...GEM_PRELOAD_URLS,
   ...CARD_PRELOAD_URLS,
   ...PATH_DOOR_PRELOAD_URLS,
 ]

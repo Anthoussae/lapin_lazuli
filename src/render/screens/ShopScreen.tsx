@@ -1,39 +1,50 @@
-import { useState } from 'react'
+import { useShopUnaffordableReject } from '../ShopUnaffordableRejectContext'
 import { Cards } from '../../data/cards'
 import { Relics } from '../../data/relics'
 import { cardDescriptionLinesForOffer, describeRelicEffect, formatCardName } from '../../ui/describe'
-import { keySprite } from '../assets/displayImages'
+import { keySprite, shopShelvesSprite } from '../assets/displayImages'
 import { relicImageMap } from '../assets/relicImages'
 import { useCardTravel } from '../CardTravelContext'
 import { useKeyTravel } from '../KeyTravelContext'
 import { useRelicTravel } from '../RelicTravelContext'
+import { relicIconViewportRect } from '../relicBeltLayout'
 import { GameCardView } from '../primitives/GameCardView'
-import { TickingNumber } from '../primitives/TickingNumber'
 import { CenteredPanel } from '../primitives/CenteredPanel'
 import { RelicIcon } from '../primitives/RelicIcon'
 import type { ScreenProps } from './types'
 
 export function ShopScreen(props: ScreenProps) {
   const { state, enqueue } = props
-  const { travelRelicToBelt } = useRelicTravel()
+  const { travelRelicToBelt, travelingTemplateId } = useRelicTravel()
   const { travelCardToDeck, travelingCardKey } = useCardTravel()
   const { travelKeyToHud, travelingKey } = useKeyTravel()
-  const [shopRelicTravelSlot, setShopRelicTravelSlot] = useState<number | null>(null)
+  const { rejectFlashSlot, flashUnaffordable } = useShopUnaffordableReject()
   const shop = state.shop
+
   if (!shop) return null
 
-  const relicTraveling = shopRelicTravelSlot != null
   const cardTraveling = travelingCardKey != null
-  const picking = relicTraveling || cardTraveling || travelingKey
+  const picking = travelingTemplateId != null || cardTraveling || travelingKey
+
+  const shelfSlotClass = (slotIndex: number, canBuy: boolean, extra?: string) =>
+    [
+      'shopShelfSlot',
+      extra,
+      !canBuy ? 'shopShelfSlot--unaffordable' : null,
+      rejectFlashSlot === slotIndex ? 'shopShelfSlot--rejectFlash' : null,
+    ]
+      .filter(Boolean)
+      .join(' ')
 
   return (
-    <CenteredPanel title="Shop" panelClassName="shopPanel">
-      <div className="shopGoldLine">
-        Gold: <TickingNumber value={state.player.gold} />
-      </div>
-      <div className="shopGrid">
+    <CenteredPanel panelClassName="shopPanel">
+      <div className="shopShelves">
+        <img className="shopShelves__bg" src={shopShelvesSprite} alt="" draggable={false} />
+        <div className="shopGrid">
         {shop.items.map((item, slotIndex) => {
-          if (item.sold) return null
+          if (item.sold) {
+            return <div key={`shop-sold-${slotIndex}`} className="shopShelfSlot shopShelfSlot--sold" aria-hidden />
+          }
           const canBuy = state.player.gold >= item.price
           const buy = () => {
             if (!canBuy) return
@@ -43,28 +54,29 @@ export function ShopScreen(props: ScreenProps) {
           if (item.kind === 'RELIC') {
             const r = Relics[item.relicId]
             const title = r?.name ?? item.relicId
-            const isChosenRelic = shopRelicTravelSlot === slotIndex
             return (
-              <div key={`shop-${slotIndex}`} className="shopRelicSlot">
+              <div key={`shop-${slotIndex}`} className={shelfSlotClass(slotIndex, canBuy, 'shopRelicSlot')}>
                 <RelicIcon
                   imageSrc={relicImageMap[item.relicId]}
                   fallback={r?.thumb ?? '?'}
                   alt={r?.name}
                   tooltipName={title}
                   tooltipEffect={r ? describeRelicEffect(r) : ''}
-                  traveling={isChosenRelic}
-                  disabled={!canBuy}
+                  disabled={picking}
                   onClick={(e) => {
-                    if (picking || !canBuy) return
-                    setShopRelicTravelSlot(slotIndex)
+                    if (picking) return
+                    if (!canBuy) {
+                      flashUnaffordable(slotIndex)
+                      return
+                    }
+                    const sourceRect = relicIconViewportRect(e.currentTarget)
+                    const beltSlotIndex = state.player.relics.length
+                    buy()
                     travelRelicToBelt({
                       templateId: item.relicId,
-                      sourceEl: e.currentTarget,
-                      beltSlotIndex: state.player.relics.length,
-                      onComplete: () => {
-                        setShopRelicTravelSlot(null)
-                        buy()
-                      },
+                      sourceRect,
+                      beltSlotIndex,
+                      onComplete: () => {},
                     })
                   }}
                 />
@@ -75,15 +87,23 @@ export function ShopScreen(props: ScreenProps) {
 
           if (item.kind === 'KEY') {
             return (
-              <div key={`shop-${slotIndex}`} className="shopRelicSlot">
+              <div key={`shop-${slotIndex}`} className={shelfSlotClass(slotIndex, canBuy, 'shopRelicSlot')}>
                 <button
                   type="button"
-                  className={['shopKeyOffer', travelingKey ? 'shopKeyOffer--traveling' : null]
+                  className={[
+                    'shopKeyOffer',
+                    !canBuy ? 'shopKeyOffer--unaffordable' : null,
+                    travelingKey ? 'shopKeyOffer--traveling' : null,
+                  ]
                     .filter(Boolean)
                     .join(' ') || undefined}
-                  disabled={!canBuy || picking}
+                  disabled={picking}
                   onClick={(e) => {
-                    if (!canBuy || picking) return
+                    if (picking) return
+                    if (!canBuy) {
+                      flashUnaffordable(slotIndex)
+                      return
+                    }
                     travelKeyToHud({ sourceEl: e.currentTarget, onComplete: buy })
                   }}
                   aria-label={`Buy key for ${item.price} gold`}
@@ -100,20 +120,27 @@ export function ShopScreen(props: ScreenProps) {
           const cardKey = `shop-${item.cardId}-${slotIndex}`
           const isChosen = travelingCardKey === cardKey
           return (
-            <div key={cardKey} className="cardOfferSlot">
+            <div key={cardKey} className={shelfSlotClass(slotIndex, canBuy, 'cardOfferSlot')}>
               <button
                 type="button"
-                className="shopCardOffer"
-                disabled={!canBuy || picking}
+                className={['shopCardOffer', !canBuy ? 'shopCardOffer--unaffordable' : null].filter(Boolean).join(' ') || undefined}
+                disabled={picking}
                 onClick={(e) => {
-                  if (picking || !canBuy) return
+                  if (picking) return
+                  if (!canBuy) {
+                    flashUnaffordable(slotIndex)
+                    return
+                  }
                   travelCardToDeck({
                     cardKey,
                     sourceEl: e.currentTarget,
                     card: {
+                      cardId: item.cardId,
                       name: label,
                       inkLabel: t?.cost !== null && t?.cost !== undefined ? String(t.cost) : null,
-                      descriptionLines: t ? cardDescriptionLinesForOffer(t, item.upgrades) : [],
+                      descriptionLines: t
+                        ? cardDescriptionLinesForOffer(t, item.upgrades, state.player.power, state.player.firepowerMultiplier)
+                        : [],
                     },
                     onComplete: () => enqueue({ type: 'SHOP/BUY_ITEM', slotIndex }),
                   })
@@ -131,8 +158,14 @@ export function ShopScreen(props: ScreenProps) {
             </div>
           )
         })}
+        </div>
       </div>
-      <button type="button" className="btn" disabled={picking} onClick={() => enqueue({ type: 'SHOP/LEAVE' })}>
+      <button
+        type="button"
+        className="btn shopLeaveBtn"
+        disabled={picking}
+        onClick={() => enqueue({ type: 'SHOP/LEAVE' })}
+      >
         Leave Shop
       </button>
     </CenteredPanel>

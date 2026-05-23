@@ -6,7 +6,9 @@ import { isActionLegalNow } from './phaseGating'
 import { startCombat } from '../../systems/combat/startCombat'
 import { playCard } from '../../systems/combat/playCard'
 import { cancelHandSelection, pickHandSelectionCard, submitHandSelection } from '../../systems/combat/handSelection'
-import { endPlayerTurn } from '../../systems/combat/turns'
+import { endPlayerTurn, completeBunnyRelease, completeTurnStartDraw } from '../../systems/combat/turns'
+import { completeMonsterDefeat } from '../../systems/combat/monsterDefeat'
+import { completePlayerDefeat } from '../../systems/combat/playerDefeat'
 import { selectTarget } from '../../systems/combat/targeting'
 import { rngFromSeed, rngInt } from '../../core/rng/rng'
 import { StarterRelicPool, isRelicOfferable } from '../../data/relics'
@@ -46,6 +48,22 @@ export function applyAction(state: GameState, action: GameAction): { state: Game
     const s2: GameState = { ...state, assets: { status, loaded: action.loaded, failed: action.failed } }
     if (status === 'READY') return { state: setPhase(s2, 'TITLE'), events: [] }
     return { state: s2, events: [] }
+  }
+
+  if (action.type === 'COMBAT/COMPLETE_BUNNY_RELEASE') {
+    return completeBunnyRelease(state)
+  }
+
+  if (action.type === 'COMBAT/COMPLETE_MONSTER_DEFEAT') {
+    return completeMonsterDefeat(state)
+  }
+
+  if (action.type === 'COMBAT/COMPLETE_PLAYER_DEFEAT') {
+    return completePlayerDefeat(state)
+  }
+
+  if (action.type === 'COMBAT/COMPLETE_TURN_START_DRAW') {
+    return completeTurnStartDraw(state)
   }
 
   if (isPlayerAction(action)) {
@@ -92,10 +110,11 @@ function applyPlayerAction(state: GameState, action: PlayerAction): { state: Gam
       return pickRewardKeys(state)
     case 'REST/CONTINUE':
       return continueAfterRest(state)
-    case 'TREASURE_ROOM/PICK_RELIC':
-      return { state: pickTreasureRoomRelic(state, action.relicId), events: [] }
-    case 'TREASURE_ROOM/PROCEED':
-      return continueAfterTreasureRoom(state)
+    case 'TREASURE_ROOM/PICK_RELIC': {
+      const next = pickTreasureRoomRelic(state, action.relicId)
+      if (next === state) return { state, events: [] }
+      return continueAfterTreasureRoom(next)
+    }
     case 'SHOP/LEAVE':
       return continueAfterShop(state)
     case 'SHOP/BUY_ITEM':
@@ -108,8 +127,11 @@ function applyPlayerAction(state: GameState, action: PlayerAction): { state: Gam
       return { state: skipGemstoneSocketing(state), events: [] }
     case 'GEMSTONE_CAVERN/SELECT_SOCKET_CARD':
       return { state: toggleGemstoneSocketingCard(state, action.cardInstanceId), events: [] }
-    case 'GEMSTONE_CAVERN/CONFIRM_SOCKETING':
-      return { state: confirmGemstoneSocketing(state), events: [] }
+    case 'GEMSTONE_CAVERN/CONFIRM_SOCKETING': {
+      const next = confirmGemstoneSocketing(state)
+      if (next === state) return { state, events: [] }
+      return continueAfterGemstoneCavern(next)
+    }
   }
 }
 

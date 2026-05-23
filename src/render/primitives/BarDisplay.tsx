@@ -13,6 +13,7 @@ export type BarDisplayProps = Readonly<{
   barAbsenceColor?: string
   /** Metallic gold frame via global `.gilt-rim` tokens. */
   giltRim?: boolean
+  durationMs?: number
   className?: string
 }>
 
@@ -30,6 +31,7 @@ export function BarDisplay(props: BarDisplayProps) {
     barColor = DEFAULT_BAR,
     barAbsenceColor = DEFAULT_EMPTY,
     giltRim = false,
+    durationMs,
     className,
   } = props
 
@@ -63,7 +65,7 @@ export function BarDisplay(props: BarDisplayProps) {
       <div className="barDisplay__text">
         <span className="barDisplay__label">{label}</span>
         <span className="barDisplay__amount">
-          <TickingNumber value={displayCurrent} />
+          <TickingNumber value={displayCurrent} durationMs={durationMs} />
           {showMax ? (
             <>
               /<span className="barDisplay__max">{safeMax}</span>

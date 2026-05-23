@@ -17,3 +17,18 @@ export function cardInstanceIsPlayable(inst: CardInstance, card: CardTemplate, e
   if (cost === null) return false
   return energy >= cost
 }
+
+export function handHasPlayableCard(
+  handIds: readonly string[],
+  cardById: Record<string, CardInstance | undefined>,
+  getTemplate: (templateId: CardInstance['templateId']) => CardTemplate | undefined,
+  energy: number,
+): boolean {
+  for (const cid of handIds) {
+    const inst = cardById[cid]
+    if (!inst) continue
+    const t = getTemplate(inst.templateId)
+    if (t && cardInstanceIsPlayable(inst, t, energy)) return true
+  }
+  return false
+}

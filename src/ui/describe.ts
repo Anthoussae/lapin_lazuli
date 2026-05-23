@@ -428,6 +428,21 @@ export function cardDescriptionLines(
   return [...lines, ...effectLines, ...keywordLines]
 }
 
+export function describeGemEffect(gem: GemTemplate): string {
+  return gemOfferDescriptionLines(gem)
+    .map((line) => {
+      if (line.kind === 'plain') return line.text
+      if (line.kind === 'keywords') {
+        return capitalizeCardDescriptionText(
+          `${line.ids.map((id) => CARD_KEYWORDS[id].label).join(', ')}.`,
+        )
+      }
+      return ''
+    })
+    .filter(Boolean)
+    .join('\n')
+}
+
 export function gemOfferDescriptionLines(gem: GemTemplate): CardDescLine[] {
   const lines: CardDescLine[] = gem.effects
     .filter((fx) => !isKeywordEffectKind(fx.kind))

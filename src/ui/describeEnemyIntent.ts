@@ -2,7 +2,7 @@ import type { EnemyIntent } from '../core/types/state'
 import { Cards } from '../data/cards'
 import {
   burdenShuffleEntriesFromIntentEffects,
-  enemyIntentMoveKinds,
+  enemyIntentKind,
   enemyLockedShieldGainFromIntentEffects,
   intentHasVampiric,
   playerTurnStartBunnyDrainFromIntentEffects,
@@ -35,8 +35,7 @@ export function describeEnemyIntent(intent: EnemyIntent, strength: number): stri
     segments.push(`shuffle ${count > 1 ? `${count} ` : ''}${name} into your deck`)
   }
 
-  const moveKinds = enemyIntentMoveKinds(intent)
-  if (moveKinds.length) segments.push(moveKinds.join(' · '))
+  segments.push(enemyIntentKind(intent))
 
   return segments.join(' · ')
 }

@@ -4,6 +4,7 @@ import type { CardId, CardInstanceId, EnemyId, EnemyInstanceId, GemId, PathId, R
 import type { AnimState } from '../../animation/types'
 import type { InputState } from '../../input/types'
 import type { EnemyBoonId } from '../../data/enemyBoons'
+import type { EnemyIntentKind } from '../../data/enemyIntentKinds'
 
 export type Phase =
   | 'BOOT'
@@ -48,7 +49,7 @@ export type RelicSelectionState = Readonly<{
   offered: ReadonlyArray<RelicId>
 }>
 
-/** Treasure room: three relic choices (shop-style roll), then proceed after the player picks one. */
+/** Treasure room: three relic choices (shop-style roll); picking one advances to the next path screen. */
 export type TreasureRoomState = Readonly<{
   offered: ReadonlyArray<RelicId>
   /** True after the player chose a relic (others cleared). */
@@ -151,10 +152,16 @@ export type EnemyIntentEffects = ReadonlyArray<EnemyIntentExtraEffect>
 
 /** Rolled enemy move shown to the player and resolved on the enemy turn. */
 export type EnemyIntent = Readonly<
-  | { kind: 'WAIT' }
-  | { kind: 'ATTACK'; intentName: string; damage: number; effects?: EnemyIntentEffects }
-  | { kind: 'BUFF'; intentName: string; effects: EnemyIntentEffects }
-  | { kind: 'DEBUFF'; intentName: string; effects: EnemyIntentEffects }
+  | { kind: 'WAIT'; intentKind: EnemyIntentKind }
+  | {
+      kind: 'ATTACK'
+      intentKind: EnemyIntentKind
+      intentName: string
+      damage: number
+      effects?: EnemyIntentEffects
+    }
+  | { kind: 'BUFF'; intentKind: EnemyIntentKind; intentName: string; effects: EnemyIntentEffects }
+  | { kind: 'DEBUFF'; intentKind: EnemyIntentKind; intentName: string; effects: EnemyIntentEffects }
 >
 
 export type PlayerState = Readonly<{
@@ -219,6 +226,18 @@ export type CombatState = Readonly<{
     selectedEnemyId: EnemyInstanceId | null
   }>
   handSelection: HandSelectionState | null
+  /** True while the bunny-release animation plays before damage resolves. */
+  bunnyReleasePending: boolean
+  /** Puff sprites to spawn for the in-flight release (0 when not pending). */
+  bunnyReleaseSpriteCount: number
+  /** Enemy receiving bunny damage this release; null if none. */
+  bunnyReleaseTargetEnemyId: EnemyInstanceId | null
+  /** Enemy playing defeat FX (hp 0, still in `aliveIds` until FX completes). */
+  monsterDefeatPending: EnemyInstanceId | null
+  /** Player playing defeat FX before the defeat screen. */
+  playerDefeatPending: boolean
+  /** True after enemy turn until the post-discard hand draw runs (separate from discard for animations). */
+  pendingTurnStartDraw: boolean
 }>
 
 export type UiState = Readonly<{

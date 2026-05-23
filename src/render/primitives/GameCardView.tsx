@@ -68,8 +68,11 @@ export function GameCardView(props: GameCardViewProps) {
   const nameUpgraded =
     inst != null ? inst.upgrades > 0 : offerUpgradeApplications !== undefined ? offerUpgradeApplications > 0 : false
 
+  const cardId = template?.id ?? inst?.templateId
+
   return (
     <Card
+      cardId={cardId}
       name={name || undefined}
       nameUpgraded={nameUpgraded}
       inkLabel={inkLabel}

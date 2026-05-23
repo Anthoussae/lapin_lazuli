@@ -2,16 +2,17 @@
 .stageFrame .gameCard--clickable:not(.gameCard--disabled),
 .stageFrame [role='button']:not([aria-disabled='true']),
 .stageFrame .opaqueImageBtn.opaqueImageBtn--lit,
-.stageFrame .shopCardOffer:not(:disabled),
+.stageFrame .shopCardOffer:not(:disabled):not(.shopCardOffer--unaffordable),
 .stageFrame .cardOfferBtn:not(:disabled),
 .stageFrame .rewardLootPickup:not(:disabled),
-.stageFrame .shopKeyOffer:not(:disabled),
+.stageFrame .shopKeyOffer:not(:disabled):not(.shopKeyOffer--unaffordable),
+.stageFrame .shopShelfSlot--unaffordable .relicIcon:not(:disabled),
 .stageFrame .pathDoor:not(:disabled):not(.pathDoor--disabled),
 .stageFrame .relicIcon--clickable,
 .stageFrame button.relicIcon:not(:disabled),
-.stageFrame .enemyUnit,
+.stageFrame .gemIcon--clickable,
+.stageFrame button.gemIcon:not(:disabled),
 .stageFrame .btn:not(:disabled),
-.stageFrame .handSelectionCancel,
 .stageFrame .handSelectionSubmit:not(:disabled) {
   cursor: pointer;
 }
@@ -19,6 +20,7 @@
 .stageFrame .gameCard--disabled,
 .stageFrame .relicIcon--disabled,
 .stageFrame .relicIcon--rejected,
+.stageFrame .gemIcon--disabled,
 .stageFrame .pathChoiceBlocked,
 .stageFrame .pathDoor--disabled,
 .stageFrame .shopCardOffer:disabled,
@@ -102,21 +104,62 @@
   align-items: stretch;
 }
 
-.shopGoldLine {
-  align-self: center;
-  font-size: 22px;
-  font-weight: 700;
-  opacity: 0.92;
-  color: #fbbf24;
+.shopLeaveBtn {
+  position: fixed;
+  left: var(--shop-leave-x);
+  top: var(--shop-leave-y);
+  z-index: var(--shop-leave-z-index);
+  transform: translateY(-50%);
+  font-size: var(--shop-leave-font-size);
+  padding: var(--shop-leave-padding-y) var(--shop-leave-padding-x);
+  border-radius: var(--shop-leave-border-radius);
 }
 
-.shopGrid {
+.shopShelves {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--shop-shelves-width);
+  margin: 0 auto;
+}
+
+.shopShelves__bg {
+  grid-area: 1 / 1;
+  z-index: 0;
+  display: block;
+  width: 100%;
+  height: auto;
+  pointer-events: none;
+  user-select: none;
+  transform: translate(var(--shop-shelves-bg-nudge-x), var(--shop-shelves-bg-nudge-y));
+}
+
+.shopShelves .shopGrid {
+  grid-area: 1 / 1;
+  z-index: 1;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
-  width: 100%;
-  padding: calc(var(--game-card-h) * 0.15) calc(var(--game-card-w) * 0.15);
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  width: var(--shop-shelves-grid-width);
+  height: var(--shop-shelves-grid-height);
+  gap: var(--shop-shelves-grid-gap);
   box-sizing: border-box;
+  transform: translate(var(--shop-shelves-grid-nudge-x), var(--shop-shelves-grid-nudge-y));
+}
+
+.shopShelfSlot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 0;
+  min-height: 0;
+  padding-bottom: var(--shop-shelves-cell-pad-bottom);
+  box-sizing: border-box;
+}
+
+.shopShelfSlot--sold {
+  pointer-events: none;
 }
 
 .shopKeyOffer {
@@ -140,10 +183,17 @@
 }
 
 .shopKeyOffer:disabled {
-  opacity: 0.45;
   cursor: not-allowed;
+}
+
+.shopKeyOffer--unaffordable:not(:disabled) {
+  cursor: pointer;
   filter: drop-shadow(0 1px 0.5px rgba(42, 22, 58, 0.42)) drop-shadow(0 3px 5px rgba(24, 10, 36, 0.28))
-    grayscale(0.35);
+    var(--shop-item-disabled-filter);
+}
+
+.shopKeyOffer--unaffordable:hover:not(:disabled) {
+  transform: none;
 }
 
 .shopKeyOffer__img {
@@ -437,10 +487,174 @@ button.relicIcon {
   gap: clamp(28px, 5vw, 52px);
 }
 
+.treasureRoomOffer {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.treasureRoomOffer__carpet {
+  grid-area: 1 / 1;
+  z-index: 0;
+  display: block;
+  width: var(--treasure-room-carpet-size);
+  height: auto;
+  pointer-events: none;
+  user-select: none;
+}
+
+.treasureRoomOffer .relicOfferRow {
+  grid-area: 1 / 1;
+  z-index: 1;
+  width: min(78%, 640px);
+  align-items: center;
+  padding: 0;
+  gap: clamp(28px, 5vw, 52px);
+}
+
 .relicOfferSlot {
   position: relative;
   display: inline-block;
   line-height: 0;
+}
+
+.gemOffer {
+  position: fixed;
+  left: var(--gem-offer-carpet-x);
+  top: var(--gem-offer-carpet-y);
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+}
+
+.gemOffer__carpet {
+  grid-area: 1 / 1;
+  z-index: 0;
+  display: block;
+  width: var(--gem-offer-carpet-size);
+  height: auto;
+  pointer-events: none;
+  user-select: none;
+}
+
+.jewellersPanel {
+  position: relative;
+  width: min(100%, 980px);
+  min-height: 0;
+}
+
+.jewellersProceedBtn {
+  position: fixed;
+  left: var(--gem-offer-proceed-x);
+  top: var(--gem-offer-proceed-y);
+  z-index: 51;
+  font-size: var(--gem-offer-proceed-size);
+  transform: translate(-50%, -50%);
+}
+
+.gemOffer .gemOfferRow {
+  grid-area: 1 / 1;
+  z-index: 1;
+  width: min(78%, 640px);
+  align-items: center;
+  padding: 0;
+  gap: clamp(28px, 5vw, 52px);
+}
+
+.gemOfferRow {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: var(--gem-offer-row-gap);
+  width: 100%;
+  padding: var(--gem-offer-row-padding-y);
+}
+
+.gemOfferSlot {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+}
+
+.gemIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: var(--gem-icon-size);
+  height: var(--gem-icon-size);
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  overflow: visible;
+  flex: 0 0 auto;
+  flex-shrink: 0;
+  line-height: 0;
+  vertical-align: middle;
+  pointer-events: auto;
+}
+
+button.gemIcon {
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+
+.gemIcon__visual {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform: rotate(var(--gem-icon-rotation, 0deg));
+  transform-origin: center center;
+  transition: transform var(--gem-icon-hover-duration) ease;
+  --gem-icon-shadow: drop-shadow(0 1px 0.5px rgba(42, 22, 58, 0.42))
+    drop-shadow(0 3px 5px rgba(24, 10, 36, 0.28));
+  filter: var(--gem-icon-shadow);
+}
+
+.gemIcon:hover:not(:disabled) .gemIcon__visual {
+  transform: rotate(var(--gem-icon-rotation, 0deg)) scale(var(--gem-icon-hover-scale));
+}
+
+.gemIcon--clickable {
+  cursor: pointer;
+}
+
+.gemIcon__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  object-fit: contain;
+}
+
+.gemIcon__fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-size: var(--gem-icon-fallback-font-size);
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  color: var(--gem-icon-fallback-color);
+  line-height: 1;
+}
+
+.gemIcon--disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.gemIcon--disabled .gemIcon__visual {
+  filter: var(--gem-icon-shadow) grayscale(0.35);
 }
 
 .relicIcon--rejected {
@@ -465,21 +679,287 @@ button.relicIcon {
   left: 0;
   top: 0;
   width: auto;
-  height: 44px;
+  height: var(--vanish-puff-height-sm);
   object-fit: contain;
   transform: translate(calc(-50% + var(--puff-x)), calc(-50% + var(--puff-y))) rotate(var(--puff-rot))
     scale(var(--puff-scale));
   opacity: 0;
-  animation: relicRejectPuffFade 0.55s ease-out forwards;
+  animation: relicRejectPuffFade var(--duration-vanish-puff-fade) var(--ease-vanish-puff-fade) forwards;
 }
 
 .relicRejectPuff--poof {
-  height: 88px;
+  height: var(--vanish-puff-height-poof);
+}
+
+.bunnyReleaseFxLayer {
+  position: absolute;
+  inset: 0;
+  z-index: var(--bunny-release-fx-z);
+  pointer-events: none;
+  overflow: visible;
+}
+
+.fireReleaseFxLayer {
+  position: absolute;
+  inset: 0;
+  z-index: var(--fire-release-fx-z);
+  pointer-events: none;
+  overflow: visible;
+}
+
+.fireReleaseHost {
+  position: absolute;
+  z-index: 1;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.fireReleaseSpark {
+  height: var(--fire-release-spark-height);
+}
+
+.sparkReleaseLeapHost {
+  position: absolute;
+  z-index: 2;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.sparkReleaseLeapGlow {
+  position: absolute;
+  inset: var(--spark-leap-glow-inset);
+  border-radius: 48% 52% 44% 56%;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  opacity: var(--spark-leap-glow-opacity);
+  filter: blur(var(--spark-leap-glow-blur));
+  background: radial-gradient(
+    ellipse 58% 72% at 50% 62%,
+    color-mix(in srgb, var(--spark-leap-glow-hot) 92%, transparent) 0%,
+    var(--spark-leap-glow-core) 22%,
+    var(--spark-leap-glow-mid) 48%,
+    transparent 74%
+  );
+  animation: sparkReleaseLeapGlowPulse var(--spark-leap-glow-duration, 180ms) ease-in-out infinite;
+  animation-delay: calc(var(--spark-leap-glow-phase, 0ms) * -1);
+}
+
+.sparkReleaseLeapGlow::after {
+  content: '';
+  position: absolute;
+  inset: 8% 12% 18% 10%;
+  border-radius: 40% 60% 55% 45%;
+  opacity: 0.75;
+  filter: blur(6px);
+  background: radial-gradient(
+    ellipse 45% 55% at 48% 40%,
+    var(--spark-leap-glow-hot) 0%,
+    color-mix(in srgb, var(--spark-leap-glow-mid) 55%, transparent) 55%,
+    transparent 100%
+  );
+  animation: sparkReleaseLeapFlameLick var(--spark-leap-glow-duration, 180ms) ease-in-out infinite;
+  animation-delay: calc(var(--spark-leap-glow-phase, 0ms) * -0.65);
+}
+
+.sparkReleaseLeap {
+  position: relative;
+  z-index: 1;
+  display: block;
+  height: auto;
+  object-fit: contain;
+  pointer-events: none;
+  filter: drop-shadow(var(--spark-leap-sprite-glow));
+  animation: sparkReleaseLeapSpritePulse var(--spark-leap-glow-duration, 180ms) ease-in-out infinite;
+  animation-delay: calc(var(--spark-leap-glow-phase, 0ms) * -0.4);
+}
+
+.sparkLeapLandPuffHost {
+  position: absolute;
+  z-index: 3;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  animation-name: sparkLeapLandPuffDrift;
+  animation-duration: var(--spark-leap-land-puff-duration, 80ms);
+  animation-timing-function: ease-out;
+  animation-fill-mode: forwards;
+}
+
+.sparkLeapLandPuffGlow {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(var(--fire-release-spark-height) * 1.35);
+  height: calc(var(--fire-release-spark-height) * 1.1);
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  opacity: 0.85;
+  filter: blur(10px);
+  background: radial-gradient(
+    circle at 50% 55%,
+    var(--spark-leap-glow-core) 0%,
+    var(--spark-leap-glow-mid) 42%,
+    transparent 72%
+  );
+  animation: sparkLeapLandPuffGlowFlash var(--spark-leap-land-puff-duration, 80ms) ease-out forwards;
+  animation-delay: calc(var(--spark-leap-glow-phase, 0ms) * -1);
+}
+
+.sparkLeapLandPuff {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: auto;
+  height: var(--fire-release-spark-height);
+  object-fit: contain;
+  pointer-events: none;
+  filter: drop-shadow(var(--spark-leap-land-glow-spread));
+}
+
+@keyframes sparkReleaseLeapGlowPulse {
+  0%,
+  100% {
+    opacity: calc(var(--spark-leap-glow-opacity) * 0.72);
+    transform: scale(0.9) rotate(-2deg);
+  }
+  45% {
+    opacity: var(--spark-leap-glow-opacity);
+    transform: scale(1.08) rotate(3deg);
+  }
+  70% {
+    opacity: calc(var(--spark-leap-glow-opacity) * 0.82);
+    transform: scale(0.96) rotate(-1deg);
+  }
+}
+
+@keyframes sparkReleaseLeapFlameLick {
+  0%,
+  100% {
+    transform: scale(0.85) translateY(6%);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scale(1.12) translateY(-4%);
+    opacity: 0.95;
+  }
+}
+
+@keyframes sparkReleaseLeapSpritePulse {
+  0%,
+  100% {
+    filter: drop-shadow(var(--spark-leap-sprite-glow)) brightness(0.96);
+  }
+  50% {
+    filter: drop-shadow(var(--spark-leap-sprite-glow)) brightness(1.14)
+      drop-shadow(0 0 18px color-mix(in srgb, var(--spark-leap-glow-hot) 70%, transparent));
+  }
+}
+
+@keyframes sparkLeapLandPuffGlowFlash {
+  0% {
+    opacity: 0.95;
+    transform: translate(-50%, -50%) scale(0.75);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.35);
+  }
+}
+
+@keyframes sparkLeapLandPuffDrift {
+  0% {
+    opacity: var(--vanish-puff-start-opacity);
+    transform: translate(-50%, -50%);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(
+      calc(-50% + var(--spark-leap-land-puff-dx)),
+      calc(-50% + var(--spark-leap-land-puff-dy))
+    );
+  }
+}
+
+.bunnyReleaseHost {
+  position: absolute;
+  z-index: 1;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.bunnyReleaseLeap {
+  position: absolute;
+  z-index: 2;
+  height: auto;
+  object-fit: contain;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.bunnyLeapLandPuff {
+  position: absolute;
+  z-index: 3;
+  width: auto;
+  height: var(--vanish-puff-height-poof);
+  object-fit: contain;
+  pointer-events: none;
+  animation-name: bunnyLeapLandPuffDrift;
+  animation-duration: var(--bunny-leap-land-puff-duration, 80ms);
+  animation-timing-function: ease-out;
+  animation-fill-mode: forwards;
+}
+
+@keyframes bunnyLeapLandPuffDrift {
+  0% {
+    opacity: var(--vanish-puff-start-opacity);
+    transform: translate(-50%, -50%);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(
+      calc(-50% + var(--bunny-leap-land-puff-dx)),
+      calc(-50% + var(--bunny-leap-land-puff-dy))
+    );
+  }
+}
+
+.vanishPuffs {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.vanishPuff {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: auto;
+  height: var(--vanish-puff-height-sm);
+  object-fit: contain;
+  transform: translate(calc(-50% + var(--puff-x)), calc(-50% + var(--puff-y))) rotate(var(--puff-rot))
+    scale(var(--puff-scale));
+  opacity: 0;
+  animation: relicRejectPuffFade var(--duration-vanish-puff-fade) var(--ease-vanish-puff-fade) forwards;
+}
+
+.vanishPuff--poof {
+  height: var(--vanish-puff-height-poof);
+}
+
+.vanishPuff--bigPoof {
+  height: var(--vanish-puff-height-big);
 }
 
 @keyframes relicRejectPuffFade {
   0% {
-    opacity: 0.92;
+    opacity: var(--vanish-puff-start-opacity);
     transform: translate(calc(-50% + var(--puff-x)), calc(-50% + var(--puff-y))) rotate(var(--puff-rot))
       scale(var(--puff-scale));
   }
@@ -489,7 +969,102 @@ button.relicIcon {
         calc(-50% + var(--puff-x) + var(--puff-drift-x)),
         calc(-50% + var(--puff-y) + var(--puff-drift-y))
       )
-      rotate(var(--puff-rot)) scale(calc(var(--puff-scale) * 1.12));
+      rotate(var(--puff-rot)) scale(calc(var(--puff-scale) * var(--vanish-puff-end-scale-mult)));
+  }
+}
+
+.cardConsumeFxLayer {
+  position: absolute;
+  inset: 0;
+  z-index: var(--card-consume-fx-z);
+  pointer-events: none;
+  overflow: visible;
+}
+
+.cardConsumeHost {
+  position: absolute;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.cardConsumeFx {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+}
+
+.cardConsumePuffs {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.cardConsumePuff {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: auto;
+  height: var(--card-consume-puff-height-poof);
+  object-fit: contain;
+  transform: translate(calc(-50% + var(--puff-x)), calc(-50% + var(--puff-y))) rotate(var(--puff-rot))
+    scale(var(--puff-scale));
+  opacity: 0;
+  pointer-events: none;
+  animation: cardConsumePuffFade var(--duration-card-consume-puff-fade) var(--ease-card-consume-puff-fade) forwards;
+}
+
+.cardConsumePuff--tiny {
+  height: var(--card-consume-puff-height-tiny);
+}
+
+.cardConsumePuff--big {
+  height: var(--card-consume-puff-height-big);
+}
+
+.cardConsumeFx__aftermath {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: var(--card-consume-aftermath-w);
+  height: var(--card-consume-aftermath-h);
+  object-fit: contain;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  animation: cardConsumeAftermathFade var(--duration-card-consume-aftermath-fade) var(--ease-card-consume-aftermath-fade)
+    var(--card-consume-aftermath-delay) forwards;
+}
+
+@keyframes cardConsumePuffFade {
+  0% {
+    opacity: var(--card-consume-puff-start-opacity);
+    transform: translate(calc(-50% + var(--puff-x)), calc(-50% + var(--puff-y))) rotate(var(--puff-rot))
+      scale(var(--puff-scale));
+  }
+  100% {
+    opacity: 0;
+    transform: translate(
+        calc(-50% + var(--puff-x) + var(--puff-drift-x)),
+        calc(-50% + var(--puff-y) + var(--puff-drift-y))
+      )
+      rotate(var(--puff-rot)) scale(calc(var(--puff-scale) * var(--card-consume-puff-end-scale-mult)));
+  }
+}
+
+@keyframes cardConsumeAftermathFade {
+  0% {
+    opacity: var(--card-consume-aftermath-start-opacity);
+    transform: translate(-50%, -50%) scale(var(--card-consume-aftermath-start-scale));
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(var(--card-consume-aftermath-end-scale));
   }
 }
 
@@ -590,17 +1165,73 @@ button.relicIcon {
 }
 
 .shopRelicSlot {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
+  gap: 4px;
 }
 
-.shopRelicPrice {
-  font-weight: 900;
-  font-size: 14px;
-  color: #fbbf24;
-  pointer-events: none;
+.shopRelicSlot .relicIcon {
+  opacity: var(--shop-relic-opacity);
+}
+
+.shopShelfSlot--unaffordable .relicIcon:not(:disabled) {
+  filter: var(--relic-icon-shadow) var(--shop-item-disabled-filter);
+}
+
+.shopShelfSlot--unaffordable .shopCardOffer--unaffordable .gameCard:not(.gameCard--traveling):not(.gameCard--rejected) {
+  filter: var(--shop-item-disabled-filter);
+  opacity: 1;
+}
+
+.shopShelfSlot--rejectFlash {
+  animation: shopShelfSlotRejectFlash var(--duration-shop-unaffordable-reject) ease;
+}
+
+.shopShelfSlot--rejectFlash .shopRelicPrice,
+.shopShelfSlot--rejectFlash .shopCardOffer__price {
+  animation: shopShelfPriceRejectFlash var(--duration-shop-unaffordable-reject) ease;
+}
+
+.shopShelfSlot--unaffordable .relicIcon:hover:not(:disabled) {
+  transform: none;
+}
+
+.counterHud__gold--rejectFlash {
+  animation: shopHudGoldRejectFlash var(--duration-shop-unaffordable-reject) ease;
+}
+
+@keyframes shopShelfSlotRejectFlash {
+  0%,
+  100% {
+    filter: none;
+  }
+  35%,
+  55% {
+    filter: drop-shadow(0 0 6px var(--shop-unaffordable-reject-color))
+      drop-shadow(0 0 14px color-mix(in srgb, var(--shop-unaffordable-reject-color) 75%, transparent));
+  }
+}
+
+@keyframes shopShelfPriceRejectFlash {
+  0%,
+  100% {
+    color: #fbbf24;
+  }
+  35%,
+  55% {
+    color: var(--shop-unaffordable-reject-color);
+  }
+}
+
+@keyframes shopHudGoldRejectFlash {
+  0%,
+  100% {
+    color: var(--hud-box-display-text-color);
+    text-shadow: none;
+  }
+  35%,
+  55% {
+    color: var(--shop-unaffordable-reject-color);
+    text-shadow: var(--shop-hud-gold-reject-glow);
+  }
 }
 
 .relicTooltip {
@@ -654,7 +1285,7 @@ button.relicIcon {
   font-size: var(--path-door-locked-badge-font-size);
   font-weight: 900;
   letter-spacing: 0.12em;
-  color: #fbbf24;
+  color: var(--path-door-locked-badge-color);
   margin-bottom: 4px;
 }
 
@@ -689,10 +1320,6 @@ button.relicIcon {
   position: relative;
   z-index: 1;
   width: min(100%, 920px);
-}
-
-.pathSelectPanel > .screenTitleScreen {
-  margin-top: var(--path-select-title-lift);
 }
 
 .pathDoorRow {
@@ -733,13 +1360,14 @@ button.relicIcon {
 
 .pathDoor__art {
   position: relative;
-  display: inline-block;
+  /* Block + fit-content: art box is sized only by the door img, not the lock overlay. */
+  display: block;
+  width: fit-content;
   line-height: 0;
   overflow: visible;
 }
 
-.pathDoor__img,
-.pathDoor__lock {
+.pathDoor__img {
   display: block;
   width: var(--path-door-width);
   height: auto;
@@ -748,51 +1376,167 @@ button.relicIcon {
 }
 
 .pathDoor__img {
-  transition: filter var(--path-door-hover-duration) ease;
+  transition:
+    filter var(--path-door-hover-duration) ease,
+    opacity var(--path-door-hover-duration) ease;
 }
 
-.pathDoor--glowCombat:hover:not(:disabled) .pathDoor__img,
-.pathDoor--glowCombat:focus-visible:not(:disabled) .pathDoor__img {
+.pathDoor--locked .pathDoor__img {
+  opacity: var(--path-door-locked-opacity);
+  filter: brightness(var(--path-door-locked-brightness)) saturate(var(--path-door-locked-saturate));
+}
+
+.pathDoor--glowCombat:not(.pathDoor--locked):hover:not(:disabled) .pathDoor__img,
+.pathDoor--glowCombat:not(.pathDoor--locked):focus-visible:not(:disabled) .pathDoor__img {
   filter: brightness(var(--path-door-hover-brightness)) var(--path-door-hover-glow-combat);
 }
 
-.pathDoor--glowShop:hover:not(:disabled) .pathDoor__img,
-.pathDoor--glowShop:focus-visible:not(:disabled) .pathDoor__img {
+.pathDoor--glowShop:not(.pathDoor--locked):hover:not(:disabled) .pathDoor__img,
+.pathDoor--glowShop:not(.pathDoor--locked):focus-visible:not(:disabled) .pathDoor__img {
   filter: brightness(var(--path-door-hover-brightness)) var(--path-door-hover-glow-shop);
 }
 
-.pathDoor--glowRest:hover:not(:disabled) .pathDoor__img,
-.pathDoor--glowRest:focus-visible:not(:disabled) .pathDoor__img {
+.pathDoor--glowRest:not(.pathDoor--locked):hover:not(:disabled) .pathDoor__img,
+.pathDoor--glowRest:not(.pathDoor--locked):focus-visible:not(:disabled) .pathDoor__img {
   filter: brightness(var(--path-door-hover-brightness)) var(--path-door-hover-glow-rest);
 }
 
-.pathDoor--glowDefault:hover:not(:disabled) .pathDoor__img,
-.pathDoor--glowDefault:focus-visible:not(:disabled) .pathDoor__img {
+.pathDoor--glowDefault:not(.pathDoor--locked):hover:not(:disabled) .pathDoor__img,
+.pathDoor--glowDefault:not(.pathDoor--locked):focus-visible:not(:disabled) .pathDoor__img {
   filter: brightness(var(--path-door-hover-brightness)) var(--path-door-hover-glow-default);
 }
 
-.pathDoor__lock {
+.pathDoor--locked:hover:not(:disabled) .pathDoor__lock,
+.pathDoor--locked:focus-visible:not(:disabled) .pathDoor__lock {
+  filter: brightness(var(--path-door-lock-hover-brightness)) var(--path-door-lock-hover-glow);
+}
+
+/* Open-door beat: hover glow is suppressed while disabled — keep surround glow and grow it 50% over the pause. */
+.pathDoor--opening .pathDoor__img {
+  transition: none;
+}
+
+@keyframes pathDoorOpeningGlowCombat {
+  from {
+    filter: brightness(var(--path-door-hover-brightness)) drop-shadow(0 0 6px rgba(255, 55, 75, 0.92))
+      drop-shadow(0 0 14px rgba(230, 30, 55, 0.68)) drop-shadow(0 0 28px rgba(190, 15, 45, 0.48));
+  }
+  to {
+    filter: brightness(var(--path-door-hover-brightness)) drop-shadow(0 0 9px rgba(255, 55, 75, 0.92))
+      drop-shadow(0 0 21px rgba(230, 30, 55, 0.68)) drop-shadow(0 0 42px rgba(190, 15, 45, 0.48));
+  }
+}
+
+@keyframes pathDoorOpeningGlowShop {
+  from {
+    filter: brightness(var(--path-door-hover-brightness)) drop-shadow(0 0 6px rgba(255, 238, 168, 0.8))
+      drop-shadow(0 0 14px rgba(255, 228, 140, 0.55)) drop-shadow(0 0 28px rgba(255, 218, 115, 0.38));
+  }
+  to {
+    filter: brightness(var(--path-door-hover-brightness)) drop-shadow(0 0 9px rgba(255, 238, 168, 0.8))
+      drop-shadow(0 0 21px rgba(255, 228, 140, 0.55)) drop-shadow(0 0 42px rgba(255, 218, 115, 0.38));
+  }
+}
+
+@keyframes pathDoorOpeningGlowRest {
+  from {
+    filter: brightness(var(--path-door-hover-brightness)) drop-shadow(0 0 6px rgba(188, 248, 198, 0.8))
+      drop-shadow(0 0 14px rgba(168, 235, 178, 0.55)) drop-shadow(0 0 28px rgba(148, 225, 162, 0.38));
+  }
+  to {
+    filter: brightness(var(--path-door-hover-brightness)) drop-shadow(0 0 9px rgba(188, 248, 198, 0.8))
+      drop-shadow(0 0 21px rgba(168, 235, 178, 0.55)) drop-shadow(0 0 42px rgba(148, 225, 162, 0.38));
+  }
+}
+
+@keyframes pathDoorOpeningGlowDefault {
+  from {
+    filter: brightness(var(--path-door-hover-brightness)) drop-shadow(0 0 6px rgba(196, 232, 255, 0.8))
+      drop-shadow(0 0 14px rgba(180, 220, 255, 0.55)) drop-shadow(0 0 28px rgba(165, 210, 255, 0.38));
+  }
+  to {
+    filter: brightness(var(--path-door-hover-brightness)) drop-shadow(0 0 9px rgba(196, 232, 255, 0.8))
+      drop-shadow(0 0 21px rgba(180, 220, 255, 0.55)) drop-shadow(0 0 42px rgba(165, 210, 255, 0.38));
+  }
+}
+
+.pathDoor--glowCombat.pathDoor--opening .pathDoor__img {
+  animation: pathDoorOpeningGlowCombat var(--duration-path-door-open) ease forwards;
+}
+
+.pathDoor--glowShop.pathDoor--opening .pathDoor__img {
+  animation: pathDoorOpeningGlowShop var(--duration-path-door-open) ease forwards;
+}
+
+.pathDoor--glowRest.pathDoor--opening .pathDoor__img {
+  animation: pathDoorOpeningGlowRest var(--duration-path-door-open) ease forwards;
+}
+
+.pathDoor--glowDefault.pathDoor--opening .pathDoor__img {
+  animation: pathDoorOpeningGlowDefault var(--duration-path-door-open) ease forwards;
+}
+
+.pathDoor__lockOverlay {
   position: absolute;
-  right: 8%;
-  top: 50%;
-  width: 28%;
-  transform: translateY(-50%);
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.pathDoor__lock {
+  display: block;
+  width: var(--path-door-lock-size);
+  height: auto;
+  max-height: 100%;
   object-fit: contain;
+  user-select: none;
+  pointer-events: none;
+  transition: filter var(--path-door-hover-duration) ease;
 }
 
 .pathDoor__caption {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: var(--path-door-caption-gap);
   margin-top: var(--path-door-caption-offset);
   font-size: var(--path-door-caption-font-size);
+  line-height: var(--path-door-caption-line-height);
   text-align: center;
 }
 
+.pathDoor--locked .pathDoor__caption {
+  margin-top: var(--path-door-locked-caption-offset);
+}
+
 .pathCombatPreview {
-  font-size: var(--path-door-combat-preview-font-size);
-  opacity: 0.9;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--path-door-combat-preview-gap);
+  opacity: var(--path-door-combat-preview-opacity);
+}
+
+.pathCombatPreview__level,
+.pathCombatPreview__boons,
+.pathCombatPreview__name {
+  display: block;
+}
+
+.pathCombatPreview__level {
+  font-size: var(--path-door-combat-preview-level-font-size);
+  font-weight: var(--path-door-combat-preview-level-font-weight);
+}
+
+.pathCombatPreview__boons {
+  font-size: var(--path-door-combat-preview-boons-font-size);
+  font-weight: var(--path-door-combat-preview-boons-font-weight);
+}
+
+.pathCombatPreview__name {
+  font-size: var(--path-door-combat-preview-name-font-size);
+  font-weight: var(--path-door-combat-preview-name-font-weight);
 }
 
 .relicBeltRow {
@@ -987,6 +1731,10 @@ button.relicIcon {
   filter: brightness(1.22) saturate(1.12) contrast(1.04);
 }
 
+.inspectDeckBtn.inspectDeckBtn--panelOpen {
+  z-index: calc(var(--inspect-deck-overlay-z) + 1);
+}
+
 .inspectDiscardBtn {
   position: absolute;
   left: 12px;
@@ -1027,21 +1775,81 @@ button.relicIcon {
   filter: brightness(0.78) saturate(0.92) contrast(1.06);
 }
 
+.inspectDiscardBtn.inspectDiscardBtn--panelOpen {
+  z-index: calc(var(--inspect-deck-overlay-z) + 1);
+}
+
 .inspectDeckOverlay {
   position: absolute;
   inset: 0;
-  z-index: 50;
+  z-index: var(--inspect-deck-overlay-z);
   display: grid;
   place-items: center;
-  background: rgba(0, 0, 0, 0.55);
+  background: var(--inspect-pile-backdrop-color);
+  pointer-events: auto;
+}
+
+.inspectDeckOverlay--enter {
+  animation: inspectPileOverlayExpand var(--duration-inspect-pile-expand) var(--ease-inspect-pile-expand) both;
+}
+
+.inspectDeckOverlay--exit {
+  animation: inspectPileOverlayCollapse var(--duration-inspect-pile-collapse) var(--ease-inspect-pile-collapse) forwards;
+  pointer-events: none;
+}
+
+.inspectDeckOverlay--enter .inspectDeckPanel {
+  animation: inspectPilePanelExpand var(--duration-inspect-pile-expand) var(--ease-inspect-pile-expand) both;
+}
+
+.inspectDeckOverlay--exit .inspectDeckPanel {
+  animation: inspectPilePanelCollapse var(--duration-inspect-pile-collapse) var(--ease-inspect-pile-collapse) forwards;
+}
+
+@keyframes inspectPileOverlayExpand {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes inspectPileOverlayCollapse {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes inspectPilePanelExpand {
+  from {
+    opacity: var(--inspect-pile-panel-collapsed-opacity);
+    transform: scale(var(--inspect-pile-panel-collapsed-scale));
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes inspectPilePanelCollapse {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: var(--inspect-pile-panel-collapsed-opacity);
+    transform: scale(var(--inspect-pile-panel-collapsed-scale));
+  }
 }
 
 .inspectDeckPanel {
   width: 860px;
   height: 520px;
-  border: 2px solid #223049;
   border-radius: 14px;
-  background: rgba(11, 15, 20, 0.96);
   box-shadow: 0 16px 60px rgba(0, 0, 0, 0.6);
   position: relative;
   padding: 18px;
@@ -1049,42 +1857,99 @@ button.relicIcon {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  transform-origin: var(--inspect-pile-panel-transform-origin);
+}
+
+.inspectDeckPanel--deck {
+  border: var(--inspect-deck-panel-rim-width) solid var(--inspect-deck-panel-rim-color);
+  background: var(--inspect-deck-panel-bg);
+}
+
+.inspectDeckPanel--discard {
+  border: var(--inspect-discard-panel-rim-width) solid var(--inspect-discard-panel-rim-color);
+  background: var(--inspect-discard-panel-bg);
 }
 
 .inspectDeckTitle {
-  font-size: 22px;
   font-weight: 900;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   pointer-events: none;
+  /* Keep clear of absolutely positioned close control. */
+  padding-right: calc(var(--inspect-close-size) + var(--inspect-close-x) + 6px);
+  box-sizing: border-box;
+}
+
+.inspectDeckPanel--deck .inspectDeckTitle {
+  font-size: var(--inspect-deck-title-font-size);
+  color: var(--inspect-deck-title-color);
+}
+
+.inspectDeckPanel--discard .inspectDeckTitle {
+  font-size: var(--inspect-discard-title-font-size);
+  color: var(--inspect-discard-title-color);
 }
 
 .inspectDeckClose {
   position: absolute;
-  right: 10px;
-  top: 10px;
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  border: 1px solid #2b3a56;
-  background: rgba(15, 23, 42, 0.9);
-  color: #e6f0ff;
-  font-size: 28px;
-  line-height: 1;
+  right: var(--inspect-close-x);
+  top: var(--inspect-close-y);
+  width: var(--inspect-close-size);
+  height: var(--inspect-close-size);
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  line-height: 0;
+  cursor: default;
+  display: grid;
+  place-items: center;
+  outline: none;
+  box-shadow: none;
+  -webkit-tap-highlight-color: transparent;
+  /* Outside the inscribed circle, pointer events go to elements below. */
+  clip-path: circle(calc(var(--inspect-close-size) / 2) at 50% 50%);
+}
+
+.inspectDeckClose.inspectDeckClose--hot {
   cursor: pointer;
 }
-.inspectDeckClose:hover {
-  background: rgba(17, 31, 58, 0.95);
+
+.inspectDeckClose:focus,
+.inspectDeckClose:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.inspectDeckClose__img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+}
+
+.inspectDeckClose.inspectDeckClose--hot .inspectDeckClose__img {
+  filter: brightness(var(--inspect-close-hover-brightness));
 }
 
 .inspectDeckList {
   flex: 1 1 auto;
   overflow: auto;
-  border: 1px solid #26344f;
   border-radius: 12px;
   padding: 12px;
   box-sizing: border-box;
-  background: rgba(10, 14, 20, 0.45);
+}
+
+.inspectDeckPanel--deck .inspectDeckList {
+  border: var(--inspect-deck-list-rim-width) solid var(--inspect-deck-list-rim-color);
+  background: var(--inspect-deck-list-bg);
+}
+
+.inspectDeckPanel--discard .inspectDeckList {
+  border: var(--inspect-discard-list-rim-width) solid var(--inspect-discard-list-rim-color);
+  background: var(--inspect-discard-list-bg);
 }
 
 .inspectDeckList--cards {
@@ -1165,6 +2030,38 @@ button.relicIcon {
   font-variant-numeric: tabular-nums;
 }
 
+.tickingNumber--damage {
+  color: #ef4444;
+}
+
+.tickingNumber--tickUp {
+  animation: tickingNumberTickUp var(--duration-ticking-number) ease-out;
+}
+
+.tickingNumber--tickDown {
+  animation: tickingNumberTickDown var(--duration-ticking-number) ease-out;
+}
+
+@keyframes tickingNumberTickUp {
+  0% {
+    transform: scale(1.2);
+    color: var(--color-player-shield-tick-up-glow);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes tickingNumberTickDown {
+  0% {
+    transform: scale(1.2);
+    color: var(--color-player-shield-tick-down-glow);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
 .playerHudStack {
   position: absolute;
   left: 12px;
@@ -1181,27 +2078,284 @@ button.relicIcon {
   gap: 6px;
 }
 
-.barHud__shieldText {
+.barHud--combat {
+  align-items: center;
+  gap: 0;
+}
+
+.combatPlayerBarHud {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(
+    calc(-50% + var(--combat-player-bar-x)),
+    calc(-50% + var(--combat-player-bar-y))
+  );
+  z-index: var(--combat-bunny-meter-bar-z);
+  pointer-events: none;
+}
+
+.combatPlayerBarHud .barDisplay {
+  min-width: var(--combat-player-bar-min-width);
+  height: var(--combat-player-bar-height);
+  font-size: var(--combat-player-bar-font-size);
+}
+
+.combatMonsterBarHud {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(
+    calc(-50% + var(--combat-monster-bar-x)),
+    calc(-50% + var(--combat-monster-bar-y))
+  );
+  z-index: var(--combat-monster-bar-z);
+  pointer-events: none;
+  --duration-player-broken-shield-display: var(--duration-monster-broken-shield-display);
+}
+
+.combatMonsterBarHud .barDisplay {
+  min-width: var(--combat-monster-bar-min-width);
+  height: var(--combat-monster-bar-height);
+  font-size: var(--combat-monster-bar-font-size);
+}
+
+.combatMonsterBarHud.barHud--combat .barHud__shieldIcons {
+  bottom: calc(100% + var(--combat-monster-bar-gap));
+  gap: var(--combat-monster-shield-icon-gap, 8px);
+}
+
+.combatMonsterBarHud .shieldIconDisplay__tickGlow {
+  animation-duration: var(--duration-monster-shield-tick-glow);
+}
+
+.combatMonsterBarHud .shieldIconDisplay__tickGlow--up {
+  box-shadow:
+    0 0 10px var(--color-monster-shield-tick-up-glow-soft),
+    0 0 22px var(--color-monster-shield-tick-up-glow),
+    0 0 36px var(--color-monster-shield-tick-up-glow-soft);
+}
+
+.combatMonsterBarHud .shieldIconDisplay__tickGlow--down {
+  box-shadow:
+    0 0 10px var(--color-monster-shield-tick-down-glow-soft),
+    0 0 22px var(--color-monster-shield-tick-down-glow),
+    0 0 36px var(--color-monster-shield-tick-down-glow-soft);
+}
+
+.combatMonsterBarHud .shieldIconDisplay--tickUp .shieldIconDisplay__art {
+  animation: shieldIconArtTickUp var(--duration-monster-shield-tick-glow) ease-out;
+}
+
+.combatMonsterBarHud .shieldIconDisplay--tickDown .shieldIconDisplay__art {
+  animation: shieldIconArtTickDown var(--duration-monster-shield-tick-glow) ease-out;
+}
+
+.combatMonsterBarHud .shieldIconDisplay--shield {
+  width: var(--monster-shield-icon-size);
+  height: var(--monster-shield-icon-size);
+  transform: translate(var(--monster-shield-icon-offset-x), var(--monster-shield-icon-offset-y));
+}
+
+.combatMonsterBarHud .shieldIconDisplay--lockedShield {
+  width: var(--monster-locked-shield-icon-size);
+  height: var(--monster-locked-shield-icon-size);
+  transform: translate(
+    var(--monster-locked-shield-icon-offset-x),
+    var(--monster-locked-shield-icon-offset-y)
+  );
+}
+
+.combatMonsterBarHud .shieldIconDisplay--shield .shieldIconDisplay__value {
+  transform: translate(var(--monster-shield-value-offset-x), var(--monster-shield-value-offset-y));
+  font-size: var(--font-monster-shield-value-size);
+  color: var(--color-monster-shield-value);
+}
+
+.combatMonsterBarHud .shieldIconDisplay--lockedShield .shieldIconDisplay__value {
+  transform: translate(
+    var(--monster-locked-shield-value-offset-x),
+    var(--monster-locked-shield-value-offset-y)
+  );
+  font-size: var(--font-monster-locked-shield-value-size);
+  color: var(--color-monster-locked-shield-value);
+}
+
+/* Combat shields float above the bar — never shift bar layout when they appear. */
+.barHud--combat .barHud__shieldIcons {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + var(--combat-player-bar-gap));
+  transform: translateX(-50%);
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: flex-end;
+  justify-content: center;
+  gap: var(--combat-player-shield-icon-gap, 8px);
+  width: max-content;
+}
+
+.barHud__shieldIcons {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75em;
-  font-size: 16px;
-  font-weight: 800;
-  line-height: 1.3;
+  align-items: flex-end;
+  gap: 8px;
 }
 
-.barHud__shields {
-  color: var(--color-shield-hud);
+.shieldIconDisplay {
+  position: relative;
+  flex-shrink: 0;
+  user-select: none;
 }
 
-.barHud__lockedShields {
-  color: var(--color-locked-shield-hud);
+.shieldIconDisplay__tickGlow {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(100% + 16px);
+  height: calc(100% + 16px);
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  pointer-events: none;
+  animation: shieldIconTickGlow var(--duration-player-shield-tick-glow) ease-out forwards;
 }
 
-.counterHud {
-  font-size: 16px;
-  font-weight: 800;
-  line-height: 1.3;
+.shieldIconDisplay__tickGlow--up {
+  box-shadow:
+    0 0 10px var(--color-player-shield-tick-up-glow-soft),
+    0 0 22px var(--color-player-shield-tick-up-glow),
+    0 0 36px var(--color-player-shield-tick-up-glow-soft);
+}
+
+.shieldIconDisplay__tickGlow--down {
+  box-shadow:
+    0 0 10px var(--color-player-shield-tick-down-glow-soft),
+    0 0 22px var(--color-player-shield-tick-down-glow),
+    0 0 36px var(--color-player-shield-tick-down-glow-soft);
+}
+
+@keyframes shieldIconTickGlow {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.shieldIconDisplay--tickUp .shieldIconDisplay__art {
+  animation: shieldIconArtTickUp var(--duration-player-shield-tick-glow) ease-out;
+}
+
+.shieldIconDisplay--tickDown .shieldIconDisplay__art {
+  animation: shieldIconArtTickDown var(--duration-player-shield-tick-glow) ease-out;
+}
+
+@keyframes shieldIconArtTickUp {
+  0% {
+    filter: drop-shadow(0 0 6px var(--color-player-shield-tick-up-glow))
+      drop-shadow(0 0 14px var(--color-player-shield-tick-up-glow-soft));
+  }
+  100% {
+    filter: none;
+  }
+}
+
+@keyframes shieldIconArtTickDown {
+  0% {
+    filter: drop-shadow(0 0 6px var(--color-player-shield-tick-down-glow))
+      drop-shadow(0 0 14px var(--color-player-shield-tick-down-glow-soft));
+  }
+  100% {
+    filter: none;
+  }
+}
+
+.shieldIconDisplay--shield {
+  width: var(--player-shield-icon-size);
+  height: var(--player-shield-icon-size);
+  transform: translate(var(--player-shield-icon-offset-x), var(--player-shield-icon-offset-y));
+}
+
+.shieldIconDisplay--lockedShield {
+  width: var(--player-locked-shield-icon-size);
+  height: var(--player-locked-shield-icon-size);
+  transform: translate(
+    var(--player-locked-shield-icon-offset-x),
+    var(--player-locked-shield-icon-offset-y)
+  );
+}
+
+.shieldIconDisplay__art {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.shieldIconDisplay__value {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-main);
+  font-weight: 900;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.shieldIconDisplay--shield .shieldIconDisplay__value {
+  transform: translate(var(--player-shield-value-offset-x), var(--player-shield-value-offset-y));
+  font-size: var(--font-player-shield-value-size);
+  color: var(--color-player-shield-value);
+}
+
+.shieldIconDisplay--lockedShield .shieldIconDisplay__value {
+  transform: translate(
+    var(--player-locked-shield-value-offset-x),
+    var(--player-locked-shield-value-offset-y)
+  );
+  font-size: var(--font-player-locked-shield-value-size);
+  color: var(--color-player-locked-shield-value);
+}
+
+.hudBoxDisplay {
+  box-sizing: border-box;
+  width: var(--hud-box-display-width);
+  border: var(--hud-box-display-border-width) solid var(--hud-box-display-border-color);
+  border-radius: var(--hud-box-display-border-radius);
+  background: var(--hud-box-display-bg);
+  padding: var(--hud-box-display-padding);
+  display: flex;
+  flex-direction: column;
+  gap: var(--hud-box-display-gap);
+  font-size: var(--hud-box-display-font-size);
+  font-weight: var(--hud-box-display-font-weight);
+  line-height: var(--hud-box-display-line-height);
+}
+
+.hudBoxDisplay .hudText {
+  color: var(--hud-box-display-text-color);
+}
+
+.hudBoxDisplay__item {
+  flex: 0 0 auto;
+}
+
+.hudBoxDisplay__counter {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--hud-box-display-icon-gap);
+}
+
+.hudBoxDisplay__icon {
+  display: block;
+  height: var(--hud-box-display-icon-height);
+  width: auto;
+  flex: 0 0 auto;
+  pointer-events: none;
+  user-select: none;
 }
 
 .barDisplay {
@@ -1253,15 +2407,224 @@ button.relicIcon {
   white-space: nowrap;
 }
 
+.gemstoneSocketPanel {
+  width: min(100%, 980px);
+  align-items: stretch;
+}
+
+/* Fixed overlay — carpet + gem; does not affect buttons or card list layout. */
+.gemstoneSocketPedestal {
+  position: fixed;
+  left: var(--gem-socket-carpet-x);
+  top: var(--gem-socket-carpet-y);
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  transform: translateY(-50%);
+  pointer-events: auto;
+}
+
+.gemstoneSocketPedestal__carpet {
+  grid-area: 1 / 1;
+  z-index: 0;
+  display: block;
+  width: var(--gem-socket-carpet-size);
+  height: auto;
+  pointer-events: none;
+  user-select: none;
+}
+
+.gemstoneSocketPedestal .gemIcon {
+  grid-area: 1 / 1;
+  z-index: 1;
+}
+
+/* Fixed under carpet + gem (see --gem-socket-actions-*). */
+.gemstoneSocketActions {
+  position: fixed;
+  left: var(--gem-socket-actions-x);
+  top: var(--gem-socket-actions-y);
+  z-index: 100;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--gem-socket-actions-gap);
+  width: auto;
+  margin: 0;
+  transform: translateX(-50%);
+  pointer-events: auto;
+}
+
+.gemstoneSocketBackBtn {
+  border-width: var(--gem-socket-back-border-width);
+  border-color: var(--gem-socket-back-border-color);
+  background: var(--gem-socket-back-bg);
+  color: var(--gem-socket-back-color);
+  font-size: var(--gem-socket-back-font-size);
+  padding: var(--gem-socket-back-padding);
+  border-radius: var(--gem-socket-back-border-radius);
+}
+
+.gemstoneSocketBackBtn:hover:not(:disabled) {
+  background: var(--gem-socket-back-hover-bg);
+}
+
+.gemstoneSocketSocketBtn {
+  border-width: var(--gem-socket-socket-border-width);
+  border-color: var(--gem-socket-socket-border-color);
+  background: var(--gem-socket-socket-bg);
+  color: var(--gem-socket-socket-color);
+  font-size: var(--gem-socket-socket-font-size);
+  padding: var(--gem-socket-socket-padding);
+  border-radius: var(--gem-socket-socket-border-radius);
+}
+
+.gemstoneSocketSocketBtn:hover:not(:disabled) {
+  background: var(--gem-socket-socket-hover-bg);
+}
+
+.gemstoneSocketSocketBtn:disabled {
+  opacity: var(--gem-socket-socket-disabled-opacity);
+}
+
+.gemstoneSocketCardPanel {
+  position: fixed;
+  left: var(--gem-socket-cards-x);
+  top: var(--gem-socket-cards-y);
+  z-index: 50;
+  width: var(--gem-socket-cards-width);
+  max-width: calc(100vw - 24px);
+  max-height: var(--gem-socket-cards-max-height);
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+  box-sizing: border-box;
+}
+
+.gemstoneSocketCardSlot--animating {
+  visibility: hidden;
+}
+
+.cardSocketFlipFxLayer {
+  position: fixed;
+  inset: 0;
+  z-index: var(--card-socket-flip-fx-z);
+  pointer-events: none;
+}
+
+.cardSocketFlipHost {
+  position: absolute;
+  transform: translate(-50%, -50%);
+}
+
+.cardSocketFlipFx {
+  position: relative;
+  perspective: var(--card-socket-flip-perspective);
+}
+
+.cardSocketFlipFx__flipper {
+  position: relative;
+  width: var(--gem-socket-card-w);
+  height: var(--gem-socket-card-h);
+  transform: rotateY(0deg);
+  transform-style: preserve-3d;
+  transition: transform var(--duration-card-socket-flip-half) var(--ease-card-socket-flip);
+}
+
+.cardSocketFlipFx__flipper--flipped {
+  transform: rotateY(180deg);
+}
+
+.cardSocketFlipFx__face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.cardSocketFlipFx__face--back {
+  transform: rotateY(180deg);
+}
+
+.cardSocketFlipFx__backImg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  user-select: none;
+  pointer-events: none;
+}
+
+.cardSocketFlipFx .gameCard {
+  pointer-events: none;
+}
+
+.cardSocketFlipFx .gameCard:hover {
+  transform: none;
+}
+
+.cardSocketFlipFx__glow {
+  position: absolute;
+  inset: 0;
+  border-radius: 10px;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.cardSocketFlipFx--glow .cardSocketFlipFx__glow {
+  animation: cardSocketFlipGlow var(--duration-card-socket-flip-glow) var(--ease-card-socket-flip-glow) forwards;
+}
+
+@keyframes cardSocketFlipGlow {
+  0% {
+    opacity: 0;
+    box-shadow: none;
+    transform: scale(1);
+  }
+  35% {
+    opacity: var(--card-socket-flip-glow-opacity-peak);
+    box-shadow: 0 0 var(--card-socket-flip-glow-spread) var(--card-socket-flip-glow-color);
+    transform: scale(var(--card-socket-flip-glow-scale-peak));
+  }
+  100% {
+    opacity: 0;
+    box-shadow: none;
+    transform: scale(1);
+  }
+}
+
 .gemstoneSocketCardList {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 10px;
-  width: min(92vw, 720px);
-  max-height: min(60vh, 520px);
+  align-content: flex-start;
+  gap: var(--gem-socket-cards-gap);
+  width: 100%;
+  max-height: inherit;
   overflow: auto;
-  margin: 12px 0;
+  margin: 0;
+  padding: var(--gem-socket-cards-padding-y) var(--gem-socket-cards-padding-x);
+  border: var(--gem-socket-cards-rim-width) solid var(--gem-socket-cards-rim-color);
+  border-radius: var(--gem-socket-cards-border-radius);
+  background: var(--gem-socket-cards-bg);
+  box-sizing: border-box;
+}
+
+.gemstoneSocketCardList > .gemstoneSocketCard.gameCard {
+  width: var(--gem-socket-card-w);
+  height: var(--gem-socket-card-h);
+  transform-origin: center center;
+  transition: transform var(--game-card-hover-duration) ease;
+}
+
+.gemstoneSocketCardList > .gemstoneSocketCard.gameCard--selected {
+  outline: var(--gem-socket-card-selected-outline-width) solid var(--gem-socket-card-selected-outline-color);
+  box-shadow: var(--gem-socket-card-selected-shadow);
+}
+
+.gemstoneSocketCardList > .gemstoneSocketCard.gameCard:hover:not(.gameCard--disabled) {
+  transform: scale(var(--gem-socket-card-hover-scale));
 }
 
 .cardOfferPanel {
@@ -1316,8 +2679,10 @@ button.relicIcon {
 /* Enlarge-on-hover: deck inspect, rewards, shop, combat hand, hand selection */
 .inspectDeckCardSlot,
 .cardOfferSlot,
+.shopShelfSlot,
 .handFan__slot,
-.handSelectionHand > .gameCard {
+.handSelectionHand > .gameCard,
+.gemstoneSocketCardList > .gemstoneSocketCard.gameCard {
   position: relative;
   z-index: 0;
 }
@@ -1325,9 +2690,14 @@ button.relicIcon {
 .inspectDeckCardSlot:hover,
 .cardOfferSlot:has(.cardOfferBtn:hover:not(:disabled)),
 .cardOfferSlot:has(.shopCardOffer:hover:not(:disabled)),
+.shopShelfSlot:hover,
+.shopShelfSlot:has(.shopCardOffer:hover:not(:disabled):not(.shopCardOffer--unaffordable)),
+.shopShelfSlot:has(.shopKeyOffer:hover:not(:disabled):not(.shopKeyOffer--unaffordable)),
+.shopShelfSlot:has(.relicIcon--clickable:hover:not(:disabled)):not(.shopShelfSlot--unaffordable),
 .handFan__slot:hover,
 .handFan__slot:focus-within,
-.handSelectionHand > .gameCard:hover {
+.handSelectionHand > .gameCard:hover,
+.gemstoneSocketCardList > .gemstoneSocketCard.gameCard:hover {
   z-index: 10;
 }
 
@@ -1341,11 +2711,26 @@ button.relicIcon {
 
 .inspectDeckCardSlot:hover .gameCard,
 .cardOfferBtn:hover:not(:disabled) .gameCard:not(.gameCard--traveling):not(.gameCard--rejected),
-.shopCardOffer:hover:not(:disabled) .gameCard:not(.gameCard--traveling):not(.gameCard--rejected),
+.shopCardOffer:hover:not(:disabled):not(.shopCardOffer--unaffordable) .gameCard:not(.gameCard--traveling):not(.gameCard--rejected),
 .handFan__slot:hover .gameCard:not(.gameCard--traveling):not(.gameCard--rejected),
 .handFan__slot:focus-within .gameCard:not(.gameCard--traveling):not(.gameCard--rejected),
 .handSelectionHand > .gameCard:hover:not(.gameCard--disabled) {
   transform: scale(var(--game-card-hover-scale));
+}
+
+.shopShelfSlot.cardOfferSlot .gameCard {
+  transform-origin: center bottom;
+}
+
+.shopShelfSlot.cardOfferSlot .gameCard:not(.gameCard--traveling):not(.gameCard--rejected) {
+  transform: scale(var(--shop-shelves-card-scale));
+}
+
+.shopShelfSlot.cardOfferSlot:has(.shopCardOffer:hover:not(:disabled):not(.shopCardOffer--unaffordable))
+  .gameCard:not(.gameCard--traveling):not(.gameCard--rejected),
+.shopShelfSlot.cardOfferSlot:has(.shopCardOffer:focus-visible:not(:disabled):not(.shopCardOffer--unaffordable))
+  .gameCard:not(.gameCard--traveling):not(.gameCard--rejected) {
+  transform: scale(calc(var(--shop-shelves-card-scale) * var(--game-card-hover-scale)));
 }
 
 .gameCard--rejected {
@@ -1387,6 +2772,12 @@ button.relicIcon {
     top var(--duration-card-draw-travel) cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+.cardTravelFlyer--toDiscard.cardTravelFlyer--moving {
+  transition:
+    left var(--duration-card-discard-travel) cubic-bezier(0.16, 1, 0.3, 1),
+    top var(--duration-card-discard-travel) cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 .cardTravelMotion {
   transform: translate(-50%, -50%) scale(1) rotate(0deg);
 }
@@ -1407,6 +2798,16 @@ button.relicIcon {
 
 .cardTravelMotion--fromDeck.cardTravelMotion--moving {
   transform: translate(-50%, -50%) scale(1) rotate(0deg);
+}
+
+.cardTravelMotion--toDiscard {
+  transition: transform var(--duration-card-discard-travel) cubic-bezier(0.16, 1, 0.3, 1);
+  transform: translate(-50%, -50%) scale(1) rotate(0deg);
+}
+
+.cardTravelMotion--toDiscard.cardTravelMotion--moving {
+  transition: transform var(--duration-card-discard-travel) cubic-bezier(0.16, 1, 0.3, 1);
+  transform: translate(-50%, -50%) scale(0.5) rotate(40deg);
 }
 
 .cardTravelFlyer--fromDeck .cardTravelFlipper {
@@ -1478,10 +2879,12 @@ button.relicIcon {
   opacity: 0.6;
 }
 
+.shopRelicPrice,
 .shopCardOffer__price {
   font-weight: 900;
   font-size: 14px;
   color: #fbbf24;
+  pointer-events: none;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
 }
 
@@ -1501,6 +2904,228 @@ button.relicIcon {
   gap: 10px;
   z-index: 2;
   user-select: none;
+  /* Decorative children opt in to pointer-events: none; End Turn opts back in. */
+  pointer-events: none;
+}
+
+.combatPlayerPlaceholder {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--combat-player-placeholder-size);
+  height: var(--combat-player-placeholder-size);
+  transform: translate(
+    calc(-50% + var(--combat-player-placeholder-x)),
+    calc(-50% + var(--combat-player-placeholder-y))
+  );
+  pointer-events: none;
+  user-select: none;
+  z-index: var(--combat-bunny-meter-placeholder-z);
+}
+
+.combatPlayerPlaceholder__art {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.combatPlayerPlaceholder--defeating {
+  z-index: var(--monster-defeat-fx-z);
+}
+
+.combatPlayerPlaceholder--defeating .combatPlayerPlaceholder__art {
+  transform-origin: center center;
+  filter: blur(0) drop-shadow(var(--monster-defeat-glow-art-spread));
+  animation: playerDefeatArtFall var(--duration-monster-defeat) var(--ease-monster-defeat) forwards;
+}
+
+.combatMonsterPlaceholder {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--combat-monster-placeholder-size);
+  height: var(--combat-monster-placeholder-size);
+  transform: translate(
+    calc(-50% + var(--combat-monster-placeholder-x)),
+    calc(-50% + var(--combat-monster-placeholder-y))
+  );
+  pointer-events: none;
+  user-select: none;
+  z-index: var(--combat-monster-placeholder-z);
+}
+
+.combatMonsterPlaceholder__art {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.combatMonsterIntent {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(
+    calc(-50% + var(--combat-monster-intent-x)),
+    calc(-50% + var(--combat-monster-intent-y))
+  );
+  z-index: var(--combat-monster-intent-z);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+  user-select: none;
+}
+
+.combatMonsterIntent__attackValue {
+  margin-bottom: var(--combat-monster-intent-attack-value-gap);
+  transform: translate(
+    var(--combat-monster-intent-attack-value-x-offset),
+    var(--combat-monster-intent-attack-value-y-offset)
+  );
+  font-family: var(--font-main);
+  font-size: var(--combat-monster-intent-attack-value-font-size);
+  font-weight: var(--font-combat-monster-intent-attack-value-weight);
+  letter-spacing: var(--combat-monster-intent-attack-value-letter-spacing);
+  line-height: 1;
+  color: var(--color-combat-monster-intent-attack-value);
+}
+
+.combatMonsterIntent__icon {
+  display: block;
+  width: var(--combat-monster-intent-size);
+  height: var(--combat-monster-intent-size);
+  flex-shrink: 0;
+  object-fit: contain;
+  transform-origin: center center;
+  animation: combatMonsterIntentIconIdle var(--duration-combat-monster-intent-idle-sway) ease-in-out infinite;
+}
+
+@keyframes combatMonsterIntentIconIdle {
+  0%,
+  100% {
+    transform: rotate(calc(-1 * var(--combat-monster-intent-idle-lean-deg)));
+  }
+  50% {
+    transform: rotate(var(--combat-monster-intent-idle-lean-deg));
+  }
+}
+
+.combatMonsterIntent__name {
+  margin-top: var(--combat-monster-intent-name-gap);
+  max-width: var(--combat-monster-intent-name-max-width);
+  transform: translate(
+    var(--combat-monster-intent-name-x-offset),
+    var(--combat-monster-intent-name-y-offset)
+  );
+  font-family: var(--font-main);
+  font-size: var(--combat-monster-intent-name-font-size);
+  font-weight: var(--font-combat-monster-intent-name-weight);
+  letter-spacing: var(--combat-monster-intent-name-letter-spacing);
+  line-height: 1.15;
+  text-align: center;
+  color: var(--color-combat-monster-intent-name);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.combatMonsterPlaceholder__name {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + var(--combat-monster-name-gap));
+  transform: translate(
+    calc(-50% + var(--combat-monster-name-x-offset)),
+    var(--combat-monster-name-y-offset)
+  );
+  max-width: var(--combat-monster-name-max-width);
+  font-family: var(--font-main);
+  font-size: var(--combat-monster-name-font-size);
+  font-weight: var(--font-combat-monster-name-weight);
+  letter-spacing: var(--combat-monster-name-letter-spacing);
+  line-height: 1.2;
+  text-align: center;
+  color: var(--color-combat-monster-name);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  user-select: none;
+}
+
+.combatMonsterPlaceholder--defeating {
+  z-index: var(--monster-defeat-fx-z);
+}
+
+.combatMonsterPlaceholder--defeating .combatMonsterPlaceholder__art {
+  transform-origin: center center;
+  filter: blur(0) drop-shadow(var(--monster-defeat-glow-art-spread));
+  animation: monsterDefeatArtFall var(--duration-monster-defeat) var(--ease-monster-defeat) forwards;
+}
+
+.combatMonsterPlaceholder--defeating .combatMonsterPlaceholder__name {
+  color: var(--color-monster-defeat-name);
+  text-shadow: var(--monster-defeat-glow-name-spread);
+  animation: monsterDefeatNameFall var(--duration-monster-defeat) var(--ease-monster-defeat) forwards;
+}
+
+.monsterDefeatPoof {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 1;
+  width: auto;
+  height: var(--monster-defeat-poof-height);
+  object-fit: contain;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  animation: monsterDefeatPoofFade var(--duration-monster-defeat-poof-fade) var(--ease-monster-defeat-poof) forwards;
+}
+
+@keyframes monsterDefeatArtFall {
+  from {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  to {
+    transform: translate(0, var(--monster-defeat-fall-y)) rotate(var(--monster-defeat-rotate-deg));
+  }
+}
+
+@keyframes playerDefeatArtFall {
+  from {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  to {
+    transform: translate(0, var(--monster-defeat-fall-y)) rotate(calc(-1 * var(--monster-defeat-rotate-deg)));
+  }
+}
+
+@keyframes monsterDefeatNameFall {
+  from {
+    transform: translate(
+      calc(-50% + var(--combat-monster-name-x-offset)),
+      var(--combat-monster-name-y-offset)
+    );
+  }
+  to {
+    transform: translate(
+      calc(-50% + var(--combat-monster-name-x-offset)),
+      calc(var(--combat-monster-name-y-offset) + var(--monster-defeat-fall-y))
+    );
+  }
+}
+
+@keyframes monsterDefeatPoofFade {
+  0% {
+    opacity: var(--monster-defeat-poof-start-opacity);
+    transform: translate(-50%, -50%) scale(0.85);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.15);
+  }
 }
 
 .bunnyMeterCauldron {
@@ -1509,6 +3134,8 @@ button.relicIcon {
   height: var(--cauldron-size);
   flex-shrink: 0;
   transform: translateY(var(--cauldron-offset-y));
+  z-index: var(--combat-bunny-meter-cauldron-z);
+  pointer-events: none;
 }
 
 .bunnyMeterCauldron__art {
@@ -1537,6 +3164,9 @@ button.relicIcon {
 }
 
 .bunnyMeterEndTurn {
+  position: relative;
+  z-index: var(--combat-bunny-meter-end-turn-z);
+  pointer-events: auto;
   font-size: var(--font-combat-end-turn-button-size);
   max-width: calc(var(--cauldron-size) + 40px);
   text-align: center;
@@ -1544,61 +3174,24 @@ button.relicIcon {
   transform: translateY(var(--cauldron-end-turn-button-offset-y));
 }
 
-.unit {
-  position: absolute;
-  width: 220px;
-  height: 140px;
-  border: 1px solid #26344f;
-  border-radius: 14px;
-  background: rgba(10, 14, 20, 0.5);
-  box-sizing: border-box;
-  padding: 10px;
-}
-.unitTitle {
-  font-size: 14px;
-  opacity: 0.95;
-  pointer-events: none;
-}
-.unitStats {
-  margin-top: 8px;
-  display: flex;
-  gap: 10px;
-  font-size: 12px;
-  opacity: 0.9;
+.bunnyMeterEndTurn--nudge:not(:disabled) {
+  animation: combatEndTurnNudgePulse var(--duration-combat-end-turn-nudge-pulse) ease-in-out infinite;
 }
 
-.enemyUnitStats {
-  flex-direction: column;
-  gap: 4px;
-  align-items: flex-start;
+@keyframes combatEndTurnNudgePulse {
+  0%,
+  100% {
+    box-shadow: var(--combat-end-turn-nudge-glow);
+  }
+  50% {
+    box-shadow: var(--combat-end-turn-nudge-glow-strong);
+  }
 }
 
-.enemyStrengthLine {
-  margin-top: 6px;
-  font-size: 13px;
+.bunnyMeterEndTurnTooltip {
+  text-align: center;
   font-weight: 700;
-  letter-spacing: 0.04em;
-  color: #fca5a5;
-}
-
-.playerUnit {
-  left: 70px;
-  bottom: 170px;
-}
-
-.enemyUnit {
-  right: 70px;
-  top: 150px;
-  cursor: pointer;
-}
-.enemyUnitSelected {
-  outline: 2px solid #60a5fa;
-}
-
-.intent {
-  margin-top: 10px;
-  font-size: 12px;
-  opacity: 0.9;
+  letter-spacing: 0.03em;
 }
 
 .handRow {
@@ -1665,6 +3258,10 @@ button.relicIcon {
   user-select: none;
 }
 
+.gameCard__frame--front {
+  filter: var(--card-front-filter);
+}
+
 .gameCard__overlay {
   position: absolute;
   inset: 0;
@@ -1721,11 +3318,24 @@ button.relicIcon {
   margin: 1% 0;
 }
 
-.gameCard__artPlaceholder {
-  max-width: 52%;
-  max-height: 88%;
-  opacity: 0.5;
+.gameCard__artImg {
+  width: var(--card-illustration-w, var(--card-illustration-default-w));
+  height: var(--card-illustration-h, var(--card-illustration-default-h));
   object-fit: contain;
+  filter: var(--card-illustration-filter);
+  transform: translate(
+    var(--card-illustration-x, var(--card-illustration-default-x)),
+    var(--card-illustration-y, var(--card-illustration-default-y))
+  );
+  pointer-events: none;
+}
+
+.gameCard--potion .gameCard__artImg {
+  filter: var(--card-illustration-potion-filter);
+}
+
+.gameCard__artImg--placeholder {
+  opacity: 0.5;
 }
 
 .gameCard__desc {
@@ -1844,90 +3454,95 @@ button.relicIcon {
 .handSelectionOverlay {
   position: absolute;
   inset: 0;
-  z-index: 40;
+  z-index: var(--upgrade-subscreen-overlay-z);
   display: grid;
   place-items: center;
-  background: rgba(0, 0, 0, 0.55);
+  background: var(--upgrade-subscreen-overlay-bg);
 }
 
 .handSelectionPanel {
-  width: min(920px, calc(100% - 40px));
-  max-height: min(560px, calc(100% - 40px));
-  border: 2px solid #223049;
-  border-radius: 14px;
-  background: rgba(11, 15, 20, 0.96);
-  box-shadow: 0 16px 60px rgba(0, 0, 0, 0.6);
-  padding: 18px;
+  position: relative;
+  width: var(--upgrade-subscreen-panel-width);
+  height: var(--upgrade-subscreen-panel-height);
+  border: var(--upgrade-subscreen-panel-rim-width) solid var(--upgrade-subscreen-panel-rim-color);
+  border-radius: var(--upgrade-subscreen-panel-border-radius);
+  background: var(--upgrade-subscreen-panel-bg);
+  box-shadow: var(--upgrade-subscreen-panel-box-shadow);
+  padding: var(--upgrade-subscreen-panel-padding);
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--upgrade-subscreen-panel-gap);
+}
+
+.handSelectionPanel .inspectDeckClose {
+  right: var(--upgrade-subscreen-close-x);
+  top: var(--upgrade-subscreen-close-y);
+  width: var(--upgrade-subscreen-close-size);
+  height: var(--upgrade-subscreen-close-size);
+  clip-path: circle(calc(var(--upgrade-subscreen-close-size) / 2) at 50% 50%);
+}
+
+.handSelectionPanel .inspectDeckClose.inspectDeckClose--hot .inspectDeckClose__img {
+  filter: brightness(var(--upgrade-subscreen-close-hover-brightness));
 }
 
 .handSelectionTitle {
-  font-size: 22px;
+  font-size: var(--upgrade-subscreen-title-font-size);
   font-weight: 900;
-  letter-spacing: 0.04em;
+  letter-spacing: var(--upgrade-subscreen-title-letter-spacing);
   text-transform: uppercase;
   pointer-events: none;
+  color: var(--upgrade-subscreen-title-color);
+  padding-right: calc(
+    var(--upgrade-subscreen-close-size) + var(--upgrade-subscreen-close-x) +
+      var(--upgrade-subscreen-title-close-padding)
+  );
+  box-sizing: border-box;
 }
 
 .handSelectionSub {
-  font-size: 14px;
-  opacity: 0.88;
+  font-size: var(--upgrade-subscreen-sub-font-size);
+  color: var(--upgrade-subscreen-sub-color);
   pointer-events: none;
 }
 
 .handSelectionActions {
   display: flex;
-  gap: 10px;
+  gap: var(--upgrade-subscreen-actions-gap);
   align-items: center;
-}
-
-.handSelectionCancel {
-  align-self: flex-start;
-  cursor: pointer;
-  border: 1px solid #2b3a56;
-  background: rgba(15, 23, 42, 0.9);
-  color: #e6f0ff;
-  padding: 8px 14px;
-  border-radius: 10px;
-  font-size: 15px;
-  font-weight: 700;
-}
-.handSelectionCancel:hover {
-  background: rgba(17, 31, 58, 0.95);
 }
 
 .handSelectionSubmit {
   cursor: pointer;
-  border: 1px solid #256f4c;
-  background: rgba(16, 95, 62, 0.9);
-  color: #e8fff4;
-  padding: 8px 14px;
-  border-radius: 10px;
-  font-size: 15px;
-  font-weight: 800;
+  border: var(--upgrade-subscreen-submit-border);
+  background: var(--upgrade-subscreen-submit-bg);
+  color: var(--upgrade-subscreen-submit-color);
+  padding: var(--upgrade-subscreen-submit-padding);
+  border-radius: var(--upgrade-subscreen-submit-border-radius);
+  font-size: var(--upgrade-subscreen-submit-font-size);
+  font-weight: var(--upgrade-subscreen-submit-font-weight);
 }
 .handSelectionSubmit:hover:not(:disabled) {
-  background: rgba(22, 120, 78, 0.95);
+  background: var(--upgrade-subscreen-submit-hover-bg);
 }
 .handSelectionSubmit:disabled {
   cursor: not-allowed;
-  opacity: 0.45;
+  opacity: var(--upgrade-subscreen-submit-disabled-opacity);
 }
 
 .handSelectionHand {
   flex: 1 1 auto;
+  min-height: 0;
   overflow: auto;
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 16px;
-  padding: calc(8px + var(--game-card-h) * 0.15) calc(4px + var(--game-card-w) * 0.15);
-  border: 1px solid #26344f;
-  border-radius: 12px;
-  background: rgba(10, 14, 20, 0.35);
+  gap: var(--upgrade-subscreen-hand-gap);
+  padding: var(--upgrade-subscreen-hand-padding-y) var(--upgrade-subscreen-hand-padding-x);
+  border: var(--upgrade-subscreen-hand-rim-width) solid var(--upgrade-subscreen-hand-rim-color);
+  border-radius: var(--upgrade-subscreen-hand-border-radius);
+  background: var(--upgrade-subscreen-hand-bg);
 }
 
 .handSelectionCard {
@@ -2005,4 +3620,172 @@ button.relicIcon {
 .inkJarDisplay__sep,
 .inkJarDisplay__max {
   opacity: 0.92;
+}
+
+/* Iris transition — matte closes (out) or opens (in) over the stage. */
+@property --iris-hole {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 150vmax;
+}
+
+.irisOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: var(--iris-overlay-z);
+  background: var(--iris-color);
+  pointer-events: auto;
+}
+
+.irisOverlay--color-black {
+  --iris-color: var(--iris-color-black);
+}
+
+/* Shape: circle */
+.irisOverlay--shape-circle {
+  -webkit-mask-image: radial-gradient(
+    circle at var(--iris-center-x, 50%) var(--iris-center-y, 50%),
+    transparent var(--iris-hole),
+    black var(--iris-hole)
+  );
+  mask-image: radial-gradient(
+    circle at var(--iris-center-x, 50%) var(--iris-center-y, 50%),
+    transparent var(--iris-hole),
+    black var(--iris-hole)
+  );
+}
+
+.irisOverlay--shape-circle.irisOverlay--out {
+  animation: irisCircleOut var(--duration-iris-out) var(--ease-iris) forwards;
+}
+
+.irisOverlay--shape-circle.irisOverlay--in {
+  --iris-hole: var(--iris-in-start);
+  animation: irisCircleIn var(--duration-iris-in) var(--ease-iris) forwards;
+}
+
+@keyframes irisCircleOut {
+  from {
+    --iris-hole: var(--iris-out-start);
+  }
+  to {
+    --iris-hole: var(--iris-out-end);
+  }
+}
+
+@keyframes irisCircleIn {
+  from {
+    --iris-hole: var(--iris-in-start);
+  }
+  to {
+    --iris-hole: var(--iris-in-end);
+  }
+}
+
+/* Shape: bunny (bunnyIrisOutline.png cutout, scaled via --iris-hole) */
+.irisOverlay--shape-bunny {
+  -webkit-mask-image: linear-gradient(white, white), var(--iris-bunny-mask-image);
+  mask-image: linear-gradient(white, white), var(--iris-bunny-mask-image);
+  -webkit-mask-size: 100% 100%, var(--iris-hole) var(--iris-hole);
+  mask-size: 100% 100%, var(--iris-hole) var(--iris-hole);
+  -webkit-mask-position: center, var(--iris-center-x, 50%) var(--iris-center-y, 50%);
+  mask-position: center, var(--iris-center-x, 50%) var(--iris-center-y, 50%);
+  -webkit-mask-repeat: no-repeat, no-repeat;
+  mask-repeat: no-repeat, no-repeat;
+  -webkit-mask-composite: source-out;
+  mask-composite: exclude;
+}
+
+.irisOverlay--shape-bunny.irisOverlay--out {
+  animation: irisCircleOut var(--duration-iris-out) var(--ease-iris) forwards;
+}
+
+.irisOverlay--shape-bunny.irisOverlay--in {
+  --iris-hole: var(--iris-in-start);
+  animation: irisCircleIn var(--duration-iris-in) var(--ease-iris) forwards;
+}
+
+/* Iris path transition — color-out then clear-out (see tokens.css --iris-path-*). */
+@property --iris-path-hole {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 150vmax;
+}
+
+.irisPathOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: var(--iris-path-overlay-z);
+  pointer-events: auto;
+}
+
+.irisPathOverlay--mask-color,
+.irisPathOverlay--mask-clear {
+  background: var(--iris-path-color);
+}
+
+.irisPathOverlay--shape-circle {
+  -webkit-mask-image: radial-gradient(
+    circle at var(--iris-path-center-x, 50%) var(--iris-path-center-y, 50%),
+    transparent var(--iris-path-hole),
+    black var(--iris-path-hole)
+  );
+  mask-image: radial-gradient(
+    circle at var(--iris-path-center-x, 50%) var(--iris-path-center-y, 50%),
+    transparent var(--iris-path-hole),
+    black var(--iris-path-hole)
+  );
+}
+
+.irisPathOverlay--shape-circle.irisPathOverlay--out.irisPathOverlay--mask-color {
+  animation: irisPathCircleOutColor var(--duration-iris-path-out-color) var(--ease-iris-path) forwards;
+}
+
+.irisPathOverlay--shape-circle.irisPathOverlay--out.irisPathOverlay--mask-clear {
+  --iris-path-hole: var(--iris-path-out-end);
+  animation: irisPathCircleOutClear var(--duration-iris-path-out-clear) var(--ease-iris-path) forwards;
+}
+
+@keyframes irisPathCircleOutColor {
+  from {
+    --iris-path-hole: var(--iris-path-out-start);
+  }
+  to {
+    --iris-path-hole: var(--iris-path-out-end);
+  }
+}
+
+@keyframes irisPathCircleOutClear {
+  from {
+    --iris-path-hole: var(--iris-path-out-end);
+  }
+  to {
+    --iris-path-hole: var(--iris-path-out-start);
+  }
+}
+
+.irisPathOverlay--shape-bunny {
+  -webkit-mask-image: linear-gradient(white, white), var(--iris-path-bunny-mask-image);
+  mask-image: linear-gradient(white, white), var(--iris-path-bunny-mask-image);
+  -webkit-mask-size: 100% 100%, var(--iris-path-hole) var(--iris-path-hole);
+  mask-size: 100% 100%, var(--iris-path-hole) var(--iris-path-hole);
+  -webkit-mask-position: center, var(--iris-path-center-x, 50%) var(--iris-path-center-y, 50%);
+  mask-position: center, var(--iris-path-center-x, 50%) var(--iris-path-center-y, 50%);
+  -webkit-mask-repeat: no-repeat, no-repeat;
+  mask-repeat: no-repeat, no-repeat;
+  -webkit-mask-composite: source-out;
+  mask-composite: exclude;
+}
+
+.irisPathOverlay--shape-bunny.irisPathOverlay--out.irisPathOverlay--mask-color {
+  animation: irisPathCircleOutColor var(--duration-iris-path-out-color) var(--ease-iris-path) forwards;
+}
+
+.irisPathOverlay--shape-bunny.irisPathOverlay--out.irisPathOverlay--mask-clear {
+  --iris-path-hole: var(--iris-path-out-end);
+  animation: irisPathCircleOutClear var(--duration-iris-path-out-clear) var(--ease-iris-path) forwards;
+}
+
+.irisPathOverlay--hold {
+  --iris-path-hole: var(--iris-path-out-end);
 }

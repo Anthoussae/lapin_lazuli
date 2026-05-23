@@ -1,18 +1,44 @@
 import type { EnemyId } from '../core/types/ids'
 import type { EnemyIntentExtraEffect } from '../core/types/state'
 import type { DiceSpec } from '../core/rng/dice'
+import type { EnemyIntentKind } from './enemyIntentKinds'
 
 /** Scripted sequence (no weights); cycles in order each time intents are rolled. */
 export type ScriptedEnemyMove =
-  | { kind: 'ATTACK'; intentName: string; damage: DiceSpec; effects?: ReadonlyArray<EnemyIntentExtraEffect> }
-  | { kind: 'BUFF'; intentName: string; effects: ReadonlyArray<EnemyIntentExtraEffect> }
-  | { kind: 'DEBUFF'; intentName: string; effects: ReadonlyArray<EnemyIntentExtraEffect> }
+  | {
+      kind: 'ATTACK'
+      intentKind: EnemyIntentKind
+      intentName: string
+      damage: DiceSpec
+      effects?: ReadonlyArray<EnemyIntentExtraEffect>
+    }
+  | { kind: 'BUFF'; intentKind: EnemyIntentKind; intentName: string; effects: ReadonlyArray<EnemyIntentExtraEffect> }
+  | { kind: 'DEBUFF'; intentKind: EnemyIntentKind; intentName: string; effects: ReadonlyArray<EnemyIntentExtraEffect> }
 
 export type EnemyWeightedMove =
-  | { kind: 'ATTACK'; intentName: string; damage: DiceSpec; weight: number; effects?: ReadonlyArray<EnemyIntentExtraEffect> }
-  | { kind: 'BUFF'; intentName: string; effects: ReadonlyArray<EnemyIntentExtraEffect>; weight: number }
-  | { kind: 'DEBUFF'; intentName: string; effects: ReadonlyArray<EnemyIntentExtraEffect>; weight: number }
-  | { kind: 'WAIT'; weight: number }
+  | {
+      kind: 'ATTACK'
+      intentKind: EnemyIntentKind
+      intentName: string
+      damage: DiceSpec
+      weight: number
+      effects?: ReadonlyArray<EnemyIntentExtraEffect>
+    }
+  | {
+      kind: 'BUFF'
+      intentKind: EnemyIntentKind
+      intentName: string
+      effects: ReadonlyArray<EnemyIntentExtraEffect>
+      weight: number
+    }
+  | {
+      kind: 'DEBUFF'
+      intentKind: EnemyIntentKind
+      intentName: string
+      effects: ReadonlyArray<EnemyIntentExtraEffect>
+      weight: number
+    }
+  | { kind: 'WAIT'; intentKind: EnemyIntentKind; weight: number }
 
 /** Locked shield roll for Shield Bash; baseline at level 4 is 2d4+1. */
 export function shieldBashLockedShieldRoll(level: number): DiceSpec {
@@ -49,9 +75,10 @@ export const Enemies: Readonly<Record<EnemyId, EnemyTemplate>> = {
     level: 0,
     hp: { count: 3, sides: 6, plus: 5 },
     intentScript: [
-      { kind: 'BUFF', intentName: 'Charge up', effects: [{ effect: 'strengthgain', value: 1 }] },
+      { kind: 'BUFF', intentKind: 'buffonly', intentName: 'Charge up', effects: [{ effect: 'strengthgain', value: 1 }] },
       {
         kind: 'ATTACK',
+        intentKind: 'buffattack',
         intentName: 'Slurp',
         damage: { count: 2, sides: 5, plus: 1 },
         effects: [{ effect: 'vampiric' }],
@@ -64,8 +91,8 @@ export const Enemies: Readonly<Record<EnemyId, EnemyTemplate>> = {
     level: 0,
     hp: { count: 2, sides: 4 },
     intents: [
-      { kind: 'ATTACK', intentName: 'Headbutt', damage: { count: 1, sides: 6 }, weight: 70 },
-      { kind: 'ATTACK', intentName: 'Stab', damage: { count: 3, sides: 4 }, weight: 30 },
+      { kind: 'ATTACK', intentKind: 'attackonly', intentName: 'Headbutt', damage: { count: 1, sides: 6 }, weight: 70 },
+      { kind: 'ATTACK', intentKind: 'attackonly', intentName: 'Stab', damage: { count: 3, sides: 4 }, weight: 30 },
     ],
   },
   CABBAGE_ORC: {
@@ -76,11 +103,12 @@ export const Enemies: Readonly<Record<EnemyId, EnemyTemplate>> = {
     intents: [
       {
         kind: 'BUFF',
+        intentKind: 'guardonly',
         intentName: 'Guard',
         effects: [{ effect: 'enemyLockedShieldGain', amount: 10 }],
         weight: 50,
       },
-      { kind: 'ATTACK', intentName: 'Bash', damage: { count: 1, sides: 12, plus: 2 }, weight: 50 },
+      { kind: 'ATTACK', intentKind: 'attackonly', intentName: 'Bash', damage: { count: 1, sides: 12, plus: 2 }, weight: 50 },
     ],
   },
   CELERY_SNAKE: {
@@ -89,9 +117,10 @@ export const Enemies: Readonly<Record<EnemyId, EnemyTemplate>> = {
     level: 2,
     hp: { count: 2, sides: 6, plus: 2 },
     intents: [
-      { kind: 'ATTACK', intentName: 'Bite', damage: { count: 2, sides: 4, plus: 1 }, weight: 50 },
+      { kind: 'ATTACK', intentKind: 'attackonly', intentName: 'Bite', damage: { count: 2, sides: 4, plus: 1 }, weight: 50 },
       {
         kind: 'ATTACK',
+        intentKind: 'debuffattack',
         intentName: 'Poison Mist',
         damage: { count: 1, sides: 12, plus: 4 },
         effects: [{ effect: 'shuffleBurdenIntoDeck', cardId: 'SMOKE', count: 1 }],
@@ -107,12 +136,13 @@ export const Enemies: Readonly<Record<EnemyId, EnemyTemplate>> = {
     intents: [
       {
         kind: 'ATTACK',
+        intentKind: 'debuffattack',
         intentName: 'Poison Fog',
         damage: { count: 3, sides: 3, plus: 2 },
         effects: [{ effect: 'shuffleBurdenIntoDeck', cardId: 'SMOKE', count: 2 }],
         weight: 55,
       },
-      { kind: 'ATTACK', intentName: 'Tackle', damage: { count: 2, sides: 7, plus: 1 }, weight: 45 },
+      { kind: 'ATTACK', intentKind: 'attackonly', intentName: 'Tackle', damage: { count: 2, sides: 7, plus: 1 }, weight: 45 },
     ],
   },
   BEET_ROOTLING: {
@@ -123,12 +153,13 @@ export const Enemies: Readonly<Record<EnemyId, EnemyTemplate>> = {
     intents: [
       {
         kind: 'ATTACK',
+        intentKind: 'guardattack',
         intentName: 'Shield Bash',
         damage: { count: 2, sides: 5, plus: 2 },
         effects: [{ effect: 'enemyLockedShieldGain', roll: shieldBashLockedShieldRoll(4) }],
         weight: 50,
       },
-      { kind: 'ATTACK', intentName: 'Tackle', damage: { count: 3, sides: 8, plus: 0 }, weight: 50 },
+      { kind: 'ATTACK', intentKind: 'attackonly', intentName: 'Tackle', damage: { count: 3, sides: 8, plus: 0 }, weight: 50 },
     ],
   },
   CHERRY_IMP: {
@@ -139,12 +170,13 @@ export const Enemies: Readonly<Record<EnemyId, EnemyTemplate>> = {
     intents: [
       {
         kind: 'ATTACK',
+        intentKind: 'guardattack',
         intentName: 'Shield Bash',
         damage: { count: 3, sides: 5, plus: 1 },
         effects: [{ effect: 'enemyLockedShieldGain', roll: shieldBashLockedShieldRoll(5) }],
         weight: 50,
       },
-      { kind: 'ATTACK', intentName: 'Tackle', damage: { count: 2, sides: 10, plus: 4 }, weight: 50 },
+      { kind: 'ATTACK', intentKind: 'attackonly', intentName: 'Tackle', damage: { count: 2, sides: 10, plus: 4 }, weight: 50 },
     ],
   },
   FIG_PIXIE: {
@@ -153,8 +185,8 @@ export const Enemies: Readonly<Record<EnemyId, EnemyTemplate>> = {
     level: 6,
     hp: { count: 4, sides: 6, plus: 6 },
     intents: [
-      { kind: 'ATTACK', intentName: 'Tackle', damage: { count: 4, sides: 4, plus: 0 }, weight: 45 },
-      { kind: 'ATTACK', intentName: 'Tackle', damage: { count: 3, sides: 8, plus: 2 }, weight: 55 },
+      { kind: 'ATTACK', intentKind: 'attackonly', intentName: 'Tackle', damage: { count: 4, sides: 4, plus: 0 }, weight: 45 },
+      { kind: 'ATTACK', intentKind: 'attackonly', intentName: 'Tackle', damage: { count: 3, sides: 8, plus: 2 }, weight: 55 },
     ],
   },
   KALE_KOBOLD: {
@@ -165,12 +197,13 @@ export const Enemies: Readonly<Record<EnemyId, EnemyTemplate>> = {
     intents: [
       {
         kind: 'ATTACK',
+        intentKind: 'guardattack',
         intentName: 'Shield Bash',
         damage: { count: 2, sides: 7, plus: 4 },
         effects: [{ effect: 'enemyLockedShieldGain', roll: shieldBashLockedShieldRoll(7) }],
         weight: 50,
       },
-      { kind: 'ATTACK', intentName: 'Tackle', damage: { count: 3, sides: 7, plus: 2 }, weight: 50 },
+      { kind: 'ATTACK', intentKind: 'attackonly', intentName: 'Tackle', damage: { count: 3, sides: 7, plus: 2 }, weight: 50 },
     ],
   },
   MUSHROOM_GIANT: {
@@ -181,12 +214,13 @@ export const Enemies: Readonly<Record<EnemyId, EnemyTemplate>> = {
     intents: [
       {
         kind: 'ATTACK',
+        intentKind: 'guardattack',
         intentName: 'Shield Bash',
         damage: { count: 2, sides: 8, plus: 1 },
         effects: [{ effect: 'enemyLockedShieldGain', roll: shieldBashLockedShieldRoll(8) }],
         weight: 50,
       },
-      { kind: 'ATTACK', intentName: 'Tackle', damage: { count: 3, sides: 7, plus: 8 }, weight: 50 },
+      { kind: 'ATTACK', intentKind: 'attackonly', intentName: 'Tackle', damage: { count: 3, sides: 7, plus: 8 }, weight: 50 },
     ],
   },
   POTATO_TROLL: {
@@ -195,9 +229,10 @@ export const Enemies: Readonly<Record<EnemyId, EnemyTemplate>> = {
     level: 9,
     hp: { count: 7, sides: 6, plus: 8 },
     intents: [
-      { kind: 'ATTACK', intentName: 'Tackle', damage: { count: 2, sides: 9, plus: 5 }, weight: 50 },
+      { kind: 'ATTACK', intentKind: 'attackonly', intentName: 'Tackle', damage: { count: 2, sides: 9, plus: 5 }, weight: 50 },
       {
         kind: 'ATTACK',
+        intentKind: 'guardattack',
         intentName: 'Shield Bash',
         damage: { count: 3, sides: 9, plus: 7 },
         effects: [{ effect: 'enemyLockedShieldGain', roll: shieldBashLockedShieldRoll(9) }],
@@ -211,8 +246,8 @@ export const Enemies: Readonly<Record<EnemyId, EnemyTemplate>> = {
     level: 10,
     hp: { count: 8, sides: 6, plus: 10 },
     intents: [
-      { kind: 'ATTACK', intentName: 'Tackle', damage: { count: 3, sides: 9, plus: 4 }, weight: 50 },
-      { kind: 'ATTACK', intentName: 'Tackle', damage: { count: 4, sides: 9, plus: 4 }, weight: 50 },
+      { kind: 'ATTACK', intentKind: 'attackonly', intentName: 'Tackle', damage: { count: 3, sides: 9, plus: 4 }, weight: 50 },
+      { kind: 'ATTACK', intentKind: 'attackonly', intentName: 'Tackle', damage: { count: 4, sides: 9, plus: 4 }, weight: 50 },
     ],
   },
   ONION_GNOLL: {
@@ -221,9 +256,10 @@ export const Enemies: Readonly<Record<EnemyId, EnemyTemplate>> = {
     level: 11,
     hp: { count: 9, sides: 6, plus: 12 },
     intents: [
-      { kind: 'ATTACK', intentName: 'Tackle', damage: { count: 4, sides: 10, plus: 4 }, weight: 50 },
+      { kind: 'ATTACK', intentKind: 'attackonly', intentName: 'Tackle', damage: { count: 4, sides: 10, plus: 4 }, weight: 50 },
       {
         kind: 'ATTACK',
+        intentKind: 'guardattack',
         intentName: 'Shield Bash',
         damage: { count: 4, sides: 9, plus: 3 },
         effects: [{ effect: 'enemyLockedShieldGain', roll: shieldBashLockedShieldRoll(11) }],
@@ -237,9 +273,10 @@ export const Enemies: Readonly<Record<EnemyId, EnemyTemplate>> = {
     level: 12,
     hp: { count: 10, sides: 6, plus: 14 },
     intents: [
-      { kind: 'ATTACK', intentName: 'Tackle', damage: { count: 5, sides: 9, plus: 10 }, weight: 50 },
+      { kind: 'ATTACK', intentKind: 'attackonly', intentName: 'Tackle', damage: { count: 5, sides: 9, plus: 10 }, weight: 50 },
       {
         kind: 'ATTACK',
+        intentKind: 'guardattack',
         intentName: 'Shield Bash',
         damage: { count: 6, sides: 11, plus: 9 },
         effects: [{ effect: 'enemyLockedShieldGain', roll: shieldBashLockedShieldRoll(12) }],
@@ -253,9 +290,10 @@ export const Enemies: Readonly<Record<EnemyId, EnemyTemplate>> = {
     level: 13,
     hp: { count: 11, sides: 6, plus: 16 },
     intents: [
-      { kind: 'ATTACK', intentName: 'Tackle', damage: { count: 6, sides: 12, plus: 12 }, weight: 50 },
+      { kind: 'ATTACK', intentKind: 'attackonly', intentName: 'Tackle', damage: { count: 6, sides: 12, plus: 12 }, weight: 50 },
       {
         kind: 'ATTACK',
+        intentKind: 'guardattack',
         intentName: 'Shield Bash',
         damage: { count: 6, sides: 11, plus: 11 },
         effects: [{ effect: 'enemyLockedShieldGain', roll: shieldBashLockedShieldRoll(13) }],
@@ -271,12 +309,13 @@ export const Enemies: Readonly<Record<EnemyId, EnemyTemplate>> = {
     intents: [
       {
         kind: 'ATTACK',
+        intentKind: 'guardattack',
         intentName: 'Shield Bash',
         damage: { count: 7, sides: 11, plus: 9 },
         effects: [{ effect: 'enemyLockedShieldGain', roll: shieldBashLockedShieldRoll(14) }],
         weight: 50,
       },
-      { kind: 'ATTACK', intentName: 'Tackle', damage: { count: 7, sides: 11, plus: 11 }, weight: 50 },
+      { kind: 'ATTACK', intentKind: 'attackonly', intentName: 'Tackle', damage: { count: 7, sides: 11, plus: 11 }, weight: 50 },
     ],
   },
   SAFFRON_CENTAUR: { 
@@ -287,12 +326,13 @@ export const Enemies: Readonly<Record<EnemyId, EnemyTemplate>> = {
     intents: [
       {
         kind: 'ATTACK',
+        intentKind: 'guardattack',
         intentName: 'Shield Bash',
         damage: { count: 7, sides: 13, plus: 9 },
         effects: [{ effect: 'enemyLockedShieldGain', roll: shieldBashLockedShieldRoll(15) }],
         weight: 50,
       },
-      { kind: 'ATTACK', intentName: 'Tackle', damage: { count: 7, sides: 13, plus: 11 }, weight: 50 },
+      { kind: 'ATTACK', intentKind: 'attackonly', intentName: 'Tackle', damage: { count: 7, sides: 13, plus: 11 }, weight: 50 },
     ],
   },
   TOFU_TYRANT: {
@@ -304,6 +344,7 @@ export const Enemies: Readonly<Record<EnemyId, EnemyTemplate>> = {
     intents: [
       {
         kind: 'ATTACK',
+        intentKind: 'buffattack',
         intentName: 'Curdle',
         damage: { count: 8, sides: 13, plus: 9 },
         effects: [{ effect: 'strengthgain', value: 3 }],
@@ -311,6 +352,7 @@ export const Enemies: Readonly<Record<EnemyId, EnemyTemplate>> = {
       },
       {
         kind: 'ATTACK',
+        intentKind: 'debuffattack',
         intentName: 'Stinky Tofu',
         damage: { count: 8, sides: 13, plus: 11 },
         effects: [{ effect: 'playerTurnStartBunnyDrain', amount: 5 }],
@@ -324,9 +366,10 @@ export const Enemies: Readonly<Record<EnemyId, EnemyTemplate>> = {
     level: 16,
     hp: { count: 13, sides: 12, plus: 25 },
     intentScript: [
-      { kind: 'BUFF', intentName: 'Charge up', effects: [{ effect: 'strengthgain', value: 5 }] },
+      { kind: 'BUFF', intentKind: 'buffonly', intentName: 'Charge up', effects: [{ effect: 'strengthgain', value: 5 }] },
       {
         kind: 'ATTACK',
+        intentKind: 'buffattack',
         intentName: 'Slurp',
         damage: { count: 8, sides: 11, plus: 7 },
         effects: [{ effect: 'vampiric' }],
@@ -339,8 +382,8 @@ export const Enemies: Readonly<Record<EnemyId, EnemyTemplate>> = {
     level: 16,
     hp: { count: 12, sides: 10, plus: 20 },
     intents: [
-      { kind: 'ATTACK', intentName: 'Headbutt', damage: { count: 7, sides: 12, plus: 6 }, weight: 70 },
-      { kind: 'ATTACK', intentName: 'Stab', damage: { count: 9, sides: 10, plus: 6 }, weight: 30 },
+      { kind: 'ATTACK', intentKind: 'attackonly', intentName: 'Headbutt', damage: { count: 7, sides: 12, plus: 6 }, weight: 70 },
+      { kind: 'ATTACK', intentKind: 'attackonly', intentName: 'Stab', damage: { count: 9, sides: 10, plus: 6 }, weight: 30 },
     ],
   },
   ARTICHOKE_ORC: {
@@ -351,11 +394,12 @@ export const Enemies: Readonly<Record<EnemyId, EnemyTemplate>> = {
     intents: [
       {
         kind: 'BUFF',
+        intentKind: 'guardonly',
         intentName: 'Guard',
         effects: [{ effect: 'enemyLockedShieldGain', amount: 50 }],
         weight: 50,
       },
-      { kind: 'ATTACK', intentName: 'Bash', damage: { count: 7, sides: 18, plus: 8 }, weight: 50 },
+      { kind: 'ATTACK', intentKind: 'attackonly', intentName: 'Bash', damage: { count: 7, sides: 18, plus: 8 }, weight: 50 },
     ],
   },
   RHUBARB_SNAKE: {
@@ -364,9 +408,10 @@ export const Enemies: Readonly<Record<EnemyId, EnemyTemplate>> = {
     level: 18,
     hp: { count: 12, sides: 12, plus: 22 },
     intents: [
-      { kind: 'ATTACK', intentName: 'Bite', damage: { count: 8, sides: 10, plus: 7 }, weight: 50 },
+      { kind: 'ATTACK', intentKind: 'attackonly', intentName: 'Bite', damage: { count: 8, sides: 10, plus: 7 }, weight: 50 },
       {
         kind: 'ATTACK',
+        intentKind: 'debuffattack',
         intentName: 'Poison Mist',
         damage: { count: 7, sides: 18, plus: 10 },
         effects: [{ effect: 'shuffleBurdenIntoDeck', cardId: 'SMOKE', count: 1 }],
@@ -382,12 +427,13 @@ export const Enemies: Readonly<Record<EnemyId, EnemyTemplate>> = {
     intents: [
       {
         kind: 'ATTACK',
+        intentKind: 'debuffattack',
         intentName: 'Poison Fog',
         damage: { count: 9, sides: 9, plus: 8 },
         effects: [{ effect: 'shuffleBurdenIntoDeck', cardId: 'SMOKE', count: 2 }],
         weight: 55,
       },
-      { kind: 'ATTACK', intentName: 'Tackle', damage: { count: 8, sides: 13, plus: 7 }, weight: 45 },
+      { kind: 'ATTACK', intentKind: 'attackonly', intentName: 'Tackle', damage: { count: 8, sides: 13, plus: 7 }, weight: 45 },
     ],
   },
   POMEGRANATE_ROOTLING: {
@@ -398,12 +444,13 @@ export const Enemies: Readonly<Record<EnemyId, EnemyTemplate>> = {
     intents: [
       {
         kind: 'ATTACK',
+        intentKind: 'guardattack',
         intentName: 'Shield Bash',
         damage: { count: 8, sides: 11, plus: 8 },
         effects: [{ effect: 'enemyLockedShieldGain', roll: shieldBashLockedShieldRoll(20) }],
         weight: 50,
       },
-      { kind: 'ATTACK', intentName: 'Tackle', damage: { count: 9, sides: 14, plus: 6 }, weight: 50 },
+      { kind: 'ATTACK', intentKind: 'attackonly', intentName: 'Tackle', damage: { count: 9, sides: 14, plus: 6 }, weight: 50 },
     ],
   },
   LYCHEE_IMP: {
@@ -414,12 +461,13 @@ export const Enemies: Readonly<Record<EnemyId, EnemyTemplate>> = {
     intents: [
       {
         kind: 'ATTACK',
+        intentKind: 'guardattack',
         intentName: 'Shield Bash',
         damage: { count: 9, sides: 11, plus: 7 },
         effects: [{ effect: 'enemyLockedShieldGain', roll: shieldBashLockedShieldRoll(21) }],
         weight: 50,
       },
-      { kind: 'ATTACK', intentName: 'Tackle', damage: { count: 8, sides: 16, plus: 10 }, weight: 50 },
+      { kind: 'ATTACK', intentKind: 'attackonly', intentName: 'Tackle', damage: { count: 8, sides: 16, plus: 10 }, weight: 50 },
     ],
   },
   GUAVA_PIXIE: {
@@ -428,8 +476,8 @@ export const Enemies: Readonly<Record<EnemyId, EnemyTemplate>> = {
     level: 22,
     hp: { count: 14, sides: 12, plus: 26 },
     intents: [
-      { kind: 'ATTACK', intentName: 'Tackle', damage: { count: 10, sides: 10, plus: 6 }, weight: 45 },
-      { kind: 'ATTACK', intentName: 'Tackle', damage: { count: 9, sides: 14, plus: 8 }, weight: 55 },
+      { kind: 'ATTACK', intentKind: 'attackonly', intentName: 'Tackle', damage: { count: 10, sides: 10, plus: 6 }, weight: 45 },
+      { kind: 'ATTACK', intentKind: 'attackonly', intentName: 'Tackle', damage: { count: 9, sides: 14, plus: 8 }, weight: 55 },
     ],
   },
   WATERCRESS_KOBOLD: {
@@ -440,12 +488,13 @@ export const Enemies: Readonly<Record<EnemyId, EnemyTemplate>> = {
     intents: [
       {
         kind: 'ATTACK',
+        intentKind: 'guardattack',
         intentName: 'Shield Bash',
         damage: { count: 8, sides: 13, plus: 10 },
         effects: [{ effect: 'enemyLockedShieldGain', roll: shieldBashLockedShieldRoll(23) }],
         weight: 50,
       },
-      { kind: 'ATTACK', intentName: 'Tackle', damage: { count: 9, sides: 13, plus: 8 }, weight: 50 },
+      { kind: 'ATTACK', intentKind: 'attackonly', intentName: 'Tackle', damage: { count: 9, sides: 13, plus: 8 }, weight: 50 },
     ],
   },
   EGGPLANT_GIANT: {
@@ -456,12 +505,13 @@ export const Enemies: Readonly<Record<EnemyId, EnemyTemplate>> = {
     intents: [
       {
         kind: 'ATTACK',
+        intentKind: 'guardattack',
         intentName: 'Shield Bash',
         damage: { count: 8, sides: 14, plus: 7 },
         effects: [{ effect: 'enemyLockedShieldGain', roll: shieldBashLockedShieldRoll(24) }],
         weight: 50,
       },
-      { kind: 'ATTACK', intentName: 'Tackle', damage: { count: 9, sides: 13, plus: 14 }, weight: 50 },
+      { kind: 'ATTACK', intentKind: 'attackonly', intentName: 'Tackle', damage: { count: 9, sides: 13, plus: 14 }, weight: 50 },
     ],
   },
   RUTABAGA_TROLL: {
@@ -470,9 +520,10 @@ export const Enemies: Readonly<Record<EnemyId, EnemyTemplate>> = {
     level: 25,
     hp: { count: 17, sides: 12, plus: 28 },
     intents: [
-      { kind: 'ATTACK', intentName: 'Tackle', damage: { count: 8, sides: 15, plus: 11 }, weight: 50 },
+      { kind: 'ATTACK', intentKind: 'attackonly', intentName: 'Tackle', damage: { count: 8, sides: 15, plus: 11 }, weight: 50 },
       {
         kind: 'ATTACK',
+        intentKind: 'guardattack',
         intentName: 'Shield Bash',
         damage: { count: 9, sides: 15, plus: 13 },
         effects: [{ effect: 'enemyLockedShieldGain', roll: shieldBashLockedShieldRoll(25) }],
@@ -486,8 +537,8 @@ export const Enemies: Readonly<Record<EnemyId, EnemyTemplate>> = {
     level: 26,
     hp: { count: 18, sides: 12, plus: 30 },
     intents: [
-      { kind: 'ATTACK', intentName: 'Tackle', damage: { count: 9, sides: 15, plus: 10 }, weight: 50 },
-      { kind: 'ATTACK', intentName: 'Tackle', damage: { count: 10, sides: 15, plus: 10 }, weight: 50 },
+      { kind: 'ATTACK', intentKind: 'attackonly', intentName: 'Tackle', damage: { count: 9, sides: 15, plus: 10 }, weight: 50 },
+      { kind: 'ATTACK', intentKind: 'attackonly', intentName: 'Tackle', damage: { count: 10, sides: 15, plus: 10 }, weight: 50 },
     ],
   },
   SHALLOT_GNOLL: {
@@ -496,9 +547,10 @@ export const Enemies: Readonly<Record<EnemyId, EnemyTemplate>> = {
     level: 27,
     hp: { count: 19, sides: 12, plus: 32 },
     intents: [
-      { kind: 'ATTACK', intentName: 'Tackle', damage: { count: 10, sides: 16, plus: 10 }, weight: 50 },
+      { kind: 'ATTACK', intentKind: 'attackonly', intentName: 'Tackle', damage: { count: 10, sides: 16, plus: 10 }, weight: 50 },
       {
         kind: 'ATTACK',
+        intentKind: 'guardattack',
         intentName: 'Shield Bash',
         damage: { count: 10, sides: 15, plus: 9 },
         effects: [{ effect: 'enemyLockedShieldGain', roll: shieldBashLockedShieldRoll(27) }],
@@ -512,9 +564,10 @@ export const Enemies: Readonly<Record<EnemyId, EnemyTemplate>> = {
     level: 28,
     hp: { count: 20, sides: 12, plus: 34 },
     intents: [
-      { kind: 'ATTACK', intentName: 'Tackle', damage: { count: 11, sides: 15, plus: 16 }, weight: 50 },
+      { kind: 'ATTACK', intentKind: 'attackonly', intentName: 'Tackle', damage: { count: 11, sides: 15, plus: 16 }, weight: 50 },
       {
         kind: 'ATTACK',
+        intentKind: 'guardattack',
         intentName: 'Shield Bash',
         damage: { count: 12, sides: 17, plus: 15 },
         effects: [{ effect: 'enemyLockedShieldGain', roll: shieldBashLockedShieldRoll(28) }],
@@ -528,9 +581,10 @@ export const Enemies: Readonly<Record<EnemyId, EnemyTemplate>> = {
     level: 29,
     hp: { count: 21, sides: 12, plus: 36 },
     intents: [
-      { kind: 'ATTACK', intentName: 'Tackle', damage: { count: 12, sides: 18, plus: 18 }, weight: 50 },
+      { kind: 'ATTACK', intentKind: 'attackonly', intentName: 'Tackle', damage: { count: 12, sides: 18, plus: 18 }, weight: 50 },
       {
         kind: 'ATTACK',
+        intentKind: 'guardattack',
         intentName: 'Shield Bash',
         damage: { count: 12, sides: 17, plus: 17 },
         effects: [{ effect: 'enemyLockedShieldGain', roll: shieldBashLockedShieldRoll(29) }],
@@ -546,12 +600,13 @@ export const Enemies: Readonly<Record<EnemyId, EnemyTemplate>> = {
     intents: [
       {
         kind: 'ATTACK',
+        intentKind: 'guardattack',
         intentName: 'Shield Bash',
         damage: { count: 13, sides: 17, plus: 15 },
         effects: [{ effect: 'enemyLockedShieldGain', roll: shieldBashLockedShieldRoll(30) }],
         weight: 50,
       },
-      { kind: 'ATTACK', intentName: 'Tackle', damage: { count: 13, sides: 17, plus: 17 }, weight: 50 },
+      { kind: 'ATTACK', intentKind: 'attackonly', intentName: 'Tackle', damage: { count: 13, sides: 17, plus: 17 }, weight: 50 },
     ],
   },
   NECTARINE_CENTAUR: {
@@ -562,12 +617,13 @@ export const Enemies: Readonly<Record<EnemyId, EnemyTemplate>> = {
     intents: [
       {
         kind: 'ATTACK',
+        intentKind: 'guardattack',
         intentName: 'Shield Bash',
         damage: { count: 13, sides: 19, plus: 15 },
         effects: [{ effect: 'enemyLockedShieldGain', roll: shieldBashLockedShieldRoll(31) }],
         weight: 50,
       },
-      { kind: 'ATTACK', intentName: 'Tackle', damage: { count: 13, sides: 19, plus: 17 }, weight: 50 },
+      { kind: 'ATTACK', intentKind: 'attackonly', intentName: 'Tackle', damage: { count: 13, sides: 19, plus: 17 }, weight: 50 },
     ],
   },
   MISO_TYRANT: {
@@ -580,6 +636,7 @@ export const Enemies: Readonly<Record<EnemyId, EnemyTemplate>> = {
     intents: [
       {
         kind: 'ATTACK',
+        intentKind: 'buffattack',
         intentName: 'Curdle',
         damage: { count: 14, sides: 19, plus: 15 },
         effects: [{ effect: 'strengthgain', value: 3 }],
@@ -587,6 +644,7 @@ export const Enemies: Readonly<Record<EnemyId, EnemyTemplate>> = {
       },
       {
         kind: 'ATTACK',
+        intentKind: 'debuffattack',
         intentName: 'Stinky Tofu',
         damage: { count: 14, sides: 19, plus: 17 },
         effects: [{ effect: 'playerTurnStartBunnyDrain', amount: 5 }],

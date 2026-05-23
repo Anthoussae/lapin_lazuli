@@ -47,9 +47,10 @@ export function CardOfferRow(
                     cardKey,
                     sourceEl: e.currentTarget,
                     card: {
+                      cardId: o.cardId,
                       name: label,
                       inkLabel: t?.cost !== null && t?.cost !== undefined ? String(t.cost) : null,
-                      descriptionLines: t ? cardDescriptionLinesForOffer(t, o.upgrades) : [],
+                      descriptionLines: t ? cardDescriptionLinesForOffer(t, o.upgrades, power, firepowerMultiplier) : [],
                     },
                     onComplete: () => onPick(o.cardId),
                   })

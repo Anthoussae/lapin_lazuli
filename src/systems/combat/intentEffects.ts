@@ -1,15 +1,13 @@
 import type { CardId } from '../../core/types/ids'
 import type { DiceSpec } from '../../core/rng/dice'
 import type { EnemyIntent, EnemyIntentExtraEffect } from '../../core/types/state'
-
-export type EnemyMoveKind = 'attack' | 'buff' | 'debuff'
+import type { EnemyIntentKind } from '../../data/enemyIntentKinds'
 
 /** Discriminant of {@link EnemyIntentExtraEffect}; keep metadata tables below in sync when adding kinds. */
 export type EnemyIntentExtraEffectKind = EnemyIntentExtraEffect['effect']
 
 /**
  * Extra effects that count as self-buffs on the enemy for tagging (display / hybrid move kinds).
- * Must match {@link INTENT_EXTRA_EFFECT_MOVE_KIND} entries that map to `'buff'`.
  */
 const INTENT_EXTRA_EFFECT_ENEMY_BUFF: ReadonlySet<EnemyIntentExtraEffectKind> = new Set([
   'strengthgain',
@@ -19,21 +17,11 @@ const INTENT_EXTRA_EFFECT_ENEMY_BUFF: ReadonlySet<EnemyIntentExtraEffectKind> = 
 
 /**
  * Extra effects that apply negative pressure on the player for tagging.
- * Must match {@link INTENT_EXTRA_EFFECT_MOVE_KIND} entries that map to `'debuff'`.
  */
 const INTENT_EXTRA_EFFECT_PLAYER_DEBUFF: ReadonlySet<EnemyIntentExtraEffectKind> = new Set([
   'playerTurnStartBunnyDrain',
   'shuffleBurdenIntoDeck',
 ])
-
-/** Maps each intent extra kind to a move tag from its extra line (null = no extra tag). */
-const INTENT_EXTRA_EFFECT_MOVE_KIND: Readonly<Record<EnemyIntentExtraEffectKind, EnemyMoveKind | null>> = {
-  strengthgain: 'buff',
-  enemyLockedShieldGain: 'buff',
-  vampiric: 'buff',
-  playerTurnStartBunnyDrain: 'debuff',
-  shuffleBurdenIntoDeck: 'debuff',
-}
 
 export function isEnemyBuffEffect(effect: EnemyIntentExtraEffect): boolean {
   return INTENT_EXTRA_EFFECT_ENEMY_BUFF.has(effect.effect)
@@ -50,19 +38,9 @@ export function isEnemyLockedShieldGainDiceRoll(
   return fx.effect === 'enemyLockedShieldGain' && 'roll' in fx
 }
 
-/** Move tags for display and future rules; hybrid attacks can include multiple kinds. */
-export function enemyIntentMoveKinds(intent: EnemyIntent): ReadonlyArray<EnemyMoveKind> {
-  if (intent.kind === 'WAIT') return []
-  const kinds = new Set<EnemyMoveKind>()
-  if (intent.kind === 'ATTACK') kinds.add('attack')
-  if (intent.kind === 'BUFF') kinds.add('buff')
-  if (intent.kind === 'DEBUFF') kinds.add('debuff')
-  for (const fx of intent.effects ?? []) {
-    const mk = INTENT_EXTRA_EFFECT_MOVE_KIND[fx.effect]
-    if (mk) kinds.add(mk)
-  }
-  const ordered: EnemyMoveKind[] = ['attack', 'buff', 'debuff']
-  return ordered.filter((k) => kinds.has(k))
+/** Classification tag copied from enemy data when the intent is rolled. */
+export function enemyIntentKind(intent: EnemyIntent): EnemyIntentKind {
+  return intent.intentKind
 }
 
 /** Sum of all `strengthgain` values on an intent (other effect kinds ignored until implemented). */

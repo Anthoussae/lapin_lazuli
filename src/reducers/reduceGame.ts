@@ -94,7 +94,6 @@ export function isPlayerAction(a: GameAction): a is PlayerAction {
     a.type === 'REWARD/PICK_KEYS' ||
     a.type === 'REST/CONTINUE' ||
     a.type === 'TREASURE_ROOM/PICK_RELIC' ||
-    a.type === 'TREASURE_ROOM/PROCEED' ||
     a.type === 'SHOP/LEAVE' ||
     a.type === 'SHOP/BUY_ITEM' ||
     a.type === 'GEMSTONE_CAVERN/PROCEED' ||

@@ -16,7 +16,10 @@ import { RelicIcon } from './primitives/RelicIcon'
 
 export type RelicTravelRequest = Readonly<{
   templateId: RelicId
-  sourceEl: HTMLElement
+  /** Live element when it stays mounted through the flight start. */
+  sourceEl?: HTMLElement
+  /** Viewport rect of the icon when the source unmounts before travel (e.g. shop purchase). */
+  sourceRect?: DOMRect
   beltSlotIndex: number
   onComplete: () => void
 }>
@@ -62,7 +65,14 @@ export function RelicTravelProvider(props: Readonly<{ children: ReactNode }>) {
       return
     }
 
-    const from = rectRelativeTo(stageLayer, relicIconViewportRect(req.sourceEl))
+    const fromViewport =
+      req.sourceRect ?? (req.sourceEl != null ? relicIconViewportRect(req.sourceEl) : null)
+    if (!fromViewport) {
+      req.onComplete()
+      return
+    }
+
+    const from = rectRelativeTo(stageLayer, fromViewport)
 
     flushSync(() => {
       setTravelingTemplateId(req.templateId)

@@ -1,11 +1,10 @@
 import { useMemo, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react'
+import type { CardId } from '../../core/types/ids'
+import { isPotionCardId } from '../../data/cards'
 import type { CardDescLine } from '../../ui/describe'
 import { collectKeywordIdsFromDescriptionLines } from '../../ui/cardKeywords'
-import {
-  cardBackArt,
-  cardFrontArt,
-  cardIllustrationPlaceholder,
-} from '../assets/cardImages'
+import { cardBackArt, cardFrontArt } from '../assets/cardImages'
+import { renderCardIllustration } from '../cardIllustrationLayout'
 import { CardDesc } from './CardDesc'
 import { KeywordTooltips, keywordTooltipsViewportPosition } from './KeywordTooltips'
 import { useCardFontScale } from './useCardFontScale'
@@ -22,6 +21,8 @@ export type CardProps = Readonly<{
   descriptionLines?: ReadonlyArray<CardDescLine>
   /** Plain multiline card text (legacy / travel flyer). Ignored when descriptionLines is set. */
   description?: string
+  /** Template id — resolves illustration art when `illustration` is omitted. */
+  cardId?: CardId
   illustration?: ReactNode
   disabled?: boolean
   exhausted?: boolean
@@ -54,6 +55,7 @@ export function Card(props: CardProps) {
     inkLabel,
     descriptionLines,
     description,
+    cardId,
     illustration,
     disabled,
     exhausted,
@@ -110,6 +112,7 @@ export function Card(props: CardProps) {
 
   const classes = [
     'gameCard',
+    isPotionCardId(cardId) ? 'gameCard--potion' : null,
     clickable ? 'gameCard--clickable' : null,
     disabled ? 'gameCard--disabled' : null,
     exhausted && face === 'front' ? 'gameCard--exhausted' : null,
@@ -145,7 +148,9 @@ export function Card(props: CardProps) {
         onKeyDown={handleKeyDown}
       >
       <img
-        className="gameCard__frame"
+        className={['gameCard__frame', face === 'front' ? 'gameCard__frame--front' : null]
+          .filter(Boolean)
+          .join(' ')}
         src={face === 'back' ? cardBackArt : cardFrontArt}
         alt=""
         draggable={false}
@@ -169,9 +174,7 @@ export function Card(props: CardProps) {
             ) : null}
           </div>
           <div className="gameCard__art" aria-hidden>
-            {illustration ?? (
-              <img className="gameCard__artPlaceholder" src={cardIllustrationPlaceholder} alt="" draggable={false} />
-            )}
+            {illustration ?? renderCardIllustration(cardId)}
           </div>
           {descriptionContent}
         </div>

@@ -73,3 +73,28 @@ export function cardHandTravelEndpoints(
     to: viewportPointRelativeTo(stageLayer, toViewport.x, toViewport.y),
   }
 }
+
+/** Viewport center for the discard pile inspect PNG. */
+export function discardInspectImageCenter(img: HTMLImageElement): Readonly<{ x: number; y: number }> | null {
+  return centerOf(img.getBoundingClientRect())
+}
+
+/** Card discard flight endpoints: hand slot → discard inspect PNG (game-stage local). */
+export function cardDiscardTravelEndpoints(
+  stageLayer: HTMLElement,
+  discardImg: HTMLImageElement,
+  source: Readonly<{ el?: HTMLElement; rect?: DOMRect }>,
+): Readonly<{ from: { x: number; y: number }; to: { x: number; y: number } }> | null {
+  const fromViewport = source.el
+    ? centerOf(cardViewportRect(source.el))
+    : source.rect
+      ? centerOf(source.rect)
+      : null
+  const toViewport = discardInspectImageCenter(discardImg)
+  if (!fromViewport || !toViewport) return null
+
+  return {
+    from: viewportPointRelativeTo(stageLayer, fromViewport.x, fromViewport.y),
+    to: viewportPointRelativeTo(stageLayer, toViewport.x, toViewport.y),
+  }
+}
