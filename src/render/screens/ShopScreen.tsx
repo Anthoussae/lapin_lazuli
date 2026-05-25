@@ -2,6 +2,7 @@ import { useShopUnaffordableReject } from '../ShopUnaffordableRejectContext'
 import { Cards } from '../../data/cards'
 import { Relics } from '../../data/relics'
 import { cardDescriptionLinesForOffer, describeRelicEffect, formatCardName } from '../../ui/describe'
+import { shopBackdrop } from '../assets/backdropImages'
 import { keySprite, shopShelvesSprite } from '../assets/displayImages'
 import { relicImageMap } from '../assets/relicImages'
 import { useCardTravel } from '../CardTravelContext'
@@ -37,7 +38,11 @@ export function ShopScreen(props: ScreenProps) {
       .join(' ')
 
   return (
-    <CenteredPanel panelClassName="shopPanel">
+    <>
+      <div className="screenBackdrop screenBackdrop--shop" aria-hidden>
+        <img className="screenBackdrop__img" src={shopBackdrop} alt="" draggable={false} />
+      </div>
+      <CenteredPanel panelClassName="shopPanel">
       <div className="shopShelves">
         <img className="shopShelves__bg" src={shopShelvesSprite} alt="" draggable={false} />
         <div className="shopGrid">
@@ -168,6 +173,7 @@ export function ShopScreen(props: ScreenProps) {
       >
         Leave Shop
       </button>
-    </CenteredPanel>
+      </CenteredPanel>
+    </>
   )
 }

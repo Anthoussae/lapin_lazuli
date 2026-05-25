@@ -90,11 +90,13 @@ export function startCombat(
   }
 
   // Relic triggers at combat start (bunnies etc).
+  const events: GameEvent[] = []
   for (const rInst of s.player.relics) {
     const tmpl = Relics[rInst.templateId]
     for (const trig of tmpl.triggers) {
       if (trig.on !== 'combat_start') continue
       s = applyRelicEffect(s, trig.effect)
+      events.push({ type: 'EVT/RELIC_TRIGGERED', relicId: rInst.templateId, trigger: trig.id })
     }
   }
 
@@ -102,8 +104,12 @@ export function startCombat(
   s = { ...s, player: { ...s.player, energy: Math.min(s.player.energy, inkCap) } }
 
   // Draining: first player turn start (same timing as subsequent turns in beginPlayerTurn).
-  s = applyDrainingAtPlayerTurnStart(s)
-  s = applyTurnStartRelicTriggers(s)
+  const draining = applyDrainingAtPlayerTurnStart(s)
+  s = draining.state
+  events.push(...draining.events)
+  const turnStart = applyTurnStartRelicTriggers(s)
+  s = turnStart.state
+  events.push(...turnStart.events)
 
   // Starting hand draw bonuses.
   let bonusDraw = 0
@@ -113,11 +119,12 @@ export function startCombat(
       if (trig.on !== 'draw_starting_hand') continue
       if (trig.effect.kind !== 'DRAW_CARDS') continue
       bonusDraw += trig.effect.amount
+      events.push({ type: 'EVT/RELIC_TRIGGERED', relicId: rInst.templateId, trigger: trig.id })
     }
   }
 
   s = putDestinyCardsInOpeningHand(s)
   s = drawCards(s, combatRefreshDrawCount(s, bonusDraw))
-  return { state: s, events: [] }
+  return { state: s, events }
 }
 

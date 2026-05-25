@@ -17,6 +17,8 @@ type OpaqueImageButtonProps = Readonly<{
   imageClassName?: string
   imageRef?: MutableRefObject<HTMLImageElement | null>
   hoverOverlay?: ReactNode
+  /** Remount key for the image (e.g. trigger FX replay). */
+  imageKey?: number
   onClick: () => void
 }>
 
@@ -24,7 +26,7 @@ export const OpaqueImageButton = forwardRef<HTMLButtonElement, OpaqueImageButton
   props,
   ref,
 ) {
-  const { src, alt, className, imageClassName, imageRef, hoverOverlay, onClick } = props
+  const { src, alt, className, imageClassName, imageRef, hoverOverlay, imageKey, onClick } = props
   const hitImgRef = useRef<HTMLImageElement | null>(null)
 
   const setImageRef = useCallback(
@@ -99,6 +101,7 @@ export const OpaqueImageButton = forwardRef<HTMLButtonElement, OpaqueImageButton
       onMouseLeave={() => setLit(false)}
     >
       <img
+        key={imageKey}
         ref={setImageRef}
         className={imageClassName ?? 'opaqueImageBtn__img'}
         src={src}

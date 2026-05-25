@@ -49,11 +49,11 @@ export const Gems: Readonly<Record<GemId, GemTemplate>> = {
     requiresTargetWithoutDestiny: true,
     effects: [{ kind: 'DESTINY' }],
   },
-  COAL: {
-    id: 'COAL',
-    name: 'Coal',
-    effects: [{ kind: 'CONSUME' }],
-  },
+  // COAL: {
+  //   id: 'COAL',
+  //   name: 'Coal',
+  //   effects: [{ kind: 'CONSUME' }],
+  // },
   DIAMOND: {
     id: 'DIAMOND',
     name: 'Diamond',

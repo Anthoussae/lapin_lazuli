@@ -1,4 +1,5 @@
 import type { PathId } from '../core/types/ids'
+import type { GameState, Phase } from '../core/types/state'
 
 export type PathKind = 'combat' | 'boss' | 'shop' | 'rest' | 'event'
 
@@ -32,6 +33,10 @@ export type PathTemplate = Readonly<{
   /** When true, path cannot be rolled unless the deck has a socketable card (Jewellers). */
   requiresSocketableCard?: boolean
   name: string
+  /** Short player-facing blurb shown when this path is selected on the map. */
+  roomDescription: string
+  /** When true, the room name/description HUD is shown while this path is active. */
+  informationDisplay?: boolean
   frequency: number
   duplicatesAllowed: boolean
   minimumLevel: number
@@ -49,6 +54,7 @@ export const Paths: Readonly<Record<PathId, PathTemplate>> = {
     postCombatRewardKind: 'cards',
     postVictoryKeyChance: { basePct: 10, perLuck: 2 },
     name: 'Combat',
+    roomDescription: 'Defeat the monster to advance',
     frequency: 5,
     duplicatesAllowed: true,
     minimumLevel: 0,
@@ -61,6 +67,7 @@ export const Paths: Readonly<Record<PathId, PathTemplate>> = {
     postCombatRewardKind: 'cards',
     postVictoryKeyChance: { basePct: 20, perLuck: 3 },
     name: 'Combat',
+    roomDescription: 'Defeat the monster to advance',
     frequency: 4,
     duplicatesAllowed: true,
     minimumLevel: 0,
@@ -73,6 +80,7 @@ export const Paths: Readonly<Record<PathId, PathTemplate>> = {
     postCombatRewardKind: 'cards',
     postVictoryKeyChance: { basePct: 30, perLuck: 4 },
     name: 'Combat',
+    roomDescription: 'Defeat the monster to advance',
     frequency: 3,
     duplicatesAllowed: false,
     minimumLevel: 0,
@@ -84,6 +92,7 @@ export const Paths: Readonly<Record<PathId, PathTemplate>> = {
     mapRoute: 'combat',
     postCombatRewardKind: 'relics',
     name: 'Miniboss',
+    roomDescription: 'Defeat the monster to advance',
     frequency: 2,
     duplicatesAllowed: false,
     minimumLevel: 6,
@@ -95,6 +104,7 @@ export const Paths: Readonly<Record<PathId, PathTemplate>> = {
     mapRoute: 'combat',
     postCombatRewardKind: 'relics',
     name: 'Boss',
+    roomDescription: 'Defeat the monster to advance',
     frequency: 0,
     duplicatesAllowed: false,
     minimumLevel: 15,
@@ -105,6 +115,7 @@ export const Paths: Readonly<Record<PathId, PathTemplate>> = {
     kind: 'event',
     mapRoute: 'card_reward',
     name: 'Card reward',
+    roomDescription: 'Pick one to advance',
     frequency: 2,
     duplicatesAllowed: false,
     minimumLevel: 3,
@@ -115,9 +126,10 @@ export const Paths: Readonly<Record<PathId, PathTemplate>> = {
     kind: 'rest',
     mapRoute: 'rest',
     name: 'Rest',
-    frequency: 2,
+    roomDescription: 'Rest and heal yourself.',
+    frequency: 20,
     duplicatesAllowed: false,
-    minimumLevel: 5,
+    minimumLevel: 0,
     cooldown: 5,
   },
   SHOP: {
@@ -125,9 +137,10 @@ export const Paths: Readonly<Record<PathId, PathTemplate>> = {
     kind: 'shop',
     mapRoute: 'shop',
     name: 'Shop',
+    roomDescription: 'Use your gold!',
     frequency: 2,
     duplicatesAllowed: false,
-    minimumLevel: 5,
+    minimumLevel: 6,
     cooldown: 5,
   },
   TREASURE_ROOM: {
@@ -135,6 +148,7 @@ export const Paths: Readonly<Record<PathId, PathTemplate>> = {
     kind: 'event',
     mapRoute: 'treasure_room',
     name: 'Treasure Room',
+    roomDescription: 'Pick a treasure!',
     frequency: 1,
     duplicatesAllowed: false,
     minimumLevel: 7,
@@ -146,10 +160,11 @@ export const Paths: Readonly<Record<PathId, PathTemplate>> = {
     kind: 'event',
     mapRoute: 'gemstone_cavern',
     requiresSocketableCard: true,
-    name: 'Jewellers',
+    name: 'Jeweler',
+    roomDescription: 'Choose a gem to upgrade a card.',
     frequency: 1,
     duplicatesAllowed: false,
-    minimumLevel: 3,
+    minimumLevel: 5,
     cooldown: 5,
   },
 }
@@ -169,5 +184,35 @@ export const PathPool: ReadonlyArray<PathId> = [
 /** Miniboss / boss paths: relic reward screen and fixed post-fight key (no luck key roll). */
 export function pathVictoryOffersRelicPick(pathId: PathId | null | undefined): boolean {
   return pathId != null && Paths[pathId]?.postCombatRewardKind === 'relics'
+}
+
+const PHASE_ROOM_PATH: Readonly<Partial<Record<Phase, PathId>>> = {
+  SHOP: 'SHOP',
+  REST: 'REST',
+  TREASURE_ROOM: 'TREASURE_ROOM',
+  GEMSTONE_CAVERN: 'GEMSTONE_CAVERN',
+}
+
+/** Path id for the current room HUD, or null when not inside a room (map pick, title, starter relic). */
+export function resolveActiveRoomPathId(state: GameState): PathId | null {
+  if (state.activeRoomPathId) return state.activeRoomPathId
+  const byPhase = PHASE_ROOM_PATH[state.phase]
+  if (byPhase) return byPhase
+  if (state.phase.startsWith('COMBAT_') || state.phase === 'ANIMATING') {
+    return state.currentCombatPathId
+  }
+  return null
+}
+
+export function pathShowsInformationDisplay(pathId: PathId | null | undefined): boolean {
+  return pathId != null && Paths[pathId]?.informationDisplay === true
+}
+
+export function pathRoomDisplay(pathId: PathId): Readonly<{ name: string; roomDescription: string }> {
+  const p = Paths[pathId]
+  return {
+    name: p?.name ?? pathId,
+    roomDescription: p?.roomDescription ?? '',
+  }
 }
 

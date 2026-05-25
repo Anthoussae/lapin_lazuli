@@ -125,12 +125,12 @@ export const Cards: Readonly<Record<CardId, CardTemplate>> = {
     tags: ['heal', 'consume'],
     effects: [{ kind: 'HEAL', amount: 10 }],
   },
-  VOID_FOX: {
-    id: 'VOID_FOX',
-    name: 'Void Fox',
+  LETHEAN_WATER: {
+    id: 'LETHEAN_WATER',
+    name: 'Lethean Water',
     starter: false,
     poolFrequency: 1,
-    cost: 1,
+    cost: 0,
     tags: ['consume'],
     effects: [{ kind: 'CONSUME_SELECTED_CARD', numberOfTargets: 1 }],
   },
@@ -260,7 +260,8 @@ export function cardTemplateById(templateId: CardId): CardTemplate | undefined {
 
 /** Potion cards use full-color illustrations; other cards use silhouetted art. */
 export function isPotionCardId(cardId: CardId | undefined): boolean {
-  return cardId != null && cardId.endsWith('_POTION')
+  if (cardId == null) return false
+  return cardId.endsWith('_POTION') || cardId === 'LETHEAN_WATER'
 }
 
 export type StarterDeckBuild = Readonly<{

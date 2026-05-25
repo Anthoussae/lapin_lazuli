@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { brokenShieldSprite, lockedShieldSprite, shieldSprite } from '../assets/displayImages'
 import { useTickingNumber } from '../hooks/useTickingNumber'
 import { readRootDurationMs } from '../relicTooltipPosition'
+import { useTriggerFxArtProps } from '../TriggerFxContext'
 
 export type ShieldIconDisplayVariant = 'shield' | 'lockedShield'
 
@@ -29,6 +30,9 @@ export function ShieldIconDisplay(props: ShieldIconDisplayProps) {
     return ms > 0 ? ms : BROKEN_SHIELD_DISPLAY_FALLBACK_MS
   }, [])
   const isTicking = tickDirection !== null
+  const lockedShieldFx = useTriggerFxArtProps({ kind: 'playerLockedShield' })
+  const shieldFx = useTriggerFxArtProps({ kind: 'playerShield' })
+  const triggerFx = variant === 'lockedShield' ? lockedShieldFx : shieldFx
 
   const clearBrokenFlash = () => {
     if (breakTimerRef.current != null) {
@@ -109,7 +113,14 @@ export function ShieldIconDisplay(props: ShieldIconDisplayProps) {
           aria-hidden
         />
       ) : null}
-      <img className="shieldIconDisplay__art" src={src} alt="" draggable={false} aria-hidden />
+      <img
+        key={triggerFx.key}
+        className={['shieldIconDisplay__art', triggerFx.className].filter(Boolean).join(' ')}
+        src={src}
+        alt=""
+        draggable={false}
+        aria-hidden
+      />
       {!showBroken ? (
         <div className="shieldIconDisplay__value" aria-hidden>
           <span className={['tickingNumber', valueTickMod].filter(Boolean).join(' ')}>{display}</span>

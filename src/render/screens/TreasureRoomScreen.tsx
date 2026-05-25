@@ -1,3 +1,4 @@
+import { darkGreenBackdrop } from '../assets/backdropImages'
 import { greenCarpet } from '../assets/displayImages'
 import { CenteredPanel } from '../primitives/CenteredPanel'
 import { RelicOfferRow } from '../primitives/RelicOfferRow'
@@ -8,7 +9,11 @@ export function TreasureRoomScreen(props: ScreenProps) {
   const room = state.treasureRoom
 
   return (
-    <CenteredPanel>
+    <>
+      <div className="screenBackdrop screenBackdrop--treasureRoom" aria-hidden>
+        <img className="screenBackdrop__img" src={darkGreenBackdrop} alt="" draggable={false} />
+      </div>
+      <CenteredPanel>
       <div className="treasureRoomOffer">
         <img className="treasureRoomOffer__carpet" src={greenCarpet} alt="" draggable={false} />
         <RelicOfferRow
@@ -17,6 +22,7 @@ export function TreasureRoomScreen(props: ScreenProps) {
           onPick={(relicId) => enqueue({ type: 'TREASURE_ROOM/PICK_RELIC', relicId })}
         />
       </div>
-    </CenteredPanel>
+      </CenteredPanel>
+    </>
   )
 }

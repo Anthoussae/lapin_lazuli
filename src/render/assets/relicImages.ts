@@ -13,16 +13,16 @@ import shakujo from '../../assets/images/relics/shakujo.png'
 
 export const relicImageMap: Partial<Record<RelicId, string>> = {
   KEYCHAIN: gaolersKeychain,
-  INKPOT: eternalInkstone,
-  HEART: hydrangea,
-  SCROLL: scroll,
-  FLASK: magicStaff,
-  GOLD_COIN: goldIngot,
-  WAND: magicWand,
-  BOOK: encyclopaedia,
+  ETERNAL_INKSTONE: eternalInkstone,
+  HYDRANGEA: hydrangea,
+  ARCANE_SCROLL: scroll,
+  MAGIC_STAFF: magicStaff,
+  GOLD_INGOT: goldIngot,
+  MAGIC_WAND: magicWand,
+  ENCHANTED_ENCYCLOPAEDIA: encyclopaedia,
   NAZAR: nazar,
-  LUCKY_CLOVER: goldenEgg,
-  GARNET_TIARA: shakujo,
+  LUCKY_EGG: goldenEgg,
+  SHAKUJO: shakujo,
 }
 
 export const RELIC_PRELOAD_URLS: readonly string[] = Object.values(relicImageMap).filter(

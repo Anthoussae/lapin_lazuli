@@ -1,10 +1,9 @@
-import { createPortal } from 'react-dom'
 import { CARD_KEYWORDS, type CardKeywordId } from '../../ui/cardKeywords'
-
-const TOOLTIP_STACK_GAP_PX = 4
+import { gameTooltipAnchorOffsetX } from '../gameTooltipConfig'
+import { GameTooltipStack } from './GameTooltip'
 
 export function keywordTooltipsViewportPosition(rect: DOMRect): Readonly<{ x: number; y: number }> {
-  return { x: rect.right + 8, y: rect.top }
+  return { x: rect.right + gameTooltipAnchorOffsetX(), y: rect.top }
 }
 
 type KeywordTooltipsProps = Readonly<{
@@ -15,25 +14,10 @@ type KeywordTooltipsProps = Readonly<{
 
 export function KeywordTooltips(props: KeywordTooltipsProps) {
   const { ids, x, y } = props
-  if (!ids.length) return null
+  const entries = ids.map((id) => {
+    const kw = CARD_KEYWORDS[id]
+    return { key: id, label: kw.label, text: kw.tooltip }
+  })
 
-  return createPortal(
-    <div className="keywordTooltipStack" style={{ left: x, top: y }} role="presentation">
-      {ids.map((id, index) => {
-        const kw = CARD_KEYWORDS[id]
-        return (
-          <div
-            key={id}
-            className="keywordTooltip"
-            style={{ marginTop: index === 0 ? 0 : TOOLTIP_STACK_GAP_PX }}
-            role="tooltip"
-          >
-            <span className="keywordTooltip__label">{kw.label}</span>
-            <span className="keywordTooltip__text">{kw.tooltip}</span>
-          </div>
-        )
-      })}
-    </div>,
-    document.body,
-  )
+  return <GameTooltipStack entries={entries} x={x} y={y} />
 }

@@ -64,6 +64,8 @@ type FireReleaseContextValue = Readonly<{
   playerPlaceholderRef: MutableRefObject<HTMLDivElement | null>
   registerLeapTarget: (enemyId: EnemyInstanceId, el: HTMLElement | null) => void
   playFireRelease: (damage: number) => void
+  /** True while fire burst / spark leap presentation is playing (gameplay already resolved). */
+  isFireReleasePlaying: boolean
 }>
 
 const FireReleaseContext = createContext<FireReleaseContextValue | null>(null)
@@ -81,6 +83,7 @@ export function FireReleaseProvider(props: FireReleaseProviderProps) {
   const [releases, setReleases] = useState<ReadonlyArray<ActiveFireRelease>>([])
   const [leaps, setLeaps] = useState<ReadonlyArray<ActiveSparkLeap>>([])
   const [landPuffs, setLandPuffs] = useState<ReadonlyArray<ActiveLandPuff>>([])
+  const [fireReleaseHoldCount, setFireReleaseHoldCount] = useState(0)
   const leapTimeoutsRef = useRef<ReadonlyArray<number>>([])
 
   const registerLeapTarget = useCallback((_enemyId: EnemyInstanceId, el: HTMLElement | null) => {
@@ -228,16 +231,25 @@ export function FireReleaseProvider(props: FireReleaseProviderProps) {
       const leapTarget = captureLeapTarget()
       if (leapTarget) scheduleLeaps(spriteCount, leapTarget)
       const holdMs = fireReleaseFxHoldMs(spriteCount)
+      setFireReleaseHoldCount((n) => n + 1)
       window.setTimeout(() => {
         setReleases((prev) => prev.filter((r) => r.id !== id))
         clearLeapTimeouts()
+        setFireReleaseHoldCount((n) => Math.max(0, n - 1))
       }, holdMs)
     },
     [stageLayerRef, captureLeapTarget, scheduleLeaps, clearLeapTimeouts],
   )
 
   return (
-    <FireReleaseContext.Provider value={{ playerPlaceholderRef, registerLeapTarget, playFireRelease }}>
+    <FireReleaseContext.Provider
+      value={{
+        playerPlaceholderRef,
+        registerLeapTarget,
+        playFireRelease,
+        isFireReleasePlaying: fireReleaseHoldCount > 0,
+      }}
+    >
       {children}
       <div className="fireReleaseFxLayer" aria-hidden>
         {releases.map((r) => (

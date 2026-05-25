@@ -6,6 +6,8 @@ import {
   fallbackDoor,
   gemDoor,
   monsterDoor,
+  openBossDoor,
+  openDoor,
   restDoor,
   shopDoor,
   treasureDoor,
@@ -24,6 +26,12 @@ export function pathDoorArt(pathId: PathId): string {
   if (kind === 'boss') return bossDoor
   if (kind === 'combat') return monsterDoor
   return PATH_DOOR_BY_ID[pathId] ?? fallbackDoor
+}
+
+export function pathOpenDoorArt(pathId: PathId): string {
+  const kind = Paths[pathId]?.kind
+  if (kind === 'boss') return openBossDoor
+  return openDoor
 }
 
 export type PathDoorGlowTone = 'combat' | 'shop' | 'rest' | 'default'

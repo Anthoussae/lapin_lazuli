@@ -1,9 +1,36 @@
+import type { RelicId } from '../../core/types/ids'
 import type { GameState } from '../../core/types/state'
-import { Relics } from '../../data/relics'
+import { Relics, type RelicTemplate } from '../../data/relics'
 import { describeRelicEffect } from '../../ui/describe'
 import { useRelicTravel } from '../RelicTravelContext'
+import { useTriggerFxArtProps } from '../TriggerFxContext'
+import { longbeltSprite } from '../assets/displayImages'
 import { relicImageMap } from '../assets/relicImages'
 import { RelicIcon } from './RelicIcon'
+
+function RelicBeltSlot(
+  props: Readonly<{
+    slotIndex: number
+    templateId: RelicId
+    relic: RelicTemplate | undefined
+  }>,
+) {
+  const { slotIndex, templateId, relic } = props
+  const triggerFx = useTriggerFxArtProps({ kind: 'relic', slotIndex })
+  return (
+    <div className="relicBeltSlot" data-relic-belt-slot={slotIndex}>
+      <RelicIcon
+        imageSrc={relicImageMap[templateId]}
+        fallback={relic?.thumb ?? '?'}
+        alt={relic?.name}
+        tooltipName={relic?.name ?? templateId}
+        tooltipEffect={relic ? describeRelicEffect(relic) : ''}
+        artClassName={triggerFx.className}
+        artKey={triggerFx.key}
+      />
+    </div>
+  )
+}
 
 export function RelicBelt(props: Readonly<{ state: GameState }>) {
   const { state } = props
@@ -16,19 +43,18 @@ export function RelicBelt(props: Readonly<{ state: GameState }>) {
   const pendingRelic = pendingTemplate ? Relics[pendingTemplate] : null
 
   return (
-    <div ref={beltRowRef} className="relicBeltRow">
+    <div className="relicBelt">
+      <img className="relicBelt__bg" src={longbeltSprite} alt="" draggable={false} />
+      <div ref={beltRowRef} className="relicBeltRow">
       {state.player.relics.map((ri, slotIndex) => {
         const r = Relics[ri.templateId]
         return (
-          <div key={ri.id} className="relicBeltSlot" data-relic-belt-slot={slotIndex}>
-            <RelicIcon
-              imageSrc={relicImageMap[ri.templateId]}
-              fallback={r?.thumb ?? '?'}
-              alt={r?.name}
-              tooltipName={r?.name ?? ri.templateId}
-              tooltipEffect={r ? describeRelicEffect(r) : ''}
-            />
-          </div>
+          <RelicBeltSlot
+            key={ri.id}
+            slotIndex={slotIndex}
+            templateId={ri.templateId}
+            relic={r}
+          />
         )
       })}
       {pendingTemplate ? (
@@ -47,6 +73,7 @@ export function RelicBelt(props: Readonly<{ state: GameState }>) {
           />
         </div>
       ) : null}
+      </div>
     </div>
   )
 }

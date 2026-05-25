@@ -83,6 +83,7 @@ export function GameCardView(props: GameCardViewProps) {
       className={className}
       onClick={onClick}
       staticDisplay={staticDisplay}
+      socketedGemId={inst?.socketedGemId ?? null}
     />
   )
 }

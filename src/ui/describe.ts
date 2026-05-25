@@ -111,6 +111,7 @@ const RELIC_TRIGGER_LINE: Partial<Record<TriggerDef['on'], (eff: string) => stri
   turn_start: (eff) => `At turn start, ${eff}.`,
   draw_starting_hand: (eff) => `When drawing your starting hand, ${eff}.`,
   onRest: (eff) => `When you rest, ${eff}.`,
+  onSleep: (eff) => `When you sleep, ${eff}.`,
 }
 
 export function describeRelicTrigger(trig: TriggerDef): string {

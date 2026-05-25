@@ -1,6 +1,5 @@
 import { Fragment, useCallback, useEffect, useRef, useState, type MouseEvent } from 'react'
 import type { GameAction } from '../../reducers/actions'
-import { createPortal } from 'react-dom'
 import type { GameState } from '../../core/types/state'
 import type { PlayerAction } from '../../reducers/actions'
 import { Cards } from '../../data/cards'
@@ -13,6 +12,7 @@ import { useCastBurst } from '../CastBurstContext'
 import { useCardConsume } from '../CardConsumeContext'
 import { cardInstanceConsumes } from '../../systems/cards/cardEffects'
 import { useBunnyRelease } from '../BunnyReleaseContext'
+import { useTriggerFxArtProps } from '../TriggerFxContext'
 import { useFireRelease } from '../FireReleaseContext'
 import { cardInstanceHasFireDamage, fireCardPlayDamage } from '../../systems/cards/fireRelease'
 import { combatHandFanContainerStyle } from '../combatHandFanLayout'
@@ -22,6 +22,7 @@ import { GameCardView } from '../primitives/GameCardView'
 import { InspectPileCloseButton } from '../primitives/InspectPileCloseButton'
 import { BarHud } from '../primitives/BarHud'
 import { InkJarDisplay } from '../primitives/InkJarDisplay'
+import { plainGreyBackdropCombat } from '../assets/backdropImages'
 import { cauldronSprite, playerPlaceholderSprite } from '../assets/displayImages'
 import { CombatEnemyBarHud } from '../primitives/CombatEnemyBarHud'
 import { CombatEnemyIntentDisplay } from '../primitives/CombatEnemyIntentDisplay'
@@ -29,9 +30,11 @@ import { CombatMonsterPlaceholder } from '../primitives/CombatMonsterPlaceholder
 import { MonsterDefeatPoof } from '../primitives/MonsterDefeatPoof'
 import { TickingNumber } from '../primitives/TickingNumber'
 import { relicTooltipViewportPosition } from '../relicTooltipPosition'
+import { GameTooltipStack } from '../primitives/GameTooltip'
 import { bunnyReleaseTotalMs } from '../bunnyReleaseConfig'
 import { monsterDefeatTotalMs } from '../monsterDefeatConfig'
 import { previewEnemyAfterBunnyDamage } from '../../systems/combat/bunnyReleaseTarget'
+import { canTakeCombatPlayerInput } from '../../systems/combat/combatInput'
 
 type CombatScreenProps = Readonly<{
   state: GameState
@@ -39,6 +42,32 @@ type CombatScreenProps = Readonly<{
   dispatch: (action: GameAction) => void
   onCompleteTurnStartDraw: () => void
 }>
+
+/** Default combat hotkey for ending the player turn. */
+const COMBAT_END_TURN_HOTKEY = ' '
+
+function shouldCombatEndTurnHotkey(
+  e: KeyboardEvent,
+  state: GameState,
+  handSelectionModalOpen: boolean,
+  fireReleasePlaying: boolean,
+): boolean {
+  if (e.key !== COMBAT_END_TURN_HOTKEY || e.repeat) return false
+  if (handSelectionModalOpen || fireReleasePlaying) return false
+  if (!canTakeCombatPlayerInput(state)) return false
+  if (e.defaultPrevented) return false
+
+  const target = e.target
+  if (!(target instanceof HTMLElement)) return true
+
+  if (target.closest('.inspectDeckOverlay, .handSelectionOverlay')) return false
+  if (target.isContentEditable) return false
+  const tag = target.tagName
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return false
+  if (target.closest('.gameCard--clickable, button, [role="button"]')) return false
+
+  return true
+}
 
 export function CombatScreen(props: CombatScreenProps) {
   const { state, enqueue, dispatch, onCompleteTurnStartDraw } = props
@@ -56,10 +85,15 @@ export function CombatScreen(props: CombatScreenProps) {
   const bunnyReleaseTickMs = bunnyReleaseTotalMs()
   const { playCastBurst } = useCastBurst()
   const { playCardConsume } = useCardConsume()
-  const { playFireRelease, playerPlaceholderRef, registerLeapTarget: registerFireLeapTarget } =
-    useFireRelease()
+  const {
+    playFireRelease,
+    playerPlaceholderRef,
+    registerLeapTarget: registerFireLeapTarget,
+    isFireReleasePlaying,
+  } = useFireRelease()
   const selectedEnemyId = combat.targeting.selectedEnemyId
   const { cauldronRef, registerLeapTarget } = useBunnyRelease()
+  const cauldronFx = useTriggerFxArtProps({ kind: 'cauldron' })
   const pendingCastSlotRef = useRef<HTMLElement | null>(null)
   const handSelectionSlotRefs = useRef(new Map<string, HTMLElement>())
   const { registerHandSlot, isHandCardHidden, getHandSlotEl, visualHandIds } = useCombatHandDrawAnimations({
@@ -87,7 +121,8 @@ export function CombatScreen(props: CombatScreenProps) {
       (templateId) => Cards[templateId],
       state.player.energy,
     )
-  const endTurnNudgeGlow = state.phase === 'COMBAT_PLAYER_READY' && handVisible && !handHasPlayable
+  const canEndTurn = canTakeCombatPlayerInput(state) && !isFireReleasePlaying
+  const endTurnNudgeGlow = canEndTurn && handVisible && !handHasPlayable
   const monsterDefeatPendingId = combat.monsterDefeatPending
   const playerDefeatPending = combat.playerDefeatPending
 
@@ -118,6 +153,16 @@ export function CombatScreen(props: CombatScreenProps) {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [handSelectionModalOpen, enqueue])
 
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (!shouldCombatEndTurnHotkey(e, state, handSelectionModalOpen, isFireReleasePlaying)) return
+      e.preventDefault()
+      enqueue({ type: 'COMBAT/END_TURN' })
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [state, handSelectionModalOpen, isFireReleasePlaying, enqueue])
+
   const cancelHandSelection = useCallback(() => {
     pendingCastSlotRef.current = null
     handSelectionSlotRefs.current.clear()
@@ -140,7 +185,11 @@ export function CombatScreen(props: CombatScreenProps) {
   }, [handSelection, playCardConsume, state.player.deck.cardById])
 
   return (
-    <div className="combatArena">
+    <>
+      <div className="screenBackdrop screenBackdrop--combat" aria-hidden>
+        <img className="screenBackdrop__img" src={plainGreyBackdropCombat} alt="" draggable={false} />
+      </div>
+      <div className="combatArena">
       {handSelectionModalOpen && handSelection && (
         <div className="handSelectionOverlay">
           <div className="handSelectionPanel">
@@ -231,7 +280,13 @@ export function CombatScreen(props: CombatScreenProps) {
           <img className="combatPlayerPlaceholder__art" src={playerPlaceholderSprite} alt="" draggable={false} />
         </div>
         <div className="bunnyMeterCauldron" ref={cauldronRef} role="status" aria-label={`Bunnies ${state.player.bunnies}`}>
-          <img className="bunnyMeterCauldron__art" src={cauldronSprite} alt="" draggable={false} />
+          <img
+            key={cauldronFx.key}
+            className={['bunnyMeterCauldron__art', cauldronFx.className].filter(Boolean).join(' ')}
+            src={cauldronSprite}
+            alt=""
+            draggable={false}
+          />
           <div className="bunnyMeterValue" aria-hidden>
             <TickingNumber
               value={bunnyReleaseAnimating ? 0 : state.player.bunnies}
@@ -242,26 +297,25 @@ export function CombatScreen(props: CombatScreenProps) {
         <button
           type="button"
           className={`btn bunnyMeterEndTurn${endTurnNudgeGlow ? ' bunnyMeterEndTurn--nudge' : ''}`}
-          disabled={state.phase !== 'COMBAT_PLAYER_READY'}
-          onClick={() => enqueue({ type: 'COMBAT/END_TURN' })}
+          disabled={!canEndTurn}
+          onClick={() => {
+            if (!canEndTurn) return
+            enqueue({ type: 'COMBAT/END_TURN' })
+          }}
           onMouseEnter={placeEndTurnTooltip}
           onMouseMove={placeEndTurnTooltip}
           onMouseLeave={clearEndTurnTooltip}
         >
           End Turn
         </button>
-        {endTurnTooltipPos
-          ? createPortal(
-              <div
-                className="relicTooltip bunnyMeterEndTurnTooltip"
-                style={{ left: endTurnTooltipPos.x, top: endTurnTooltipPos.y }}
-                role="tooltip"
-              >
-                Release the bunnies!
-              </div>,
-              document.body,
-            )
-          : null}
+        {endTurnTooltipPos ? (
+          <GameTooltipStack
+            entries={[{ key: 'end-turn', label: 'Release the bunnies!' }]}
+            x={endTurnTooltipPos.x}
+            y={endTurnTooltipPos.y}
+            anchor="topCenter"
+          />
+        ) : null}
       </div>
 
       <div className="footerRow">
@@ -337,6 +391,8 @@ export function CombatScreen(props: CombatScreenProps) {
             <CombatMonsterPlaceholder
               name={displayTitle}
               spriteName={displayName}
+              enemyInstanceId={id}
+              boonIds={e.boons ?? []}
               defeating={defeating}
             />
             {!defeating ? (
@@ -361,6 +417,7 @@ export function CombatScreen(props: CombatScreenProps) {
           </Fragment>
         )
       })}
-    </div>
+      </div>
+    </>
   )
 }

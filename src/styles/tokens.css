@@ -6,15 +6,20 @@
 
   /* Player shield HUD icons (combat) — regular shield + locked shield. */
   --player-shield-icon-size: 82px;
-  --player-shield-icon-offset-x: 0px;
-  --player-shield-icon-offset-y: -10px;
+  --player-shield-icon-offset-x: 40px;
+  --player-shield-icon-offset-y: -3px;
   --font-player-shield-value-size: 28px;
   --player-shield-value-offset-x: -4px;
   --player-shield-value-offset-y: 0px;
   --color-player-shield-value: #000000;
   --player-locked-shield-icon-size: 82px;
-  --player-locked-shield-icon-offset-x: 0px;
-  --player-locked-shield-icon-offset-y: -10px;
+  --player-locked-shield-icon-offset-x: 40px;
+  --player-locked-shield-icon-offset-y: -3px;
+  /* Player — both shield types visible (regular outside, locked inside). */
+  --player-dual-shield-icon-offset-x: 90px;
+  --player-dual-shield-icon-offset-y: -3px;
+  --player-dual-locked-shield-icon-offset-x: 130px;
+  --player-dual-locked-shield-icon-offset-y: -3px;
   --font-player-locked-shield-value-size: 28px;
   --player-locked-shield-value-offset-x: -4px;
   --player-locked-shield-value-offset-y: 0px;
@@ -35,8 +40,13 @@
   --monster-shield-value-offset-y: 0px;
   --color-monster-shield-value: #000000;
   --monster-locked-shield-icon-size: 82px;
-  --monster-locked-shield-icon-offset-x: 0px;
-  --monster-locked-shield-icon-offset-y: -10px;
+  --monster-locked-shield-icon-offset-x: -40px;
+  --monster-locked-shield-icon-offset-y: -3px;
+  /* Monster — both shield types visible (regular outside, locked inside). */
+  --monster-dual-shield-icon-offset-x: 0px;
+  --monster-dual-shield-icon-offset-y: -10px;
+  --monster-dual-locked-shield-icon-offset-x: -20px;
+  --monster-dual-locked-shield-icon-offset-y: -3px;
   --font-monster-locked-shield-value-size: 28px;
   --monster-locked-shield-value-offset-x: -4px;
   --monster-locked-shield-value-offset-y: 0px;
@@ -48,8 +58,8 @@
   --duration-monster-shield-tick-glow: var(--duration-ticking-number);
   --duration-monster-broken-shield-display: 300ms;
 
-  --color-button: #8f09e3;
-  --color-button-hover: #4d0878;
+  --color-button: #750fb4;
+  --color-button-hover: #b654f3;
   --color-button-text: #ffffff;
   --font-button-size: 28px;
   --font-combat-end-turn-button-size: calc(var(--font-button-size) * 0.7);
@@ -102,7 +112,7 @@
 
   /*
    * Combat monster health bar — offset from arena center (same anchor as monster placeholder).
-   * Default sits just above the placeholder art; shields overlay above the bar (out of flow).
+   * Default sits just above the placeholder art; shields overlay the left end of the bar.
    */
   --combat-monster-bar-min-width: 248px;
   --combat-monster-bar-height: 38px;
@@ -146,7 +156,7 @@
 
   /*
    * Combat player health bar — offset from bunny meter center (same anchor as placeholder).
-   * Default sits just above the placeholder art; shields overlay above the bar (out of flow).
+   * Default sits just above the placeholder art; shields overlay the right end of the bar.
    */
   --combat-player-bar-min-width: 248px;
   --combat-player-bar-height: 38px;
@@ -180,23 +190,76 @@
   --font-size-title-screen: 36px;
 
   --title-gradient: linear-gradient(180deg, var(--color-title-start), var(--color-title-end));
+  --title-main-menu-tallscroll-opacity: 1;
+  --title-screen-backdrop-opacity: 0.3;
+  --starter-relic-screen-backdrop-opacity: 0.7;
+  --path-select-screen-backdrop-opacity: 0.4;
+  --combat-screen-backdrop-opacity: 1;
+  --combat-reward-screen-backdrop-opacity: 0.5  ;
+  --card-reward-screen-backdrop-opacity: 0.3;
+  --gemstone-cavern-screen-backdrop-opacity: 0.9;
+  --rest-screen-backdrop-opacity: 1;
+  --treasure-room-screen-backdrop-opacity: 0.7;
+  --shop-screen-backdrop-opacity: 0.7;
 
   --relic-icon-height: calc(72px * 1.3);
   --relic-icon-fallback-font-size: calc(32px * 1.3);
-  --game-hud-height: calc(var(--relic-icon-height) + 16px);
+  --relic-belt-hud-padding-y: 16px;
+  --game-hud-height: calc(var(--relic-icon-height) + var(--relic-belt-hud-padding-y));
   --relic-icon-hover-scale: 1.2;
   --relic-thumb-height: 54px;
   --relic-thumb-fallback-font-size: 22px;
   --relic-icon-hover-duration: 0.5s;
   --relic-icon-fallback-color: #e6f0ff;
-  --relic-tooltip-border: #2b3a56;
-  --relic-tooltip-bg: rgba(10, 14, 20, 0.92);
   --relic-tooltip-gap: 4px;
   --relic-tooltip-nudge-x: -8px;
   --relic-tooltip-nudge-y: -10px;
 
+  /*
+   * Relic belt — sized panel centered in the HUD; relic icons stack above.
+   * Optional longbelt.png overlay via --relic-belt-image-visible.
+   */
+  --relic-belt-width: calc(var(--game-hud-height) * 5);
+  --relic-belt-height: calc(var(--game-hud-height) * 0.6);
+  --relic-belt-x-offset: 0px;
+  --relic-belt-y-offset: -10px;
+  --relic-belt-bg-color: rgb(119, 69, 8);
+  --relic-belt-opacity: 0.1;
+  --relic-belt-border-radius: 125px;
+  --relic-belt-border-color: transparent;
+  --relic-belt-border-width: 0px;
+  --relic-belt-image-visible: 0; /* 1 = show longbelt.png */
+  --relic-belt-bg-z: 0;
+  --relic-belt-slots-z: 1;
+  --relic-belt-row-padding-x: 12px;
+  --relic-belt-row-gap: 10px;
+  --duration-relic-travel: 700ms;
+  --ease-relic-travel: cubic-bezier(0.16, 1, 0.3, 1);
+  --relic-travel-finish-buffer: 80ms;
+
   /* Treasure room (greenCarpet.png under relic offers). */
   --treasure-room-carpet-size: min(720px, 80%);
+
+  --rest-scene-art-size: min(460px, 72%);
+  /* Rest screen — Sleep / Study choice buttons (fixed over the scene). */
+  --rest-choice-btn-z-index: 51;
+  --rest-choice-btn-font-size: var(--font-button-size);
+  --rest-choice-btn-padding-x: 14px;
+  --rest-choice-btn-padding-y: 10px;
+  --rest-choice-btn-border-radius: 10px;
+  --rest-choice-btn-border-width: 1px;
+  --rest-sleep-btn-x: 32%;
+  --rest-sleep-btn-y: 78%;
+  --rest-sleep-btn-bg: rgb(36, 52, 108);
+  --rest-sleep-btn-border-color: rgb(93, 125, 213);
+  --rest-sleep-btn-color: var(--color-button-text);
+  --rest-sleep-btn-hover-bg: rgb(93, 121, 198);
+  --rest-study-btn-x: 68%;
+  --rest-study-btn-y: 78%;
+  --rest-study-btn-bg: rgb(0, 99, 12);
+  --rest-study-btn-border-color: rgb(22, 73, 3);
+  --rest-study-btn-color: var(--color-button-text);
+  --rest-study-btn-hover-bg: rgba(15, 176, 60, 0.614);
 
   /* Gem offer icons (Jewellers). */
   --gem-icon-size: calc(72px * 1.7);
@@ -213,7 +276,7 @@
   --gem-offer-proceed-x: 50%;
   --gem-offer-proceed-y: 88%;
   /* Shop shelf display (3×3 over shopShelves.png). */
-  --shop-shelves-width: min(800px, 90vw);
+  --shop-shelves-width: min(800px, 45vw);
   --shop-shelves-bg-nudge-x: 0px;
   --shop-shelves-bg-nudge-y: 30px;
   --shop-shelves-grid-nudge-x: 20px;
@@ -306,6 +369,7 @@
   --game-card-hover-duration: 0.3s;
 
   /* Card illustration — centered in .gameCard__art; override per card via layout map. */
+  --card-illustration-size-modifier: 2;
   --card-illustration-default-w: 52%;
   --card-illustration-default-h: 88%;
   --card-illustration-default-x: 0;
@@ -316,6 +380,22 @@
   --card-illustration-potion-filter: brightness(100%);
   /* Card front frame (basic.png) → pure black/white (no gray midtones). */
   --card-front-filter: none;
+
+  /* Socketed cards (giltFrontDark.png): frame, illustration, gem, typography. */
+  --card-socketed-front-filter: none;
+  --card-socketed-illustration-filter: brightness(0) invert(1);
+  --card-socketed-gem-x: 50%;
+  --card-socketed-gem-y: 50%;
+  --card-socketed-gem-size: 40%;
+  --color-card-socketed-name: #fff;
+  --color-card-socketed-name-upgraded: #a7f3d0;
+  --color-card-socketed-ink: #fff;
+  --color-card-socketed-text: #fff;
+  --color-card-socketed-text-amt-up: #86efac;
+  --color-card-socketed-text-amt-down: #fca5a5;
+  --color-card-socketed-tags: rgba(255, 255, 255, 0.72);
+  --color-card-socketed-exhausted-shade: rgba(0, 0, 0, 0.38);
+  --card-socketed-exhausted-brightness: 0.75;
 
   --hand-fan-overlap: 36px;
   --hand-fan-deg-per-slot: 4deg;
@@ -353,8 +433,29 @@
   --color-card-text-bunny-down: var(--color-card-text-amt-down);
   --color-card-exhausted-shade: rgba(26, 58, 107, 0.38);
   --card-exhausted-brightness: 0.75;
-  --color-keyword-tooltip-border: #2b3a56;
-  --color-keyword-tooltip-bg: rgba(10, 14, 20, 0.92);
+
+  /* Shared game tooltip styling (keyword, relic, gem, enemy boon). */
+  --color-game-tooltip-border: #2b3a56;
+  --color-game-tooltip-bg: rgba(10, 14, 20, 0.92);
+  --color-game-tooltip-label: #ffd48a;
+  --color-game-tooltip-text: #c8d8f0;
+  --font-game-tooltip-label-size: 15px;
+  --font-game-tooltip-label-weight: 800;
+  --font-game-tooltip-label-line-height: 1.25;
+  --font-game-tooltip-text-size: 13px;
+  --font-game-tooltip-text-line-height: 1.35;
+  --game-tooltip-padding-y: 8px;
+  --game-tooltip-padding-x: 10px;
+  --game-tooltip-border-radius: 8px;
+  --game-tooltip-box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --game-tooltip-stack-max-width: min(280px, calc(var(--game-w) * 1px - 48px));
+  --game-tooltip-stack-gap: 4px;
+  --game-tooltip-label-text-gap: 4px;
+  --game-tooltip-edge-padding: 8px;
+  --game-tooltip-z-index: 200;
+  --game-tooltip-anchor-offset-x: 8px;
+  --game-tooltip-enemy-boon-offset-x: -108px;
+
   --font-card-text-emphasis-weight: 900;
   --color-card-tags: var(--color-card-text);
   --font-card-tags-size: 16px;
@@ -362,6 +463,7 @@
   --card-font-scale-ink-default: 1;
   --card-font-scale-text-default: 1;
   --card-font-scale-min: 0.5;
+  --card-font-scale-text-max: 1;
   --font-card-tags-weight: 400;
   --font-card-tags-line-height: 1.1;
 
@@ -470,6 +572,30 @@
   --hud-box-display-icon-gap: 6px;
 
   /*
+   * Room info HUD — room name + description (top-right; mirrors hud box display styling).
+   */
+  --room-info-hud-top: 12px;
+  --room-info-hud-right: 12px;
+  --room-info-hud-offset-x: 0px;
+  --room-info-hud-offset-y: 0px;
+  --room-info-hud-z-index: 10;
+  --room-info-hud-width: var(--hud-box-display-width);
+  --room-info-hud-border-width: var(--hud-box-display-border-width);
+  --room-info-hud-border-color: var(--hud-box-display-border-color);
+  --room-info-hud-bg: var(--hud-box-display-bg);
+  --room-info-hud-border-radius: var(--hud-box-display-border-radius);
+  --room-info-hud-padding: var(--hud-box-display-padding);
+  --room-info-hud-gap: var(--hud-box-display-gap);
+  --room-info-hud-font-weight: var(--hud-box-display-font-weight);
+  --room-info-hud-line-height: var(--hud-box-display-line-height);
+  --room-info-hud-name-color: var(--hud-box-display-text-color);
+  --room-info-hud-name-font-size: var(--hud-box-display-font-size);
+  --room-info-hud-name-font-weight: var(--hud-box-display-font-weight);
+  --room-info-hud-description-color: var(--hud-box-display-text-color);
+  --room-info-hud-description-font-size: 14px;
+  --room-info-hud-description-font-weight: 600;
+
+  /*
    * Upgrade subscreen — combat hand selection (upgrade / consume cards).
    * Independent from inspect-deck / discard pile overlays.
    */
@@ -554,7 +680,7 @@
   --vanish-puff-end-scale-mult: 1.12;
   --vanish-puff-z-host: 9998;
   /*
-   * Card consume — hand card permanently destroyed (self-consume, Void Fox, turn-end).
+   * Card consume — hand card permanently destroyed (self-consume, Lethean Water, turn-end).
    * Total hold = max(puff fade + stagger, aftermath delay + fade) + buffer (see cardConsumeConfig.ts).
    */
   --card-consume-puff-count: 6;
@@ -634,6 +760,27 @@
   --fire-release-delay-steps: 5;
   --fire-release-delay-step: 35ms;
   --duration-fire-release-buffer: 60ms;
+
+  /*
+   * Trigger FX — brief HUD pulse when abilities fire (relic/card/enemy triggers).
+   * Roles: source (tremble + warm glow), buff target (green pulse), debuff target (red wiggle).
+   * See triggerFxConfig.ts.
+   */
+  --duration-trigger-fx: 380ms;
+  --ease-trigger-fx: ease-out;
+  --delay-trigger-fx-target: 60ms;
+  --color-trigger-fx-source-glow: #e69138;
+  --color-trigger-fx-source-glow-soft: rgba(230, 145, 56, 0.55);
+  --trigger-fx-source-shake-x: 2px;
+  --trigger-fx-source-shake-y: 1px;
+  --color-trigger-fx-buff-glow: #34d399;
+  --color-trigger-fx-buff-glow-soft: rgba(52, 211, 153, 0.55);
+  --trigger-fx-buff-scale-peak: 1.04;
+  --color-trigger-fx-debuff-glow: #ef4444;
+  --color-trigger-fx-debuff-glow-soft: rgba(239, 68, 68, 0.55);
+  --trigger-fx-debuff-wiggle-deg: 3deg;
+  --trigger-fx-glow-tight: 6px;
+  --trigger-fx-glow-wide: 14px;
 
   /*
    * Monster defeat — fall + red glow + poof before reward transition.

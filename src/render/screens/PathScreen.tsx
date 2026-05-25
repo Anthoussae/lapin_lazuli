@@ -5,14 +5,16 @@ import { Paths } from '../../data/paths'
 import { Enemies } from '../../data/enemies'
 import { EnemyBoons } from '../../data/enemyBoons'
 import { isCombatPath } from '../../systems/paths/rollPathCombat'
-import { mapBackground, openDoor } from '../assets/displayImages'
+import { plainGreyBackdrop } from '../assets/backdropImages'
+import { mapBackground } from '../assets/displayImages'
 import { useRelicTravel } from '../RelicTravelContext'
 import { pathIrisCenterFromDoor } from '../pathIrisCenter'
 import { pathIrisSecondPathDelayMs } from '../pathIrisConfig'
 import { CenteredPanel } from '../primitives/CenteredPanel'
+import { EnemyBoonHoverHost } from '../primitives/EnemyBoonHoverHost'
 import { IrisOverlay, type IrisCenter } from '../primitives/IrisOverlay'
 import { PathDoor } from '../primitives/PathDoor'
-import { pathDoorArt, pathDoorGlowTone } from '../pathDoorArt'
+import { pathDoorArt, pathDoorGlowTone, pathOpenDoorArt } from '../pathDoorArt'
 import type { ScreenProps } from './types'
 
 function pathDoorCaption(pathId: PathId, combatPreview: PathCombatPreview | null): ReactNode {
@@ -34,11 +36,18 @@ function PathCombatPreviewCaption(props: Readonly<{ preview: PathCombatPreview }
     .join(' ')
 
   return (
-    <span className="pathCombatPreview">
+    <EnemyBoonHoverHost
+      boonIds={preview.boons}
+      className={
+        preview.boons.length
+          ? 'pathCombatPreview pathCombatPreview--hasBoons'
+          : 'pathCombatPreview'
+      }
+    >
       <span className="pathCombatPreview__level">Lv. {level}</span>
       {boonLine ? <span className="pathCombatPreview__boons">{boonLine}</span> : null}
       <span className="pathCombatPreview__name">{name}</span>
-    </span>
+    </EnemyBoonHoverHost>
   )
 }
 
@@ -118,6 +127,9 @@ export function PathScreen(props: ScreenProps) {
 
   return (
     <>
+      <div className="screenBackdrop screenBackdrop--pathSelect" aria-hidden>
+        <img className="screenBackdrop__img" src={plainGreyBackdrop} alt="" draggable={false} />
+      </div>
       <div className="pathMapBackground" aria-hidden>
         <img className="pathMapBackground__img" src={mapBackground} alt="" draggable={false} />
       </div>
@@ -136,7 +148,7 @@ export function PathScreen(props: ScreenProps) {
             return (
               <PathDoor
                 key={`${id}-${idx}`}
-                doorSrc={isOpening ? openDoor : pathDoorArt(id)}
+                doorSrc={isOpening ? pathOpenDoorArt(id) : pathDoorArt(id)}
                 glowTone={pathDoorGlowTone(id)}
                 alt={p?.name ?? id}
                 locked={locked}

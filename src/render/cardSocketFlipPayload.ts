@@ -22,5 +22,6 @@ export function cardSocketFlipPayload(
     nameUpgraded: preview.upgrades > 0,
     inkLabel,
     descriptionLines: cardDescriptionLinesForInstance(template, preview, power, firepowerMultiplier),
+    socketedGemId: preview.socketedGemId ?? null,
   }
 }

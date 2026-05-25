@@ -1,3 +1,4 @@
+import { plainPinkBackdrop } from '../assets/backdropImages'
 import { tallscroll } from '../assets/displayImages'
 import { useIrisTransition } from '../IrisTransitionContext'
 import { CenteredPanel } from '../primitives/CenteredPanel'
@@ -8,7 +9,11 @@ export function TitleScreen(props: ScreenProps) {
   const { isActive, runIrisTransition } = useIrisTransition()
 
   return (
-    <CenteredPanel panelClassName="titleScreenPanelGame">
+    <>
+      <div className="screenBackdrop screenBackdrop--title" aria-hidden>
+        <img className="screenBackdrop__img" src={plainPinkBackdrop} alt="" draggable={false} />
+      </div>
+      <CenteredPanel panelClassName="titleScreenPanelGame">
       <div className="mainMenuTitle">
         <img className="mainMenuTitle__scroll" src={tallscroll} alt="" draggable={false} />
         <div className="screenTitle screenTitleMainMenu">
@@ -29,6 +34,7 @@ export function TitleScreen(props: ScreenProps) {
       >
         New Game
       </button>
-    </CenteredPanel>
+      </CenteredPanel>
+    </>
   )
 }

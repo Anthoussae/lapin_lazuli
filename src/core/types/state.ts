@@ -249,7 +249,16 @@ export type UiState = Readonly<{
 }>
 
 export type RestOutcomeState = Readonly<{
-  healedHp: number
+  /** HP Sleep will restore (computed on enter; capped at missing HP). */
+  sleepHealAmount: number
+  /** True after the player uses Sleep. */
+  slept: boolean
+  /** True after the player uses Study. */
+  studied: boolean
+  /** HP restored by Sleep (set when {@link slept} becomes true). */
+  healedHp?: number
+  /** Card upgraded by Study, if any upgradeable card was in the deck. */
+  studiedCardInstanceId?: CardInstanceId
 }>
 
 export type GameState = Readonly<{
@@ -271,6 +280,11 @@ export type GameState = Readonly<{
    * Cleared when combat ends in victory; null for combats not started from a path (e.g. debug).
    */
   currentCombatPathId: PathId | null
+  /**
+   * Path id for the room the player is currently in (map choice through leave/reward).
+   * Cleared when returning to path selection; used for room name/description HUD.
+   */
+  activeRoomPathId: PathId | null
   combat: CombatState | null
   relicSelection: RelicSelectionState | null
   /** Populated while phase is `TREASURE_ROOM`. */
@@ -281,7 +295,7 @@ export type GameState = Readonly<{
   cardReward: CardRewardState | null
   /** Stock for the current SHOP visit (9 slots). */
   shop: ShopState | null
-  /** Set while phase is REST so the UI can show how much HP was restored. */
+  /** Populated while phase is REST (sleep heal preview, then outcome after Sleep). */
   restOutcome: RestOutcomeState | null
   /**
    * Paths with cooldown: minimum game level before this path id may appear in offerings again

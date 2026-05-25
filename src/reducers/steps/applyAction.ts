@@ -26,6 +26,8 @@ import { assignShopPrices } from '../../systems/shop/assignPrice'
 import { effectiveCardUpgradeDelta } from '../../systems/cards/upgrades'
 import { applyCardPickupEffects } from '../../systems/cards/pickupEffects'
 import { applyRelicTriggers } from '../../systems/relics/triggers'
+import { computeSleepHealAmount } from '../../systems/rest/sleepHeal'
+import { applyRandomStudyUpgrade, restChoiceMade } from '../../systems/rest/studyUpgrade'
 import { rollGemOffers } from '../../systems/gems/rollGems'
 import {
   confirmGemstoneSocketing,
@@ -83,7 +85,7 @@ function applyPlayerAction(state: GameState, action: PlayerAction): { state: Gam
     case 'RELIC/CHOOSE_STARTER':
       return { state: chooseStarterRelic(state, action.relicId), events: [] }
     case 'PATH/CHOOSE':
-      return { state: choosePath(state, action.pathId, action.slotIndex), events: [] }
+      return choosePath(state, action.pathId, action.slotIndex)
     case 'PATH/UNLOCK_SLOT':
       return { state: unlockPathSlot(state, action.slotIndex), events: [] }
     case 'MAP/START_COMBAT':
@@ -108,6 +110,10 @@ function applyPlayerAction(state: GameState, action: PlayerAction): { state: Gam
       return pickRewardGold(state)
     case 'REWARD/PICK_KEYS':
       return pickRewardKeys(state)
+    case 'REST/SLEEP':
+      return restSleep(state)
+    case 'REST/STUDY':
+      return restStudy(state)
     case 'REST/CONTINUE':
       return continueAfterRest(state)
     case 'TREASURE_ROOM/PICK_RELIC': {
@@ -204,6 +210,7 @@ function pickRewardCard(state: GameState, cardId: CardId): { state: GameState; e
     treasureRoom: null,
     gemstoneCavern: null,
     pathSelection: pathPick.pathSelection,
+    activeRoomPathId: null,
   }
 
   s2 = applyCardPickupEffects(s2, cardId)
@@ -241,6 +248,7 @@ function pickRewardRelic(state: GameState, relicId: RelicId): { state: GameState
     level: nextLevel,
     rng: pathPick.rng,
     pathSelection: pathPick.pathSelection,
+    activeRoomPathId: null,
   }
 
   return { state: setPhase(s2, 'PATH_SELECT'), events: [] }
@@ -380,6 +388,7 @@ function chooseStarterRelic(state: GameState, relicId: RelicId): GameState {
     treasureRoom: null,
     gemstoneCavern: null,
     pathSelection: pathPick.pathSelection,
+    activeRoomPathId: null,
   }
 
   return setPhase(s2, 'PATH_SELECT')
@@ -454,13 +463,55 @@ function advanceToNextPathSelectionAfterNode(
     treasureRoom: null,
     gemstoneCavern: null,
     pathSelection: pathPick.pathSelection,
+    activeRoomPathId: null,
   }
 
   return { state: setPhase(s2, 'PATH_SELECT'), events: [] }
 }
 
 function continueAfterRest(state: GameState): { state: GameState; events: GameEvent[] } {
+  const rest = state.restOutcome
+  if (state.phase !== 'REST' || !rest || !restChoiceMade(rest)) return { state, events: [] }
   return advanceToNextPathSelectionAfterNode(state, 'REST')
+}
+
+function restSleep(state: GameState): { state: GameState; events: GameEvent[] } {
+  if (state.phase !== 'REST') return { state, events: [] }
+  const rest = state.restOutcome
+  if (!rest || restChoiceMade(rest)) return { state, events: [] }
+
+  const healAmount = rest.sleepHealAmount
+  const p = state.player
+  let s: GameState = {
+    ...state,
+    player: { ...p, hp: p.hp + healAmount },
+    restOutcome: { ...rest, slept: true, healedHp: healAmount },
+  }
+
+  for (const rInst of s.player.relics) {
+    s = applyRelicTriggers(s, rInst.templateId, 'onSleep')
+  }
+
+  return { state: s, events: [] }
+}
+
+function restStudy(state: GameState): { state: GameState; events: GameEvent[] } {
+  if (state.phase !== 'REST') return { state, events: [] }
+  const rest = state.restOutcome
+  if (!rest || restChoiceMade(rest)) return { state, events: [] }
+
+  const { state: upgraded, upgradedCardInstanceId } = applyRandomStudyUpgrade(state)
+  return {
+    state: {
+      ...upgraded,
+      restOutcome: {
+        ...rest,
+        studied: true,
+        ...(upgradedCardInstanceId != null ? { studiedCardInstanceId: upgradedCardInstanceId } : {}),
+      },
+    },
+    events: [],
+  }
 }
 
 function continueAfterShop(state: GameState): { state: GameState; events: GameEvent[] } {
@@ -538,15 +589,22 @@ function withPathCooldownApplied(state: GameState, pathId: PathId): GameState {
   }
 }
 
-function choosePath(state: GameState, pathId: PathId, slotIndex: number): GameState {
+function choosePath(
+  state: GameState,
+  pathId: PathId,
+  slotIndex: number,
+): { state: GameState; events: GameEvent[] } {
   const ps = state.pathSelection
   const offered = ps?.offered ?? []
   const slotLocked = ps?.slotLocked ?? []
   const combatPreview = ps?.combatPreviews?.[slotIndex] ?? null
-  if (!offered[slotIndex] || offered[slotIndex] !== pathId) return state
-  if (slotLocked[slotIndex]) return state
+  if (!offered[slotIndex] || offered[slotIndex] !== pathId) return { state, events: [] }
+  if (slotLocked[slotIndex]) return { state, events: [] }
 
-  const baseState: GameState = withPathCooldownApplied({ ...state, pathSelection: null }, pathId)
+  const baseState: GameState = withPathCooldownApplied(
+    { ...state, pathSelection: null, activeRoomPathId: pathId },
+    pathId,
+  )
   const mapRoute = Paths[pathId]?.mapRoute ?? 'combat'
 
   // Branch order irrelevant (each path id maps to one route). Combat reuses pre-rolled previews when present;
@@ -561,7 +619,8 @@ function choosePath(state: GameState, pathId: PathId, slotIndex: number): GameSt
         playerGold: baseState.player.gold,
         level: baseState.level,
       })
-      return setPhase(
+      return {
+        state: setPhase(
         {
           ...baseState,
           rng: priced.rng,
@@ -571,31 +630,32 @@ function choosePath(state: GameState, pathId: PathId, slotIndex: number): GameSt
           shop: { items: priced.items },
         },
         'SHOP',
-      )
+        ),
+        events: [],
+      }
     }
     case 'rest': {
       const p = baseState.player
-      const healCap = Math.floor(p.maxHp * 0.25)
-      const healedHp = Math.min(healCap, Math.max(0, p.maxHp - p.hp))
-      const nextHp = p.hp + healedHp
-
-      let s: GameState = {
-        ...baseState,
-        player: { ...p, hp: nextHp },
-        restOutcome: { healedHp },
-        treasureRoom: null,
+      const sleepHealAmount = computeSleepHealAmount(p.maxHp, p.hp)
+      return {
+        state: setPhase(
+          {
+            ...baseState,
+            restOutcome: { sleepHealAmount, slept: false, studied: false },
+            cardReward: null,
+            treasureRoom: null,
+            shop: null,
+          },
+          'REST',
+        ),
+        events: [],
       }
-
-      for (const rInst of s.player.relics) {
-        s = applyRelicTriggers(s, rInst.templateId, 'onRest')
-      }
-
-      return setPhase(s, 'REST')
     }
     case 'treasure_room': {
       const ownedRelics = new Set(baseState.player.relics.map((r) => r.templateId))
       const relicPick = pickThreeShopRelics(baseState.rng, ownedRelics)
-      return setPhase(
+      return {
+        state: setPhase(
         {
           ...baseState,
           rng: relicPick.rng,
@@ -605,7 +665,9 @@ function choosePath(state: GameState, pathId: PathId, slotIndex: number): GameSt
           treasureRoom: { offered: relicPick.relicIds, selectionComplete: false },
         },
         'TREASURE_ROOM',
-      )
+        ),
+        events: [],
+      }
     }
     case 'card_reward': {
       const rewardOut = populateCardReward({
@@ -614,7 +676,8 @@ function choosePath(state: GameState, pathId: PathId, slotIndex: number): GameSt
         luck: baseState.player.luck,
         count: 3,
       })
-      return setPhase(
+      return {
+        state: setPhase(
         {
           ...baseState,
           rng: rewardOut.rng,
@@ -630,11 +693,14 @@ function choosePath(state: GameState, pathId: PathId, slotIndex: number): GameSt
           },
         },
         'REWARD',
-      )
+        ),
+        events: [],
+      }
     }
     case 'gemstone_cavern': {
       const gemRoll = rollGemOffers(baseState.rng, 3)
-      return setPhase(
+      return {
+        state: setPhase(
         {
           ...baseState,
           rng: gemRoll.rng,
@@ -645,7 +711,9 @@ function choosePath(state: GameState, pathId: PathId, slotIndex: number): GameSt
           gemstoneCavern: { offered: gemRoll.offered, socketing: null },
         },
         'GEMSTONE_CAVERN',
-      )
+        ),
+        events: [],
+      }
     }
     case 'combat':
     default: {
@@ -661,6 +729,6 @@ function choosePath(state: GameState, pathId: PathId, slotIndex: number): GameSt
     preview = encounter.preview
   }
   const out = startCombat(sCombat, preview.enemyTemplateId, pathId, preview.boons, preview.maxHp)
-  return out.state
+  return { state: out.state, events: out.events }
 }
 

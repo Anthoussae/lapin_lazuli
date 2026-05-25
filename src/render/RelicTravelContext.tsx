@@ -12,6 +12,7 @@ import type { RelicId } from '../core/types/ids'
 import { Relics } from '../data/relics'
 import { relicImageMap } from './assets/relicImages'
 import { getBeltSlotRect, rectRelativeTo, relicIconViewportRect } from './relicBeltLayout'
+import { readRootDurationMs } from './relicTooltipPosition'
 import { RelicIcon } from './primitives/RelicIcon'
 
 export type RelicTravelRequest = Readonly<{
@@ -42,7 +43,15 @@ type RelicTravelContextValue = Readonly<{
 
 const RelicTravelContext = createContext<RelicTravelContextValue | null>(null)
 
-const TRAVEL_MS = 700
+function relicTravelDurationMs(): number {
+  if (typeof document === 'undefined') return 700
+  return readRootDurationMs('--duration-relic-travel') || 700
+}
+
+function relicTravelFinishBufferMs(): number {
+  if (typeof document === 'undefined') return 80
+  return readRootDurationMs('--relic-travel-finish-buffer') || 80
+}
 
 function centerOf(rect: DOMRect): Readonly<{ x: number; y: number }> {
   return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
@@ -111,7 +120,7 @@ export function RelicTravelProvider(props: Readonly<{ children: ReactNode }>) {
 
     requestAnimationFrame(() => {
       setFlight((f) => (f ? { ...f, phase: 'moving' } : null))
-      window.setTimeout(finishFlight, TRAVEL_MS + 80)
+      window.setTimeout(finishFlight, relicTravelDurationMs() + relicTravelFinishBufferMs())
     })
   }, [])
 

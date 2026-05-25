@@ -27,7 +27,11 @@ import spark2Sprite from '../../assets/images/displayElements/spark2.png'
 import consumeCardAftermath from '../../assets/images/displayElements/consumeCardAftermath.png'
 import xtoCloseIcon from '../../assets/images/displayElements/xtoCloseIcon.png'
 import cauldronSprite from '../../assets/images/displayElements/cauldron.png'
+import longbeltSprite from '../../assets/images/displayElements/longbelt.png'
 import shopShelvesSprite from '../../assets/images/displayElements/shopShelves.png'
+import restingSprite from '../../assets/images/displayElements/resting.png'
+import sleepIllustrationSprite from '../../assets/images/displayElements/sleepIllustration.png'
+import studyIllustrationSprite from '../../assets/images/displayElements/studyIllustration.png'
 import playerPlaceholderSprite from '../../assets/images/displayElements/playerPlaceholder1.png'
 import shieldSprite from '../../assets/images/displayElements/shield.png'
 import brokenShieldSprite from '../../assets/images/displayElements/brokenShield.png'
@@ -79,7 +83,11 @@ export {
   keySprite,
   pathDoorLockSprite,
   cauldronSprite,
+  longbeltSprite,
   shopShelvesSprite,
+  restingSprite,
+  sleepIllustrationSprite,
+  studyIllustrationSprite,
   playerPlaceholderSprite,
   shieldSprite,
   brokenShieldSprite,

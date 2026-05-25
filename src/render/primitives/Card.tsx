@@ -1,9 +1,10 @@
 import { useMemo, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react'
-import type { CardId } from '../../core/types/ids'
+import type { CardId, GemId } from '../../core/types/ids'
 import { isPotionCardId } from '../../data/cards'
 import type { CardDescLine } from '../../ui/describe'
 import { collectKeywordIdsFromDescriptionLines } from '../../ui/cardKeywords'
-import { cardBackArt, cardFrontArt } from '../assets/cardImages'
+import { cardBackArt, cardFrontArtForGem } from '../assets/cardImages'
+import { gemImageSrc } from '../assets/gemImages'
 import { renderCardIllustration } from '../cardIllustrationLayout'
 import { CardDesc } from './CardDesc'
 import { KeywordTooltips, keywordTooltipsViewportPosition } from './KeywordTooltips'
@@ -31,6 +32,8 @@ export type CardProps = Readonly<{
   onClick?: () => void
   /** Skip dynamic font fitting (e.g. card pickup flyer). */
   staticDisplay?: boolean
+  /** When set, selects gem-tinted front frame and renders the gem icon. */
+  socketedGemId?: GemId | null
 }>
 
 function plainDescription(description: string): ReactNode {
@@ -63,9 +66,12 @@ export function Card(props: CardProps) {
     className,
     onClick,
     staticDisplay = false,
+    socketedGemId = null,
   } = props
 
   const clickable = onClick != null
+  const socketed = socketedGemId != null
+  const gemImage = socketed ? gemImageSrc(socketedGemId) : undefined
   const showInk = inkLabel != null && inkLabel !== ''
   const contentKey = useMemo(
     () =>
@@ -112,6 +118,7 @@ export function Card(props: CardProps) {
 
   const classes = [
     'gameCard',
+    socketed ? 'gameCard--socketed' : null,
     isPotionCardId(cardId) ? 'gameCard--potion' : null,
     clickable ? 'gameCard--clickable' : null,
     disabled ? 'gameCard--disabled' : null,
@@ -151,10 +158,13 @@ export function Card(props: CardProps) {
         className={['gameCard__frame', face === 'front' ? 'gameCard__frame--front' : null]
           .filter(Boolean)
           .join(' ')}
-        src={face === 'back' ? cardBackArt : cardFrontArt}
+        src={face === 'back' ? cardBackArt : cardFrontArtForGem(socketedGemId)}
         alt=""
         draggable={false}
       />
+      {face === 'front' && gemImage ? (
+        <img className="gameCard__gem" src={gemImage} alt="" draggable={false} />
+      ) : null}
       {face === 'front' ? (
         <div ref={overlayRef} className="gameCard__overlay">
           <div className="gameCard__header">

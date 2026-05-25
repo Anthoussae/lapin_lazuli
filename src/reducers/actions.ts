@@ -29,6 +29,8 @@ export type PlayerAction =
   | { type: 'REWARD/PICK_RELIC'; relicId: RelicId }
   | { type: 'REWARD/PICK_GOLD' }
   | { type: 'REWARD/PICK_KEYS' }
+  | { type: 'REST/SLEEP' }
+  | { type: 'REST/STUDY' }
   | { type: 'REST/CONTINUE' }
   | { type: 'TREASURE_ROOM/PICK_RELIC'; relicId: RelicId }
   | { type: 'SHOP/LEAVE' }

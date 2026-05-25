@@ -77,6 +77,9 @@ function computeVictoryGoldAndKeys(
 
 /** Applies post-combat victory rewards and phase transition (REWARD or GAME_WIN). */
 export function applyCombatVictory(state: GameState): { state: GameState; events: GameEvent[] } {
+  if (state.phase === 'REWARD' && state.cardReward) return { state, events: [] }
+  if (state.phase === 'GAME_WIN') return { state, events: [] }
+
   const combatSnapshot = state.combat
   if (!combatSnapshot) return { state, events: [] }
 

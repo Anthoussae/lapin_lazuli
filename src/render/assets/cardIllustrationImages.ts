@@ -16,7 +16,7 @@ import placeholderPotion from '../../assets/images/cardillustrations/placeholder
 import ponder from '../../assets/images/cardillustrations/ponder.png'
 import practice from '../../assets/images/cardillustrations/practice.png'
 import smoke from '../../assets/images/cardillustrations/smoke.png'
-import voidFox from '../../assets/images/cardillustrations/voidFox.png'
+import letheanWater from '../../assets/images/potions/letheanWater.png'
 import wiseBunny from '../../assets/images/cardillustrations/wiseBunny.png'
 import wisdomPotion from '../../assets/images/cardillustrations/wisdomPotion.png'
 import cardIllustrationPlaceholder from '../../assets/images/displayElements/inkdrop.png'
@@ -32,7 +32,7 @@ export const CARD_ILLUSTRATIONS_BY_ID: Readonly<Partial<Record<CardId, string>>>
   INKSWELL_RITUAL: inkswell,
   CLOUDBUNNY: cloudBunny,
   HEALTH_POTION: healthpotion,
-  VOID_FOX: voidFox,
+  LETHEAN_WATER: letheanWater,
   DEFEND: defend,
   SHIELD_POTION: placeholderPotion,
   FIREBALL: fireball,

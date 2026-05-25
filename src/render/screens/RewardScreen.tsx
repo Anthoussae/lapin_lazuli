@@ -1,4 +1,5 @@
 import { isRewardLootFullyCollected } from '../../systems/rewards/rewardLoot'
+import { plainCelesteBackdrop, plainGreyBackdropCombat } from '../assets/backdropImages'
 import { CardOfferRow } from '../primitives/CardOfferRow'
 import { CenteredPanel } from '../primitives/CenteredPanel'
 import { RelicOfferRow } from '../primitives/RelicOfferRow'
@@ -28,72 +29,87 @@ export function RewardScreen(props: ScreenProps) {
   )
 
   const showCardOrRelicChoice = !hasLoot || lootComplete
+  const useCardRewardBackdrop = showCardOrRelicChoice && rewardKind === 'CARD'
 
   return (
-    <CenteredPanel
-      title={title}
-      panelClassName={showCardOrRelicChoice && rewardKind === 'CARD' ? 'cardOfferPanel' : undefined}
-    >
-      {rw != null && hasLoot && !lootComplete ? (
-        <div className="rewardLootRow">
-          {rewardGold > 0 && !rw.goldPickedUp ? (
-            <button
-              type="button"
-              className={['rewardLootPickup', travelingGold ? 'rewardLootPickup--traveling' : null]
-                .filter(Boolean)
-                .join(' ') || undefined}
-              disabled={travelingGold}
-              aria-label={`Pick up ${rewardGold} gold`}
-              onClick={(e) => {
-                travelGoldToHud({
-                  sourceEl: e.currentTarget,
-                  amount: rewardGold,
-                  onComplete: () => enqueue({ type: 'REWARD/PICK_GOLD' }),
-                })
-              }}
-            >
-              <img className="rewardLootPickup__img" src={goldBagSprite} alt="" draggable={false} />
-              <span className="rewardLootPickup__amount">{rewardGold}</span>
-            </button>
-          ) : null}
-          {rewardKeys > 0 && !rw.keysPickedUp ? (
-            <button
-              type="button"
-              className={['rewardLootPickup', travelingKey ? 'rewardLootPickup--traveling' : null]
-                .filter(Boolean)
-                .join(' ') || undefined}
-              disabled={travelingKey}
-              aria-label={`Pick up ${rewardKeys} key${rewardKeys === 1 ? '' : 's'}`}
-              onClick={(e) => {
-                travelKeyToHud({
-                  sourceEl: e.currentTarget,
-                  onComplete: () => enqueue({ type: 'REWARD/PICK_KEYS' }),
-                })
-              }}
-            >
-              <img className="rewardLootPickup__img" src={keySprite} alt="" draggable={false} />
-              <span className="rewardLootPickup__amount">{rewardKeys}</span>
-            </button>
-          ) : null}
-        </div>
-      ) : null}
-      {showCardOrRelicChoice && rewardKind === 'CARD' ? (
-        <CardOfferRow
-          offers={state.cardReward?.kind === 'CARD' ? state.cardReward.offered : []}
-          power={state.player.power}
-          firepowerMultiplier={state.player.firepowerMultiplier}
-          onPick={(cardId) => enqueue({ type: 'REWARD/PICK_CARD', cardId })}
+    <>
+      <div
+        className={
+          useCardRewardBackdrop
+            ? 'screenBackdrop screenBackdrop--cardReward'
+            : 'screenBackdrop screenBackdrop--combatReward'
+        }
+        aria-hidden
+      >
+        <img
+          className="screenBackdrop__img"
+          src={useCardRewardBackdrop ? plainCelesteBackdrop : plainGreyBackdropCombat}
+          alt=""
+          draggable={false}
         />
-      )
-        : showCardOrRelicChoice && rewardKind === 'RELIC' && state.cardReward?.kind === 'RELIC'
-          ? (
-              <RelicOfferRow
-                relicIds={state.cardReward.offered}
-                beltSlotIndex={state.player.relics.length}
-                onPick={(relicId) => enqueue({ type: 'REWARD/PICK_RELIC', relicId })}
-              />
-            )
-          : null}
-    </CenteredPanel>
+      </div>
+      <CenteredPanel
+        title={title}
+        panelClassName={showCardOrRelicChoice && rewardKind === 'CARD' ? 'cardOfferPanel' : undefined}
+      >
+        {rw != null && hasLoot && !lootComplete ? (
+          <div className="rewardLootRow">
+            {rewardGold > 0 && !rw.goldPickedUp ? (
+              <button
+                type="button"
+                className={['rewardLootPickup', travelingGold ? 'rewardLootPickup--traveling' : null]
+                  .filter(Boolean)
+                  .join(' ') || undefined}
+                disabled={travelingGold}
+                aria-label={`Pick up ${rewardGold} gold`}
+                onClick={(e) => {
+                  travelGoldToHud({
+                    sourceEl: e.currentTarget,
+                    amount: rewardGold,
+                    onComplete: () => enqueue({ type: 'REWARD/PICK_GOLD' }),
+                  })
+                }}
+              >
+                <img className="rewardLootPickup__img" src={goldBagSprite} alt="" draggable={false} />
+                <span className="rewardLootPickup__amount">{rewardGold}</span>
+              </button>
+            ) : null}
+            {rewardKeys > 0 && !rw.keysPickedUp ? (
+              <button
+                type="button"
+                className={['rewardLootPickup', travelingKey ? 'rewardLootPickup--traveling' : null]
+                  .filter(Boolean)
+                  .join(' ') || undefined}
+                disabled={travelingKey}
+                aria-label={`Pick up ${rewardKeys} key${rewardKeys === 1 ? '' : 's'}`}
+                onClick={(e) => {
+                  travelKeyToHud({
+                    sourceEl: e.currentTarget,
+                    onComplete: () => enqueue({ type: 'REWARD/PICK_KEYS' }),
+                  })
+                }}
+              >
+                <img className="rewardLootPickup__img" src={keySprite} alt="" draggable={false} />
+                <span className="rewardLootPickup__amount">{rewardKeys}</span>
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+        {showCardOrRelicChoice && rewardKind === 'CARD' ? (
+          <CardOfferRow
+            offers={state.cardReward?.kind === 'CARD' ? state.cardReward.offered : []}
+            power={state.player.power}
+            firepowerMultiplier={state.player.firepowerMultiplier}
+            onPick={(cardId) => enqueue({ type: 'REWARD/PICK_CARD', cardId })}
+          />
+        ) : showCardOrRelicChoice && rewardKind === 'RELIC' && state.cardReward?.kind === 'RELIC' ? (
+          <RelicOfferRow
+            relicIds={state.cardReward.offered}
+            beltSlotIndex={state.player.relics.length}
+            onPick={(relicId) => enqueue({ type: 'REWARD/PICK_RELIC', relicId })}
+          />
+        ) : null}
+      </CenteredPanel>
+    </>
   )
 }

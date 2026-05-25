@@ -1,4 +1,5 @@
 import type { GameState } from '../../core/types/state'
+import type { GameEvent } from '../../reducers/events'
 import { EnemyBoons } from '../../data/enemyBoons'
 
 /** Bunnies lost at the start of each player turn from Draining (sum over alive enemies). */
@@ -14,9 +15,28 @@ export function combatPlayerTurnStartBunnyDrainFromAlive(state: GameState): numb
   return total
 }
 
-export function applyDrainingAtPlayerTurnStart(state: GameState): GameState {
-  if (!state.combat) return state
+export function applyDrainingAtPlayerTurnStart(state: GameState): { state: GameState; events: GameEvent[] } {
+  if (!state.combat) return { state, events: [] }
+
+  const events: GameEvent[] = []
+  for (const id of state.combat.enemies.aliveIds) {
+    const e = state.combat.enemies.enemyById[id]
+    if (!e || e.hp <= 0) continue
+    for (const boonId of e.boons) {
+      const tmpl = EnemyBoons[boonId]
+      if (!tmpl) continue
+      for (const trig of tmpl.triggers ?? []) {
+        if (trig.on !== 'player_turn_start') continue
+        events.push({ type: 'EVT/BOON_TRIGGERED', enemyId: id, boonId, trigger: trig.id })
+      }
+    }
+  }
+
   const drain = combatPlayerTurnStartBunnyDrainFromAlive(state) + state.combat.playerTurnStartBunnyDrain
-  if (drain <= 0) return state
-  return { ...state, player: { ...state.player, bunnies: state.player.bunnies - drain } }
+  if (drain <= 0) return { state, events }
+
+  return {
+    state: { ...state, player: { ...state.player, bunnies: state.player.bunnies - drain } },
+    events,
+  }
 }

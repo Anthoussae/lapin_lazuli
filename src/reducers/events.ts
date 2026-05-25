@@ -1,4 +1,5 @@
 import type { CardInstanceId, EnemyInstanceId, RelicId } from '../core/types/ids'
+import type { EnemyBoonId } from '../data/enemyBoons'
 
 export type GameEvent =
   | { type: 'EVT/CARD_PLAYED'; cardInstanceId: CardInstanceId }
@@ -9,6 +10,7 @@ export type GameEvent =
   | { type: 'EVT/BUNNIES_RELEASING'; count: number }
   | { type: 'EVT/COMBAT_ENDED'; result: 'VICTORY' | 'DEFEAT' }
   | { type: 'EVT/RELIC_TRIGGERED'; relicId: RelicId; trigger: string }
+  | { type: 'EVT/BOON_TRIGGERED'; enemyId: EnemyInstanceId; boonId: EnemyBoonId; trigger: string }
 
 export function eventToString(e: GameEvent): string {
   switch (e.type) {
@@ -28,6 +30,8 @@ export function eventToString(e: GameEvent): string {
       return `COMBAT_ENDED ${e.result}`
     case 'EVT/RELIC_TRIGGERED':
       return `RELIC ${e.relicId} (${e.trigger})`
+    case 'EVT/BOON_TRIGGERED':
+      return `BOON ${e.enemyId} ${e.boonId} (${e.trigger})`
     default:
       return 'EVT'
   }

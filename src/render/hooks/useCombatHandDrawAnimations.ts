@@ -37,6 +37,7 @@ function cardTravelPayload(
     inkLabel: inst?.exhausted ? 'Exhausted' : ink !== null ? String(ink) : null,
     descriptionLines:
       inst && template ? cardDescriptionLinesForInstance(template, inst, power, firepowerMultiplier) : [],
+    socketedGemId: inst?.socketedGemId ?? null,
   }
 }
 

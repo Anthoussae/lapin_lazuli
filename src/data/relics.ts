@@ -1,5 +1,8 @@
 import type { RelicId } from '../core/types/ids'
 import type { Effect } from './effects'
+import type { TriggerFxDef } from './triggerFx'
+
+export type { TriggerFxDef, TriggerFxTargetDef, TriggerFxTargetKind } from './triggerFx'
 
 export type TriggerDef = Readonly<{
   id: string
@@ -13,7 +16,10 @@ export type TriggerDef = Readonly<{
     | 'enemy_attack'
     | 'enemy_defeated'
     | 'onRest'
+    | 'onSleep'
   effect: Effect
+  /** Declarative trigger animation; source pulse is implicit when this is set. */
+  triggerFx?: TriggerFxDef
 }>
 
 export type RelicTemplate = Readonly<{
@@ -39,64 +45,84 @@ export const Relics: Readonly<Record<RelicId, RelicTemplate>> = {
     text: "Gain 5 keys.",
     triggers: [{ id: 'KEYCHAIN_PICKUP', on: 'onPickup', effect: { kind: 'GAIN_KEYS', amount: 5 } }],
   },
-  INKPOT: {
-    id: 'INKPOT',
+  ETERNAL_INKSTONE: {
+    id: 'ETERNAL_INKSTONE',
     name: 'Eternal Inkstone',
     thumb: 'E',
     starter: true,
     unique: true,
-    triggers: [{ id: 'INKPOT_PICKUP', on: 'onPickup', effect: { kind: 'GAIN_MAX_INK', amount: 1 } }],
+    text: "+1 max ink.",
+    triggers: [{ id: 'ETERNAL_INKSTONE_PICKUP', on: 'onPickup', effect: { kind: 'GAIN_MAX_INK', amount: 1 } }],
   },
-  HEART: {
-    id: 'HEART',
+  HYDRANGEA: {
+    id: 'HYDRANGEA',
     name: 'Hydrangea',
     thumb: 'H',
     starter: true,
     unique: true,
-    triggers: [{ id: 'HEART_PICKUP', on: 'onPickup', effect: { kind: 'GAIN_MAX_HP', amount: 25 } }],
+    text: "+25 max health.",
+    triggers: [{ id: 'HYDRANGEA_PICKUP', on: 'onPickup', effect: { kind: 'GAIN_MAX_HP', amount: 25 } }],
   },
-  SCROLL: {
-    id: 'SCROLL',
+  ARCANE_SCROLL: {
+    id: 'ARCANE_SCROLL',
     name: 'Arcane Scroll',
     thumb: 'S',
     starter: true,
     unique: true,
-    triggers: [{ id: 'SCROLL_STARTING_HAND', on: 'draw_starting_hand', effect: { kind: 'DRAW_CARDS', amount: 2 } }],
+    text: "+2 cards in each opening hand.",
+    triggers: [
+      {
+        id: 'ARCANE_SCROLL_STARTING_HAND',
+        on: 'draw_starting_hand',
+        effect: { kind: 'DRAW_CARDS', amount: 2 },
+        triggerFx: {},
+      },
+    ],
   },
-  FLASK: {
-    id: 'FLASK',
+  MAGIC_STAFF: {
+    id: 'MAGIC_STAFF',
     name: 'Magic Staff',
     thumb: 'M',
     starter: true,
     unique: true,
-    triggers: [{ id: 'FLASK_TURN_START', on: 'turn_start', effect: { kind: 'ADD_BUNNIES', amount: 3 } }],
+    triggers: [
+      {
+        id: 'MAGIC_STAFF_TURN_START',
+        on: 'turn_start',
+        effect: { kind: 'ADD_BUNNIES', amount: 3 },
+        triggerFx: { targets: [{ kind: 'cauldron', role: 'buff' }] },
+      },
+    ],
   },
-  GOLD_COIN: {
-    id: 'GOLD_COIN',
+  GOLD_INGOT: {
+    id: 'GOLD_INGOT',
     name: 'Gold Ingot',
     thumb: 'G',
     starter: true,
     unique: true,
     notOfferableByShop: true,
-    triggers: [{ id: 'GOLD_PICKUP', on: 'onPickup', effect: { kind: 'GAIN_GOLD', amount: 150 } }],
+    text: "+150 gold.",
+    triggers: [{ id: 'GOLD_INGOT_PICKUP', on: 'onPickup', effect: { kind: 'GAIN_GOLD', amount: 150 } }],
   },
-  WAND: {
-    id: 'WAND',
+  MAGIC_WAND: {
+    id: 'MAGIC_WAND',
     name: 'Magic Wand',
     thumb: 'W',
     starter: true,
     unique: true,
-    triggers: [{ id: 'WAND_PICKUP', on: 'onPickup', effect: { kind: 'GAIN_POWER', amount: 1 } }],
+    text: "+1 bunny power.",
+    triggers: [{ id: 'MAGIC_WAND_PICKUP', on: 'onPickup', effect: { kind: 'GAIN_POWER', amount: 1 } }],
   },
-  BOOK: {
-    id: 'BOOK',
+  ENCHANTED_ENCYCLOPAEDIA: {
+    id: 'ENCHANTED_ENCYCLOPAEDIA',
     name: 'Enchanted Encyclopaedia',
     thumb: 'E',
     starter: true,
     unique: true,
+    text: "Upgrade your Multibunnies twice.",
     triggers: [
       {
-        id: 'BOOK_PICKUP',
+        id: 'ENCHANTED_ENCYCLOPAEDIA_PICKUP',
         on: 'onPickup',
         effect: { kind: 'UPGRADE_SPECIFIC_CARD', target: 'MULTIBUNNIES', numberOfTargets: 1, upgradeAmount: 2 },
       },
@@ -108,24 +134,33 @@ export const Relics: Readonly<Record<RelicId, RelicTemplate>> = {
     thumb: 'N',
     starter: true,
     unique: true,
-    triggers: [{ id: 'NAZAR_COMBAT_START', on: 'combat_start', effect: { kind: 'GAIN_LOCKED_SHIELD', amount: 7 } }],
+    triggers: [
+      {
+        id: 'NAZAR_COMBAT_START',
+        on: 'combat_start',
+        effect: { kind: 'GAIN_LOCKED_SHIELD', amount: 7 },
+        triggerFx: { targets: [{ kind: 'playerLockedShield', role: 'buff' }] },
+      },
+    ],
   },
-  LUCKY_CLOVER: {
-    id: 'LUCKY_CLOVER',
+  LUCKY_EGG: {
+    id: 'LUCKY_EGG',
     name: 'Lucky Egg',
     thumb: 'E',
     starter: true,
     unique: true,
-    triggers: [{ id: 'LUCKY_CLOVER_PICKUP', on: 'onPickup', effect: { kind: 'GAIN_LUCK', amount: 2 } }],
+    text: "+2 luck.",
+    triggers: [{ id: 'LUCKY_EGG_PICKUP', on: 'onPickup', effect: { kind: 'GAIN_LUCK', amount: 2 } }],
   },
-  GARNET_TIARA: {
-    id: 'GARNET_TIARA',
+  SHAKUJO: {
+    id: 'SHAKUJO',
     name: 'Shakujo',
     thumb: 'S',
+    text: "Double all fire damage.",
     starter: true,
     unique: true,
     triggers: [
-      { id: 'GARNET_TIARA_PICKUP', on: 'onPickup', effect: { kind: 'GAIN_FIREPOWER_MULTIPLIER', amount: 2 } },
+      { id: 'SHAKUJO_PICKUP', on: 'onPickup', effect: { kind: 'GAIN_FIREPOWER_MULTIPLIER', amount: 2 } },
     ],
   },
   BANANA: {
@@ -134,11 +169,12 @@ export const Relics: Readonly<Record<RelicId, RelicTemplate>> = {
     thumb: 'b',
     starter: false,
     unique: false,
+    text: "+5 max health.",
     triggers: [{ id: 'BANANA_PICKUP', on: 'onPickup', effect: { kind: 'GAIN_MAX_HP', amount: 5 } }],
   },
 }
 
-export const StarterRelicPool: ReadonlyArray<RelicId> = Object.keys(Relics)
+export const StarterRelicPool: ReadonlyArray<RelicId> = (Object.keys(Relics) as RelicId[])
   .filter((id) => Relics[id]?.starter)
   .sort()
 
@@ -158,4 +194,3 @@ export function offerableRelicIds(ownedTemplateIds: ReadonlySet<RelicId>): Relic
 export function shopOfferableRelicIds(ownedTemplateIds: ReadonlySet<RelicId>): RelicId[] {
   return offerableRelicIds(ownedTemplateIds).filter((id) => !Relics[id]?.notOfferableByShop)
 }
-

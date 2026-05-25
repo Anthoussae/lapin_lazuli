@@ -146,13 +146,13 @@ export function completeTurnStartDraw(state: GameState): { state: GameState; eve
   }
 
   let s = beginPlayerTurn(state)
-  const combatAfter = s.combat
-  if (!combatAfter) return { state: s, events: [] }
-  s = setPhase(
-    { ...s, combat: { ...combatAfter, pendingTurnStartDraw: false } },
+  const combatAfter = s.state.combat
+  if (!combatAfter) return { state: s.state, events: s.events }
+  const next = setPhase(
+    { ...s.state, combat: { ...combatAfter, pendingTurnStartDraw: false } },
     'COMBAT_PLAYER_READY',
   )
-  return { state: s, events: [] }
+  return { state: next, events: s.events }
 }
 
 function enemyTakeTurn(state: GameState): { state: GameState; events: GameEvent[] } {
@@ -211,13 +211,20 @@ function enemyTakeTurn(state: GameState): { state: GameState; events: GameEvent[
   return { state: s, events }
 }
 
-function beginPlayerTurn(state: GameState): GameState {
+function beginPlayerTurn(state: GameState): { state: GameState; events: GameEvent[] } {
   const combat0 = state.combat
-  if (!combat0 || livingEnemyCount(combat0) === 0) return state
+  if (!combat0 || livingEnemyCount(combat0) === 0) return { state, events: [] }
 
   // Turn 1 drain is applied in startCombat; later turns drain here.
-  let sDrain = combat0.turn > 1 ? applyDrainingAtPlayerTurnStart(state) : state
-  sDrain = applyTurnStartRelicTriggers(sDrain)
+  let sDrain = state
+  const boonEvents: GameEvent[] = []
+  if (combat0.turn > 1) {
+    const drained = applyDrainingAtPlayerTurnStart(state)
+    sDrain = drained.state
+    boonEvents.push(...drained.events)
+  }
+  const turnStart = applyTurnStartRelicTriggers(sDrain)
+  sDrain = turnStart.state
 
   // Refill energy and advance combat turn (first round is turn 1 at combat start; increments after each enemy phase).
   const nextCombat = { ...combat0, turn: combat0.turn + 1 }
@@ -235,6 +242,6 @@ function beginPlayerTurn(state: GameState): GameState {
   // Draw starting hand for the turn (base hand size + combat modifiers).
   s = shuffleDiscardIntoDrawIfNeeded(s)
   s = drawCards(s, combatRefreshDrawCount(s, 0))
-  return s
+  return { state: s, events: [...boonEvents, ...turnStart.events] }
 }
 

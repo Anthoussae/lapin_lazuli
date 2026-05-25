@@ -18,6 +18,7 @@ export function initialState(seed = 12345): GameState {
     phasePrev: null,
     assets: { status: 'UNLOADED', loaded: [], failed: [] },
     currentCombatPathId: null,
+    activeRoomPathId: null,
     player: {
       hp: 100,
       maxHp: 100,

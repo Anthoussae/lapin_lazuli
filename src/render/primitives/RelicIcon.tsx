@@ -18,6 +18,8 @@ export type RelicIconProps = Readonly<{
   /** Default relic art size everywhere; use `thumb` only when a smaller icon is intentional. */
   size?: RelicIconSize
   className?: string
+  artClassName?: string
+  artKey?: number
   buttonRef?: Ref<HTMLButtonElement>
 }>
 
@@ -34,6 +36,8 @@ export function RelicIcon(props: RelicIconProps) {
     traveling,
     size = 'default',
     className,
+    artClassName,
+    artKey,
     buttonRef,
   } = props
   const [imgFailed, setImgFailed] = useState(false)
@@ -60,8 +64,17 @@ export function RelicIcon(props: RelicIconProps) {
 
   const clearTooltip = () => setTip(null)
 
+  const imgClass = ['relicIcon__img', artClassName].filter(Boolean).join(' ')
+
   const visual = showImage ? (
-    <img className="relicIcon__img" src={imageSrc} alt={alt} draggable={false} onError={() => setImgFailed(true)} />
+    <img
+      key={artKey}
+      className={imgClass}
+      src={imageSrc}
+      alt={alt}
+      draggable={false}
+      onError={() => setImgFailed(true)}
+    />
   ) : (
     <span className="relicIcon__fallback" aria-hidden={alt !== ''}>
       {fallback}

@@ -1,14 +1,12 @@
 import type { GameState } from '../../core/types/state'
 import type { PlayerAction } from '../actions'
+import { canTakeCombatPlayerInput, isCombatResolvePending } from '../../systems/combat/combatInput'
 import { isRewardLootFullyCollected } from '../../systems/rewards/rewardLoot'
 
 export function isActionLegalNow(state: GameState, action: PlayerAction): boolean {
   if (state.phase === 'BOOT') return false
 
-  if (
-    (state.combat?.monsterDefeatPending || state.combat?.playerDefeatPending) &&
-    action.type.startsWith('COMBAT/')
-  ) {
+  if (action.type.startsWith('COMBAT/') && isCombatResolvePending(state)) {
     return false
   }
 
@@ -29,6 +27,7 @@ export function isActionLegalNow(state: GameState, action: PlayerAction): boolea
   }
 
   if (state.phase === 'COMBAT_PLAYER_READY') {
+    if (!canTakeCombatPlayerInput(state)) return false
     return (
       action.type === 'COMBAT/SELECT_TARGET' || action.type === 'COMBAT/PLAY_CARD' || action.type === 'COMBAT/END_TURN'
     )
@@ -53,7 +52,12 @@ export function isActionLegalNow(state: GameState, action: PlayerAction): boolea
   }
 
   if (state.phase === 'REST') {
-    return action.type === 'REST/CONTINUE'
+    const rest = state.restOutcome
+    if (action.type === 'REST/SLEEP' || action.type === 'REST/STUDY') {
+      return rest != null && !rest.slept && !rest.studied
+    }
+    if (action.type === 'REST/CONTINUE') return rest != null && (rest.slept || rest.studied)
+    return false
   }
 
   if (state.phase === 'TREASURE_ROOM') {

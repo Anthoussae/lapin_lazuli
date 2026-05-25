@@ -1,5 +1,6 @@
 import type { GameState } from '../../core/types/state'
 import type { RelicId } from '../../core/types/ids'
+import type { GameEvent } from '../../reducers/events'
 import { Relics } from '../../data/relics'
 import { applyRelicEffect } from './applyRelicEffects'
 
@@ -13,6 +14,7 @@ export type RelicTriggerKind =
   | 'enemy_attack'
   | 'enemy_defeated'
   | 'onRest'
+  | 'onSleep'
 
 export function applyRelicTriggers(state: GameState, relicId: RelicId, on: RelicTriggerKind): GameState {
   const tmpl = Relics[relicId]
@@ -24,11 +26,16 @@ export function applyRelicTriggers(state: GameState, relicId: RelicId, on: Relic
   return s
 }
 
-export function applyTurnStartRelicTriggers(state: GameState): GameState {
+export function applyTurnStartRelicTriggers(state: GameState): { state: GameState; events: GameEvent[] } {
   let s = state
+  const events: GameEvent[] = []
   for (const rInst of s.player.relics) {
-    s = applyRelicTriggers(s, rInst.templateId, 'turn_start')
+    const tmpl = Relics[rInst.templateId]
+    for (const trig of tmpl.triggers) {
+      if (trig.on !== 'turn_start') continue
+      s = applyRelicEffect(s, trig.effect)
+      events.push({ type: 'EVT/RELIC_TRIGGERED', relicId: rInst.templateId, trigger: trig.id })
+    }
   }
-  return s
+  return { state: s, events }
 }
-

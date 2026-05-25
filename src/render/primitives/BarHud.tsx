@@ -16,19 +16,21 @@ export function BarHud(
 
   return (
     <div className={rootClass} aria-label="Health and shield">
-      <BarDisplay
-        label="Health:"
-        current={displayHp}
-        max={maxHp}
-        giltRim
-        durationMs={inCombat ? tickMs : undefined}
-      />
-      {inCombat ? (
-        <div className="barHud__shieldIcons" aria-hidden>
-          <ShieldIconDisplay variant="shield" value={shield} durationMs={tickMs} />
-          <ShieldIconDisplay variant="lockedShield" value={lockedShield} durationMs={tickMs} />
-        </div>
-      ) : null}
+      <div className="barHud__barAnchor">
+        <BarDisplay
+          label="Health:"
+          current={displayHp}
+          max={maxHp}
+          giltRim
+          durationMs={inCombat ? tickMs : undefined}
+        />
+        {inCombat ? (
+          <div className="barHud__shieldIcons barHud__shieldIcons--playerEnd" aria-hidden>
+            <ShieldIconDisplay variant="lockedShield" value={lockedShield} durationMs={tickMs} />
+            <ShieldIconDisplay variant="shield" value={shield} durationMs={tickMs} />
+          </div>
+        ) : null}
+      </div>
     </div>
   )
 }

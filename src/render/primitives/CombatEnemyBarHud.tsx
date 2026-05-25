@@ -23,16 +23,18 @@ export function CombatEnemyBarHud(props: CombatEnemyBarHudProps) {
       className="barHud barHud--combat combatMonsterBarHud"
       aria-label="Enemy health and shield"
     >
-      <BarDisplay
-        label="Health:"
-        current={displayHp}
-        max={maxHp}
-        giltRim
-        durationMs={tickMs}
-      />
-      <div className="barHud__shieldIcons" aria-hidden>
-        <ShieldIconDisplay variant="shield" value={shield} durationMs={tickMs} />
-        <ShieldIconDisplay variant="lockedShield" value={lockedShield} durationMs={tickMs} />
+      <div className="barHud__barAnchor">
+        <BarDisplay
+          label="Health:"
+          current={displayHp}
+          max={maxHp}
+          giltRim
+          durationMs={tickMs}
+        />
+        <div className="barHud__shieldIcons barHud__shieldIcons--monsterEnd" aria-hidden>
+          <ShieldIconDisplay variant="shield" value={shield} durationMs={tickMs} />
+          <ShieldIconDisplay variant="lockedShield" value={lockedShield} durationMs={tickMs} />
+        </div>
       </div>
     </div>
   )

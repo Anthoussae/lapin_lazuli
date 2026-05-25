@@ -1,5 +1,6 @@
 import type { RngState } from '../core/rng/rng'
 import { rngInt } from '../core/rng/rng'
+import type { TriggerFxDef } from './triggerFx'
 
 export type EnemyBoonId =
   | 'STRONG'
@@ -23,11 +24,22 @@ export const EnemyBoonIds: ReadonlyArray<EnemyBoonId> = [
   'DRAINING',
 ]
 
+export type BoonTriggerOn = 'player_turn_start'
+
+export type BoonTriggerDef = Readonly<{
+  id: string
+  on: BoonTriggerOn
+  /** Declarative trigger animation; source pulse on the enemy icon is implicit when this is set. */
+  triggerFx?: TriggerFxDef
+}>
+
 export type EnemyBoon = Readonly<{
   id: EnemyBoonId
   name: string
   /** Weighted frequency used when rolling boons. */
   frequency: number
+  /** Tooltip body text shown on hover. */
+  tooltipText: string
   /** Starting strength bonus applied at combat start. */
   strengthBonus?: number
   /** Multiplier applied to rolled max HP after dice (compounds with other boons). */
@@ -40,17 +52,87 @@ export type EnemyBoon = Readonly<{
   alchemistLeadIngots?: number
   /** Each point drains this many bunnies at the start of each **player** turn (alive enemies only; can go negative). */
   playerTurnStartBunnyDrain?: number
+  triggers?: ReadonlyArray<BoonTriggerDef>
 }>
 
 export const EnemyBoons: Readonly<Record<EnemyBoonId, EnemyBoon>> = {
-  STRONG: { id: 'STRONG', name: 'Strong', frequency: 5, strengthBonus: 1 },
-  MIGHTY: { id: 'MIGHTY', name: 'Mighty', frequency: 3, strengthBonus: 2 },
-  TANKY: { id: 'TANKY', name: 'Tanky', frequency: 5, hpMultiplier: 1.5 },
-  COLOSSAL: { id: 'COLOSSAL', name: 'Colossal', frequency: 3, hpMultiplier: 2 },
-  MEDDLING: { id: 'MEDDLING', name: 'Meddling', frequency: 3, handDrawPenalty: 1 },
-  INKDRINKING: { id: 'INKDRINKING', name: 'Ink-drinking', frequency: 1, maxInkPenalty: 1 },
-  ALCHEMIST: { id: 'ALCHEMIST', name: 'Alchemist', frequency: 2, alchemistLeadIngots: 1 },
-  DRAINING: { id: 'DRAINING', name: 'Draining', frequency: 3, playerTurnStartBunnyDrain: 5 },
+  STRONG: {
+    id: 'STRONG',
+    name: 'Strong',
+    frequency: 5,
+    strengthBonus: 1,
+    tooltipText: 'Deals more damage.',
+  },
+  MIGHTY: {
+    id: 'MIGHTY',
+    name: 'Mighty',
+    frequency: 3,
+    strengthBonus: 2,
+    tooltipText: 'Deals much more damage.',
+  },
+  TANKY: {
+    id: 'TANKY',
+    name: 'Tanky',
+    frequency: 5,
+    hpMultiplier: 1.5,
+    tooltipText: 'Has more health.',
+  },
+  COLOSSAL: {
+    id: 'COLOSSAL',
+    name: 'Colossal',
+    frequency: 3,
+    hpMultiplier: 2,
+    tooltipText: 'Has much more health.',
+  },
+  MEDDLING: {
+    id: 'MEDDLING',
+    name: 'Meddling',
+    frequency: 3,
+    handDrawPenalty: 1,
+    tooltipText: 'You draw fewer cards each hand.',
+    triggers: [
+      {
+        id: 'MEDDLING_PLAYER_TURN_START',
+        on: 'player_turn_start',
+        triggerFx: { targets: [{ kind: 'deck', role: 'debuff' }] },
+      },
+    ],
+  },
+  INKDRINKING: {
+    id: 'INKDRINKING',
+    name: 'Ink-drinking',
+    frequency: 1,
+    maxInkPenalty: 1,
+    tooltipText: 'Reduces your maximum ink.',
+    triggers: [
+      {
+        id: 'INKDRINKING_PLAYER_TURN_START',
+        on: 'player_turn_start',
+        triggerFx: { targets: [{ kind: 'inkJar', role: 'debuff' }] },
+      },
+    ],
+  },
+  ALCHEMIST: {
+    id: 'ALCHEMIST',
+    name: 'Alchemist',
+    frequency: 2,
+    alchemistLeadIngots: 1,
+    tooltipText: 'Shuffles Lead ingots into your draw pile at combat start.',
+  },
+  DRAINING: {
+    id: 'DRAINING',
+    name: 'Draining',
+    frequency: 3,
+    playerTurnStartBunnyDrain: 5,
+    tooltipText: 'Drains bunnies from your cauldron at the start of each of your turns.',
+    triggers: [
+      {
+        id: 'DRAINING_PLAYER_TURN_START',
+        on: 'player_turn_start',
+        triggerFx: { targets: [{ kind: 'cauldron', role: 'debuff' }] },
+      },
+    ],
+  },
 }
 
 export function enemyBoonStrengthBonus(boons: ReadonlyArray<EnemyBoonId>): number {

@@ -3,6 +3,7 @@ import type { GameState } from '../core/types/state'
 import type { GameAction, PlayerAction } from '../reducers/actions'
 import { BarHud } from './primitives/BarHud'
 import { CounterHud } from './primitives/CounterHud'
+import { RoomInfoHud } from './primitives/RoomInfoHud'
 import { RelicBelt } from './primitives/RelicBelt'
 import { DeckInspect } from './primitives/DeckInspect'
 import { CombatScreen } from './screens/CombatScreen'
@@ -27,6 +28,7 @@ import { ShopUnaffordableRejectProvider } from './ShopUnaffordableRejectContext'
 import { KeyTravelProvider } from './KeyTravelContext'
 import { RelicTravelProvider } from './RelicTravelContext'
 import { IrisTransitionProvider } from './IrisTransitionContext'
+import { TriggerFxProvider } from './TriggerFxContext'
 import './game.css'
 
 export function GameView(props: Readonly<{ state: GameState; dispatch: (a: GameAction) => void }>) {
@@ -46,6 +48,7 @@ export function GameView(props: Readonly<{ state: GameState; dispatch: (a: GameA
 
   return (
     <RelicTravelProvider>
+      <TriggerFxProvider state={state}>
       <IrisTransitionProvider>
       <BunnyReleaseProvider
         bunnyReleasePending={!!state.combat?.bunnyReleasePending}
@@ -64,13 +67,16 @@ export function GameView(props: Readonly<{ state: GameState; dispatch: (a: GameA
       <GoldTravelProvider>
       <ShopUnaffordableRejectProvider>
       {showHud ? (
-        <div className="gameHud" aria-label="Game HUD">
-          <div className="playerHudStack">
-            {!inCombat ? <BarHud state={state} inCombat={false} /> : null}
-            <CounterHud state={state} />
+        <>
+          <div className="gameHud" aria-label="Game HUD">
+            <div className="playerHudStack">
+              {!inCombat ? <BarHud state={state} inCombat={false} /> : null}
+              <CounterHud state={state} />
+            </div>
+            <RelicBelt state={state} />
           </div>
-          <RelicBelt state={state} />
-        </div>
+          <RoomInfoHud state={state} />
+        </>
       ) : null}
       {inCombat && state.combat && (
         <CombatScreen
@@ -100,6 +106,7 @@ export function GameView(props: Readonly<{ state: GameState; dispatch: (a: GameA
       </FireReleaseProvider>
       </BunnyReleaseProvider>
       </IrisTransitionProvider>
+      </TriggerFxProvider>
     </RelicTravelProvider>
   )
 }

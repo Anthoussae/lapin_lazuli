@@ -1,4 +1,5 @@
 import { useRef } from 'react'
+import { darkPurpleBackdrop } from '../assets/backdropImages'
 import { Cards } from '../../data/cards'
 import { Gems } from '../../data/gems'
 import { socketableDeckCards } from '../../systems/gems/socketing'
@@ -16,13 +17,21 @@ export function GemstoneCavernScreen(props: ScreenProps) {
   const { playCardSocketFlip, animatingCardInstanceId, isSocketFlipPlaying } = useCardSocketFlip()
   const cardSlotRefs = useRef(new Map<string, HTMLDivElement>())
 
+  const backdrop = (
+    <div className="screenBackdrop screenBackdrop--gemstoneCavern" aria-hidden>
+      <img className="screenBackdrop__img" src={darkPurpleBackdrop} alt="" draggable={false} />
+    </div>
+  )
+
   if (cavern?.socketing) {
     const gemId = cavern.socketing.gemId
     const gem = Gems[gemId]
     const selectedId = cavern.socketing.selectedCardInstanceId
     const canSocket = selectedId != null && !isSocketFlipPlaying
     return (
-      <CenteredPanel panelClassName="gemstoneSocketPanel">
+      <>
+        {backdrop}
+        <CenteredPanel panelClassName="gemstoneSocketPanel">
         <GemSocketPedestal gemId={gemId} gem={gem} />
         <div className="gemstoneSocketActions">
           <button
@@ -93,12 +102,15 @@ export function GemstoneCavernScreen(props: ScreenProps) {
             })}
           </div>
         </div>
-      </CenteredPanel>
+        </CenteredPanel>
+      </>
     )
   }
 
   return (
-    <CenteredPanel panelClassName="jewellersPanel">
+    <>
+      {backdrop}
+      <CenteredPanel panelClassName="jewellersPanel">
       <GemOfferRow
         gemIds={cavern?.offered ?? []}
         onPick={(gemId) => enqueue({ type: 'GEMSTONE_CAVERN/PICK_GEM', gemId })}
@@ -110,6 +122,7 @@ export function GemstoneCavernScreen(props: ScreenProps) {
       >
         Proceed
       </button>
-    </CenteredPanel>
+      </CenteredPanel>
+    </>
   )
 }

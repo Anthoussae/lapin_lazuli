@@ -6,6 +6,7 @@ import { applyAction } from './steps/applyAction'
 import { resolveEventQueue } from './steps/resolveEvents'
 import { deriveAnimationsFromEvents, tickAnimations } from './steps/animations'
 import { queueInputIntent } from './steps/input'
+import { pruneStaleCombatIntents } from '../systems/combat/combatInput'
 import { isActionLegalNow } from './steps/phaseGating'
 
 export function reduceGame(state: GameState, action: GameAction): GameState {
@@ -34,7 +35,7 @@ function processAction(state: GameState, action: GameAction): GameState {
   const s3 = deriveAnimationsFromEvents(s2, allEvents)
   const s4 = stampDebugEvents(s3, allEvents)
   const s5 = enterAnimatingPhaseIfBlocking(s4)
-  return s5
+  return pruneStaleCombatIntents(s5)
 }
 
 function flushQueuedIntents(state: GameState): GameState {
@@ -92,6 +93,8 @@ export function isPlayerAction(a: GameAction): a is PlayerAction {
     a.type === 'REWARD/PICK_RELIC' ||
     a.type === 'REWARD/PICK_GOLD' ||
     a.type === 'REWARD/PICK_KEYS' ||
+    a.type === 'REST/SLEEP' ||
+    a.type === 'REST/STUDY' ||
     a.type === 'REST/CONTINUE' ||
     a.type === 'TREASURE_ROOM/PICK_RELIC' ||
     a.type === 'SHOP/LEAVE' ||

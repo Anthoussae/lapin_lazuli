@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from 'react'
 import { flushSync } from 'react-dom'
-import type { CardId } from '../core/types/ids'
+import type { CardId, GemId } from '../core/types/ids'
 import { cardBackArt } from './assets/cardImages'
 import { cardDeckTravelEndpoints, cardDiscardTravelEndpoints, cardHandTravelEndpoints } from './cardLayout'
 import type { CardDescLine } from '../ui/describe'
@@ -22,6 +22,7 @@ export type CardTravelPayload = Readonly<{
   nameUpgraded?: boolean
   inkLabel: string | null
   descriptionLines: ReadonlyArray<CardDescLine>
+  socketedGemId?: GemId | null
 }>
 
 export type CardTravelToDeckRequest = Readonly<{
@@ -468,6 +469,7 @@ function CardTravelFlyer(props: Readonly<{
               nameUpgraded={flight.card.nameUpgraded}
               inkLabel={flight.card.inkLabel}
               descriptionLines={flight.card.descriptionLines}
+              socketedGemId={flight.card.socketedGemId ?? null}
               staticDisplay
             />
           </div>

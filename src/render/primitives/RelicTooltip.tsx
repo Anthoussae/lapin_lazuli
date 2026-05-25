@@ -1,3 +1,5 @@
+import { GameTooltipStack } from './GameTooltip'
+
 export type RelicTooltipProps = Readonly<{
   name: string
   effect: string
@@ -8,12 +10,11 @@ export type RelicTooltipProps = Readonly<{
 export function RelicTooltip(props: RelicTooltipProps) {
   const { name, effect, x, y } = props
   return (
-    <div className="relicTooltip" style={{ left: x, top: y }} role="tooltip">
-      <div className="relicTooltip__name">{name}</div>
-      <div className="relicTooltip__rule" aria-hidden="true">
-        ---
-      </div>
-      {effect ? <div className="relicTooltip__effect">{effect}</div> : null}
-    </div>
+    <GameTooltipStack
+      entries={[{ key: name, label: name, text: effect || undefined }]}
+      x={x}
+      y={y}
+      anchor="topCenter"
+    />
   )
 }

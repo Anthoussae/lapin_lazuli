@@ -3,6 +3,7 @@ import type { GameState } from '../../core/types/state'
 import { Cards } from '../../data/cards'
 import { useCardTravelOptional } from '../CardTravelContext'
 import { deckInspectSprite, discardInspectSprite } from '../assets/displayImages'
+import { useTriggerFxArtProps } from '../TriggerFxContext'
 import { GameCardView } from './GameCardView'
 import { InspectPileCardSlot } from './InspectPileCardSlot'
 import { InspectPileCloseButton } from './InspectPileCloseButton'
@@ -42,6 +43,7 @@ export function DeckInspect(props: Readonly<{ state: GameState; inCombat: boolea
   const deckPileCount = state.player.deck.drawPile.length
   const discardPileCount = state.player.deck.discardPile.length
   const cardTravel = useCardTravelOptional()
+  const deckFx = useTriggerFxArtProps({ kind: 'deck' })
 
   const closeInspectPanel = useCallback(() => {
     setDeckOpen(false)
@@ -70,7 +72,8 @@ export function DeckInspect(props: Readonly<{ state: GameState; inCombat: boolea
       ) : null}
       <OpaqueImageButton
         className={deckOpen ? 'inspectDeckBtn inspectDeckBtn--panelOpen' : 'inspectDeckBtn'}
-        imageClassName="inspectDeckBtn__img"
+        imageClassName={['inspectDeckBtn__img', deckFx.className].filter(Boolean).join(' ')}
+        imageKey={deckFx.key}
         imageRef={cardTravel?.deckInspectImageRef}
         src={deckInspectSprite}
         alt="Inspect deck"
