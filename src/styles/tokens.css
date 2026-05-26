@@ -60,6 +60,7 @@
 
   --color-button: #750fb4;
   --color-button-hover: #b654f3;
+  --color-button-active: color-mix(in srgb, var(--color-button) 72%, black);
   --color-button-text: #ffffff;
   --font-button-size: 28px;
   --font-combat-end-turn-button-size: calc(var(--font-button-size) * 0.7);
@@ -191,16 +192,388 @@
 
   --title-gradient: linear-gradient(180deg, var(--color-title-start), var(--color-title-end));
   --title-main-menu-tallscroll-opacity: 1;
+  /* Main menu — playerPlaceholder1.png (fixed, left side; anchor = center). */
+  --main-menu-player-size: min(320px, 32vw);
+  --main-menu-player-x: 16%;
+  --main-menu-player-y: 52%;
+  --main-menu-player-rotate: -4deg;
+  /* Sway: peak tilt each side from rest (max 30deg); duration = full left↔right cycle. */
+  --main-menu-player-sway-deg: 10deg;
+  --main-menu-player-sway-duration: 5.8s;
   --title-screen-backdrop-opacity: 0.3;
   --starter-relic-screen-backdrop-opacity: 0.7;
   --path-select-screen-backdrop-opacity: 0.4;
   --combat-screen-backdrop-opacity: 1;
   --combat-reward-screen-backdrop-opacity: 0.5  ;
   --card-reward-screen-backdrop-opacity: 0.3;
+  /* Combat reward screen — title + leatherCarpet.png (fixed, out of flow). */
+  --combat-reward-title-font-size: var(--font-size-title-screen);
+  --combat-reward-title-offset-x: 0px;
+  --combat-reward-title-offset-y: -140px;
+  --combat-reward-leather-carpet-x: 50%;
+  --combat-reward-leather-carpet-y: 54%;
+  --combat-reward-leather-carpet-size: min(540px, 68vw);
+  --combat-reward-leather-carpet-tone: 0.7;
   --gemstone-cavern-screen-backdrop-opacity: 0.9;
   --rest-screen-backdrop-opacity: 1;
   --treasure-room-screen-backdrop-opacity: 0.7;
   --shop-screen-backdrop-opacity: 0.7;
+  --font-of-lethe-screen-backdrop-opacity: 0.7;
+  --collector-screen-backdrop-opacity: 0.3;
+  --printer-screen-backdrop-opacity: 0.35;
+
+  /* Printer — printer.png (fixed, out of flow). */
+  --printer-art-x: 72%;
+  --printer-art-y: 50%;
+  --printer-art-size: min(580px, 42vw);
+  --printer-art-z-index: 2;
+  /* Printer — speechBubbleRight.png (fixed, out of flow). */
+  --printer-speech-bubble-x: 49%;
+  --printer-speech-bubble-y: 30%;
+  --printer-speech-bubble-size: min(400px, 44vw);
+  --printer-speech-bubble-z-index: 3;
+  /* Printer — dialogue (in speech bubble). */
+  --printer-dialogue-x: 49%;
+  --printer-dialogue-y: 26%;
+  --printer-dialogue-z-index: 4;
+  --printer-dialogue-max-width: min(240px, 28vw);
+  --printer-dialogue-font-family: var(--font-main);
+  --printer-dialogue-font-size: 23px;
+  --printer-dialogue-font-weight: 600;
+  --printer-dialogue-line-height: 1.35;
+  --printer-dialogue-color: #1a2e12;
+  --printer-ui-z-index: 51;
+  --printer-title-x: 75%;
+  --printer-title-y: 10%;
+  --printer-title-font-size: var(--font-size-title-screen);
+  --printer-title-color: #1d3e13;
+  --printer-foil-btn-x: 17%;
+  --printer-foil-btn-y: 55%;
+  --printer-proceed-btn-x: 45.5%;
+  --printer-proceed-btn-y: 55%;
+  --printer-duplicate-btn-x: 32%;
+  --printer-duplicate-btn-y: 55%;
+  --printer-duplicate-btn-bg: #4e2e03;
+  --printer-duplicate-btn-bg-hover: #bf8437;
+  --printer-duplicate-btn-bg-active: #2e1a00;
+  --printer-duplicate-btn-border: #341d00;
+  --printer-duplicate-btn-color: #ffe2ab;
+
+  --printer-foil-btn-bg: linear-gradient(
+    105deg,
+    #ffd6e8 0%,
+    #ffe8cc 18%,
+    #fff9c4 36%,
+    #d4f4dd 54%,
+    #cce5ff 72%,
+    #e8d4ff 100%
+  );
+  --printer-foil-btn-bg-hover: linear-gradient(
+    105deg,
+    #ffc8e0 0%,
+    #ffddb8 18%,
+    #fff28a 36%,
+    #b8ecc8 54%,
+    #b8daff 72%,
+    #dcc8ff 100%
+  );
+  --printer-foil-btn-bg-active: linear-gradient(
+    105deg,
+    #f0b8d0 0%,
+    #f0c898 18%,
+    #f0e070 36%,
+    #a0dcb0 54%,
+    #a0c0e8 72%,
+    #c8b0f0 100%
+  );
+  --printer-foil-btn-border: rgba(255, 255, 255, 0.9);
+  --printer-foil-btn-color: #2a3340;
+  --printer-foil-btn-text-shadow: 0 1px 0 rgba(255, 255, 255, 0.7);
+  --printer-foil-btn-shadow: 0 2px 14px rgba(110, 95, 150, 0.3);
+  --printer-foil-btn-shadow-hover: 0 4px 18px rgba(110, 95, 150, 0.38);
+  --printer-foil-btn-glow-pink: rgba(255, 182, 213, 0.7);
+  --printer-foil-btn-glow-pink-strong: rgba(255, 182, 213, 0.95);
+  --printer-foil-btn-glow-mint: rgba(167, 243, 208, 0.55);
+  --printer-foil-btn-glow-mint-strong: rgba(167, 243, 208, 0.8);
+  --printer-foil-btn-glow-sky: rgba(186, 230, 253, 0.55);
+  --printer-foil-btn-glow-sky-strong: rgba(186, 230, 253, 0.85);
+  --printer-foil-btn-glow-lavender: rgba(216, 180, 254, 0.5);
+  --printer-foil-btn-glow-lavender-strong: rgba(216, 180, 254, 0.78);
+  --printer-foil-btn-glow-gold: rgba(253, 230, 138, 0.4);
+  --printer-foil-btn-glow-gold-strong: rgba(253, 230, 138, 0.65);
+  --printer-foil-btn-glow:
+    var(--printer-foil-btn-shadow),
+    0 0 10px var(--printer-foil-btn-glow-pink),
+    0 0 18px var(--printer-foil-btn-glow-sky),
+    0 0 26px var(--printer-foil-btn-glow-lavender),
+    0 0 34px var(--printer-foil-btn-glow-mint);
+  --printer-foil-btn-glow-strong:
+    var(--printer-foil-btn-shadow-hover),
+    0 0 14px var(--printer-foil-btn-glow-pink-strong),
+    0 0 24px var(--printer-foil-btn-glow-sky-strong),
+    0 0 36px var(--printer-foil-btn-glow-lavender-strong),
+    0 0 48px var(--printer-foil-btn-glow-mint-strong),
+    0 0 56px var(--printer-foil-btn-glow-gold-strong);
+  --printer-foil-btn-glow-hover:
+    var(--printer-foil-btn-shadow-hover),
+    0 0 16px var(--printer-foil-btn-glow-pink-strong),
+    0 0 28px var(--printer-foil-btn-glow-sky-strong),
+    0 0 40px var(--printer-foil-btn-glow-lavender-strong),
+    0 0 52px var(--printer-foil-btn-glow-mint-strong),
+    0 0 60px var(--printer-foil-btn-glow-gold-strong);
+  --duration-printer-foil-btn-glow-pulse: 1.5s;
+  --ease-printer-foil-btn-glow-pulse: ease-in-out;
+  
+  /* Printer — foil-card dialog (matches foil button palette). */
+  --printer-foil-dialog-overlay-z: 60;
+  --printer-foil-dialog-overlay-bg: rgba(29, 62, 19, 0.52);
+  --printer-foil-dialog-panel-width: min(860px, calc(100% - 40px));
+  --printer-foil-dialog-panel-height: min(520px, calc(100% - 40px));
+  --printer-foil-dialog-panel-border-radius: 14px;
+  --printer-foil-dialog-panel-padding: 18px;
+  --printer-foil-dialog-panel-gap: 12px;
+  --printer-foil-dialog-panel-rim-width: 2px;
+  --printer-foil-dialog-panel-border-color: rgba(255, 255, 255, 0.92);
+  --printer-foil-dialog-panel-bg: var(--printer-foil-btn-bg);
+  --printer-foil-dialog-panel-shadow: var(--printer-foil-btn-glow-strong);
+  --printer-foil-dialog-title-font-size: 22px;
+  --printer-foil-dialog-title-color: var(--printer-foil-btn-color);
+  --printer-foil-dialog-title-letter-spacing: 0.06em;
+  --printer-foil-dialog-title-text-shadow: var(--printer-foil-btn-text-shadow);
+  --printer-foil-dialog-sub-font-size: 14px;
+  --printer-foil-dialog-sub-color: var(--printer-foil-btn-color);
+  --printer-foil-dialog-sub-text-shadow: var(--printer-foil-btn-text-shadow);
+  --printer-foil-dialog-hand-border-radius: 12px;
+  --printer-foil-dialog-hand-rim-width: 1px;
+  --printer-foil-dialog-hand-rim-color: rgba(255, 255, 255, 0.75);
+  --printer-foil-dialog-hand-bg: rgba(255, 255, 255, 0.28);
+  --printer-foil-dialog-hand-padding-y: calc(var(--game-card-h) * 0.15);
+  --printer-foil-dialog-hand-padding-x: calc(var(--game-card-w) * 0.15);
+  --printer-foil-dialog-hand-gap: 16px;
+  --printer-foil-dialog-card-selected-outline-width: 3px;
+  --printer-foil-dialog-card-selected-outline-color: #470469;
+  --printer-foil-dialog-card-selected-glow:
+    0 0 8px var(--printer-foil-btn-glow-pink-strong),
+    0 0 14px var(--printer-foil-btn-glow-sky-strong),
+    0 0 22px var(--printer-foil-btn-glow-lavender-strong),
+    0 0 30px var(--printer-foil-btn-glow-mint-strong),
+    0 0 38px var(--printer-foil-btn-glow-gold-strong);
+  --printer-foil-dialog-card-selected-glow-strong:
+    0 0 12px var(--printer-foil-btn-glow-pink-strong),
+    0 0 22px var(--printer-foil-btn-glow-sky-strong),
+    0 0 34px var(--printer-foil-btn-glow-lavender-strong),
+    0 0 46px var(--printer-foil-btn-glow-mint-strong),
+    0 0 56px var(--printer-foil-btn-glow-gold-strong);
+  --duration-printer-foil-dialog-card-glow-pulse: 1.5s;
+  --ease-printer-foil-dialog-card-glow-pulse: ease-in-out;
+  --printer-foil-dialog-actions-gap: 10px;
+  --printer-foil-dialog-submit-border: 1px solid var(--printer-foil-btn-border);
+  --printer-foil-dialog-submit-bg: var(--printer-foil-btn-bg);
+  --printer-foil-dialog-submit-bg-hover: var(--printer-foil-btn-bg-hover);
+  --printer-foil-dialog-submit-bg-active: var(--printer-foil-btn-bg-active);
+  --printer-foil-dialog-submit-color: var(--printer-foil-btn-color);
+  --printer-foil-dialog-submit-text-shadow: var(--printer-foil-btn-text-shadow);
+  --printer-foil-dialog-submit-disabled-opacity: 0.45;
+  --printer-foil-dialog-submit-padding: 8px 14px;
+  --printer-foil-dialog-submit-border-radius: 10px;
+  --printer-foil-dialog-submit-font-size: 15px;
+  --printer-foil-dialog-submit-font-weight: 800;
+
+  /* Printer — duplicate-card dialog (matches duplicate button palette). */
+  --printer-duplicate-dialog-overlay-z: 60;
+  --printer-duplicate-dialog-overlay-bg: rgba(46, 26, 0, 0.55);
+  --printer-duplicate-dialog-panel-width: min(860px, calc(100% - 40px));
+  --printer-duplicate-dialog-panel-height: min(520px, calc(100% - 40px));
+  --printer-duplicate-dialog-panel-border-radius: 14px;
+  --printer-duplicate-dialog-panel-padding: 18px;
+  --printer-duplicate-dialog-panel-gap: 12px;
+  --printer-duplicate-dialog-panel-rim-width: 2px;
+  --printer-duplicate-dialog-panel-border-color: var(--printer-duplicate-btn-border);
+  --printer-duplicate-dialog-panel-bg: var(--printer-duplicate-btn-bg);
+  --printer-duplicate-dialog-panel-shadow: 0 4px 22px rgba(52, 29, 0, 0.45);
+  --printer-duplicate-dialog-title-font-size: 22px;
+  --printer-duplicate-dialog-title-color: var(--printer-duplicate-btn-color);
+  --printer-duplicate-dialog-title-letter-spacing: 0.06em;
+  --printer-duplicate-dialog-title-text-shadow: none;
+  --printer-duplicate-dialog-sub-font-size: 14px;
+  --printer-duplicate-dialog-sub-color: var(--printer-duplicate-btn-color);
+  --printer-duplicate-dialog-hand-border-radius: 12px;
+  --printer-duplicate-dialog-hand-rim-width: 1px;
+  --printer-duplicate-dialog-hand-rim-color: rgba(255, 226, 171, 0.45);
+  --printer-duplicate-dialog-hand-bg: rgba(0, 0, 0, 0.18);
+  --printer-duplicate-dialog-hand-padding-y: calc(var(--game-card-h) * 0.15);
+  --printer-duplicate-dialog-hand-padding-x: calc(var(--game-card-w) * 0.15);
+  --printer-duplicate-dialog-hand-gap: 16px;
+  --printer-duplicate-dialog-card-selected-outline-width: 3px;
+  --printer-duplicate-dialog-card-selected-outline-color: var(--printer-duplicate-btn-color);
+  --printer-duplicate-dialog-card-selected-glow: 0 0 12px rgba(255, 226, 171, 0.55);
+  --printer-duplicate-dialog-actions-gap: 10px;
+  --printer-duplicate-dialog-submit-rim-width: 3px;
+  --printer-duplicate-dialog-submit-border-color: var(--printer-duplicate-btn-color);
+  --printer-duplicate-dialog-submit-bg: var(--printer-duplicate-btn-bg);
+  --printer-duplicate-dialog-submit-bg-hover: var(--printer-duplicate-btn-bg-hover);
+  --printer-duplicate-dialog-submit-bg-active: var(--printer-duplicate-btn-bg-active);
+  --printer-duplicate-dialog-submit-color: var(--printer-duplicate-btn-color);
+  --printer-duplicate-dialog-submit-disabled-opacity: 0.45;
+  --printer-duplicate-dialog-submit-padding: 8px 14px;
+  --printer-duplicate-dialog-submit-border-radius: 10px;
+  --printer-duplicate-dialog-submit-font-size: 15px;
+  --printer-duplicate-dialog-submit-font-weight: 800;
+
+  /* Font of Lethe — fontOfLetheFull.png (fixed, out of flow). */
+  --font-of-lethe-art-x: 50%;
+  --font-of-lethe-art-y: 65%;
+  --font-of-lethe-art-size: min(580px, 62vw);
+  /* Font of Lethe — fontOfLetheEmpty.png tone control (brightness). */
+  --font-of-lethe-empty-tone: 0.7;
+  /* Font of Lethe — forget FX (deck glow + consume burst timing). */
+  --duration-font-of-lethe-forget-deck-glow: 460ms;
+  --duration-font-of-lethe-forget-consume-delay: 40ms;
+  --font-of-lethe-forget-deck-glow-halo: rgba(232, 224, 255, 0.9);
+  --font-of-lethe-forget-deck-glow-core: rgba(201, 189, 232, 0.85);
+  --font-of-lethe-forget-deck-glow-brightness: 1.35;
+  /* Font of Lethe — forget button poof (card-consume FX at a fixed anchor). */
+  --font-of-lethe-forget-poof-x: 50;
+  --font-of-lethe-forget-poof-y: 62;
+  --font-of-lethe-forget-poof-sprite-opacity: 0.92;
+  --font-of-lethe-forget-poof-puff-height-tiny: 30px;
+  --font-of-lethe-forget-poof-puff-height-poof: 56px;
+  --font-of-lethe-forget-poof-puff-height-big: 74px;
+  --font-of-lethe-forget-poof-aftermath-w: min(240px, 30vw);
+  --font-of-lethe-forget-poof-aftermath-h: calc(var(--font-of-lethe-forget-poof-aftermath-w) * 1.36);
+  --duration-font-of-lethe-forget-poof-puff-fade: 360ms;
+  --duration-font-of-lethe-forget-poof-aftermath-fade: 460ms;
+  --font-of-lethe-ui-z-index: 51;
+  --font-of-lethe-title-x: 50%;
+  --font-of-lethe-title-y: 18%;
+  --font-of-lethe-title-font-size: var(--font-size-title-screen);
+  --font-of-lethe-title-color: #e8e0ff;
+  --font-of-lethe-subtitle-x: 50%;
+  --font-of-lethe-subtitle-y: 24%;
+  --font-of-lethe-subtitle-font-size: 22px;
+  --font-of-lethe-subtitle-color: #c9bde8;
+  --font-of-lethe-proceed-btn-x: 90%;
+  --font-of-lethe-proceed-btn-y: 88%;
+  --font-of-lethe-proceed-nudge-glow-halo: rgba(201, 189, 232, 0.85);
+  --font-of-lethe-proceed-nudge-glow-halo-strong: rgba(232, 224, 255, 0.95);
+  --font-of-lethe-proceed-nudge-glow-core: color-mix(in srgb, var(--color-button) 45%, transparent);
+  --font-of-lethe-proceed-nudge-glow-core-strong: color-mix(in srgb, var(--color-button-hover) 65%, transparent);
+  --font-of-lethe-proceed-nudge-glow:
+    0 0 10px var(--font-of-lethe-proceed-nudge-glow-halo),
+    0 0 22px var(--font-of-lethe-proceed-nudge-glow-core);
+  --font-of-lethe-proceed-nudge-glow-strong:
+    0 0 14px var(--font-of-lethe-proceed-nudge-glow-halo-strong),
+    0 0 32px var(--font-of-lethe-proceed-nudge-glow-core-strong);
+  --font-of-lethe-proceed-nudge-pulse-duration: 1.6s;
+  --font-of-lethe-art-btn-z-index: 2;
+  --font-of-lethe-art-hover-brightness: 1.2;
+  --font-of-lethe-art-hover-duration: 0.2s;
+  /* Collector — plainYellowBackdrop.png. */
+  /* Collector — collector.png (fixed, out of flow). */
+  --collector-art-x: 68%;
+  --collector-art-y: 52%;
+  --collector-art-size: min(520px, 58vw);
+  --collector-art-z-index: 2;
+  /* Collector — speechBubbleRight.png (fixed, out of flow). */
+  --collector-speech-bubble-x: 39%;
+  --collector-speech-bubble-y: 30%;
+  --collector-speech-bubble-size: min(400px, 44vw);
+  --collector-speech-bubble-z-index: 3;
+  /* Collector — dialogue (independent from title). */
+  --collector-dialogue-x: 39%;
+  --collector-dialogue-y: 26%;
+  --collector-dialogue-z-index: 4;
+  --collector-dialogue-max-width: min(260px, 30vw);
+  --collector-dialogue-font-family: var(--font-main);
+  --collector-dialogue-font-size: 17px;
+  --collector-dialogue-font-weight: 600;
+  --collector-dialogue-line-height: 1.35;
+  --collector-dialogue-color: #2a2410;
+  --collector-dialogue-card-name-color: #470469;
+  --collector-dialogue-sell-price-color: #9a3412;
+  --collector-ui-z-index: 51;
+  --collector-title-x: 68%;
+  --collector-title-y: 93%;
+  --collector-title-font-size: 30px;
+  --collector-title-color: #470469;
+  --collector-proceed-btn-x: 90%;
+  --collector-proceed-btn-y: 88%;
+  /* Collector — bottom action row (sell / accept bulk; same y as proceed). */
+  --collector-sell-btn-x: 23%;
+  --collector-sell-btn-y: var(--collector-proceed-btn-y);
+  --collector-sell-btn-bg: #b45309;
+  --collector-sell-btn-bg-hover: #ea9432;
+  --collector-sell-btn-bg-active: #92400e;
+  --collector-sell-btn-border: #f59e0b;
+  --collector-sell-btn-color: #fff8f0;
+  --collector-accept-bulk-btn-x: 40%;
+  --collector-accept-bulk-btn-y: var(--collector-proceed-btn-y);
+  --collector-accept-bulk-btn-bg: #166534;
+  --collector-accept-bulk-btn-bg-hover: #46be72;
+  --collector-accept-bulk-btn-bg-active: #14532d;
+  --collector-accept-bulk-btn-border: #22c55e;
+  --collector-accept-bulk-btn-color: #f0fdf4;
+  /* Offered card (pull-from-deck target + on-screen display; above Sell / Accept bulk). */
+  --collector-offered-card-x: 29%;
+  --collector-offered-card-y: 62%;
+  --collector-offered-card-scale: 1.3;
+  --collector-offered-card-z-index: 52;
+  /* Glow on the offered card (main display + deck inspect highlight). */
+  --collector-offered-card-glow-outline-width: 3px;
+  --collector-offered-card-glow-outline-color: #fbbf24;
+  --collector-offered-card-glow-color: rgba(251, 191, 36, 0.95);
+  --collector-offered-card-glow-color-soft: rgba(251, 191, 36, 0.45);
+  --collector-offered-card-glow-spread: 14px;
+  --collector-offered-card-glow-spread-wide: 28px;
+  --collector-offered-card-glow-halo-inset: 10px;
+  --collector-offered-card-glow-opacity-min: 0.55;
+  --collector-offered-card-glow-opacity-peak: 1;
+  --duration-collector-offered-card-glow-pulse: 2.2s;
+  --ease-collector-offered-card-glow-pulse: ease-in-out;
+  /* Sell — card consume FX scale multiplier (1.5 = 50% larger than default). */
+  --collector-sell-consume-scale: 1.5;
+  /* Bulk cards — preview center before add-to-deck travel (two slots). */
+  --collector-bulk-card-0-x: 42%;
+  --collector-bulk-card-0-y: 50%;
+  --collector-bulk-card-1-x: 58%;
+  --collector-bulk-card-1-y: 50%;
+  --collector-bulk-card-scale: 1;
+  --collector-bulk-card-z-index: 52;
+  --duration-collector-bulk-card-preview-hold: 700ms;
+  /* Font of Lethe — forget-card dialog. */
+  --font-of-lethe-forget-overlay-z: 60;
+  --font-of-lethe-forget-overlay-bg: rgba(0, 0, 0, 0.62);
+  --font-of-lethe-forget-panel-width: min(860px, calc(100% - 40px));
+  --font-of-lethe-forget-panel-height: min(520px, calc(100% - 40px));
+  --font-of-lethe-forget-panel-border-radius: 14px;
+  --font-of-lethe-forget-panel-padding: 18px;
+  --font-of-lethe-forget-panel-gap: 12px;
+  --font-of-lethe-forget-panel-box-shadow: 0 16px 60px rgba(0, 0, 0, 0.6);
+  --font-of-lethe-forget-panel-rim-width: 2px;
+  --font-of-lethe-forget-panel-rim-color: #6b5a9e;
+  --font-of-lethe-forget-panel-bg: rgba(28, 18, 52, 0.96);
+  --font-of-lethe-forget-title-font-size: 22px;
+  --font-of-lethe-forget-title-color: #e8e0ff;
+  --font-of-lethe-forget-title-letter-spacing: 0.06em;
+  --font-of-lethe-forget-sub-font-size: 14px;
+  --font-of-lethe-forget-sub-color: rgba(201, 189, 232, 0.92);
+  --font-of-lethe-forget-hand-border-radius: 12px;
+  --font-of-lethe-forget-hand-rim-width: 1px;
+  --font-of-lethe-forget-hand-rim-color: #8a7ab8;
+  --font-of-lethe-forget-hand-bg: rgba(40, 28, 72, 0.45);
+  --font-of-lethe-forget-hand-padding-y: calc(var(--game-card-h) * 0.15);
+  --font-of-lethe-forget-hand-padding-x: calc(var(--game-card-w) * 0.15);
+  --font-of-lethe-forget-hand-gap: 16px;
+  --font-of-lethe-forget-actions-gap: 10px;
+  --font-of-lethe-forget-submit-border: 1px solid #5a4a88;
+  --font-of-lethe-forget-submit-bg: rgba(72, 52, 120, 0.9);
+  --font-of-lethe-forget-submit-color: #f0e8ff;
+  --font-of-lethe-forget-submit-hover-bg: rgba(96, 72, 150, 0.95);
+  --font-of-lethe-forget-submit-disabled-opacity: 0.45;
+  --font-of-lethe-forget-submit-padding: 8px 14px;
+  --font-of-lethe-forget-submit-border-radius: 10px;
+  --font-of-lethe-forget-submit-font-size: 15px;
+  --font-of-lethe-forget-submit-font-weight: 800;
 
   --relic-icon-height: calc(72px * 1.3);
   --relic-icon-fallback-font-size: calc(32px * 1.3);
@@ -279,11 +652,14 @@
   --shop-shelves-width: min(800px, 45vw);
   --shop-shelves-bg-nudge-x: 0px;
   --shop-shelves-bg-nudge-y: 30px;
+  --shop-shelves-bg-x-stretch: 1.2;
+  --shop-shelves-bg-y-stretch: 1.1;
   --shop-shelves-grid-nudge-x: 20px;
   --shop-shelves-grid-nudge-y: 17px;
-  --shop-shelves-grid-width: 73%;
+  --shop-shelves-grid-width: 84%;
   --shop-shelves-grid-height: 73%;
   --shop-shelves-grid-gap: 3.2%;
+  --shop-shelves-row-2-nudge-y: -15px;
   --shop-shelves-cell-pad-bottom: 6%;
   --shop-shelves-card-scale: 0.80;
   --shop-relic-opacity: 1;
@@ -368,6 +744,21 @@
   --game-card-hover-scale: 1.3;
   --game-card-hover-duration: 0.3s;
 
+  /* Foiled cards — pastel rainbow sheen on the front face. */
+  --card-foil-sheen-angle: 125deg;
+  --card-foil-sheen-opacity: 1;
+  --card-foil-sheen-blend: soft-light;
+  --card-foil-sheen-gradient: linear-gradient(
+    var(--card-foil-sheen-angle),
+    transparent 0%,
+    rgba(255, 182, 213, 0.42) 22%,
+    rgba(186, 230, 253, 0.4) 38%,
+    rgba(167, 243, 208, 0.38) 52%,
+    rgba(253, 230, 138, 0.36) 66%,
+    rgba(216, 180, 254, 0.4) 82%,
+    transparent 100%
+  );
+
   /* Card illustration — centered in .gameCard__art; override per card via layout map. */
   --card-illustration-size-modifier: 2;
   --card-illustration-default-w: 52%;
@@ -390,6 +781,7 @@
   --color-card-socketed-name: #fff;
   --color-card-socketed-name-upgraded: #a7f3d0;
   --color-card-socketed-ink: #fff;
+  --color-card-socketed-ink-modified: var(--color-card-socketed-text-amt-up);
   --color-card-socketed-text: #fff;
   --color-card-socketed-text-amt-up: #86efac;
   --color-card-socketed-text-amt-down: #fca5a5;
@@ -412,9 +804,26 @@
   --duration-card-discard-travel: var(--duration-card-draw-travel);
   --duration-card-discard-finish-buffer: var(--duration-card-draw-finish-buffer);
 
+  /*
+   * Pull from deck — card leaves deck icon face-down at an angle, straightens at target, flips face-up.
+   * (Reverse of add-to-deck pickup; used for combat draw and arbitrary target coordinates.)
+   */
+  --duration-pull-from-deck-travel: 158ms;
+  --duration-pull-from-deck-flip: 152ms;
+  --duration-pull-from-deck-finish-buffer: 10ms;
+  --ease-pull-from-deck-travel: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-pull-from-deck-flip: ease-in-out;
+  --pull-from-deck-perspective: 900px;
+  --pull-from-deck-flyer-z: 10001;
+  --pull-from-deck-origin-scale: 0.5;
+  --pull-from-deck-origin-rotate: 40deg;
+  --pull-from-deck-dest-scale: 1;
+  --pull-from-deck-dest-rotate: 0deg;
+
   /* Card typography: name (header), ink (top-right), text (description). */
   --font-card: var(--font-main);
   --color-card-ink: #3d2914;
+  --color-card-ink-modified: var(--color-card-text-amt-up);
   --font-card-ink-size: 19px;
   --font-card-ink-weight: bold;
   --font-card-ink-line-height: 1;
@@ -517,7 +926,14 @@
   --duration-path-door-open: 350ms;
 
   --inspect-deck-icon-height: 96px;
-  --inspect-discard-icon-height: calc(var(--inspect-deck-icon-height) * 1.1);
+
+  /* Combat discard-pile inspect control (PNG + hover count). */
+  --inspect-discard-icon-x: -9px;
+  --inspect-discard-icon-y: calc(12px + var(--inspect-deck-icon-height) - 10px);
+  --inspect-discard-icon-size: calc(var(--inspect-deck-icon-height) * 1.7);
+  --inspect-discard-icon-height: var(--inspect-discard-icon-size);
+  --inspect-discard-count-x: 48%;
+  --inspect-discard-count-y: 55%;
 
   /* Inspect deck / discard pile overlays — separate tokens (defaults match). */
   --inspect-deck-overlay-z: 20000;
@@ -702,6 +1118,7 @@
   --card-consume-puff-end-scale-mult: 1.15;
   --card-consume-aftermath-w: var(--game-card-w);
   --card-consume-aftermath-h: var(--game-card-h);
+  --combat-consume-aftermath-scale: 1.5;
   --card-consume-aftermath-delay: 50ms;
   --duration-card-consume-aftermath-fade: 580ms;
   --ease-card-consume-aftermath-fade: ease-out;

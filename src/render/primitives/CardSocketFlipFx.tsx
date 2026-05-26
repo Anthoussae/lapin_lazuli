@@ -76,6 +76,7 @@ export function CardSocketFlipFx(props: CardSocketFlipFxProps) {
             inkLabel={card.inkLabel}
             descriptionLines={card.descriptionLines}
             socketedGemId={card.socketedGemId ?? null}
+            foil={card.foil === true}
             staticDisplay
           />
         </div>

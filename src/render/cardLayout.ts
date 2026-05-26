@@ -64,14 +64,40 @@ export function cardHandTravelEndpoints(
   deckImg: HTMLImageElement,
   handSlotEl: HTMLElement,
 ): Readonly<{ from: { x: number; y: number }; to: { x: number; y: number } }> | null {
-  const fromViewport = deckInspectImageCenter(deckImg)
   const toViewport = centerOf(cardViewportRect(handSlotEl))
-  if (!fromViewport || !toViewport) return null
+  if (!toViewport) return null
+  return cardPullFromDeckEndpointsFromViewport(stageLayer, deckImg, toViewport)
+}
+
+/**
+ * Pull-from-deck flight endpoints: deck inspect PNG → target center (game-stage local).
+ * `target` is the landing center in the same coordinate space as `--travel-x` / `--travel-y`.
+ */
+export function cardPullFromDeckEndpoints(
+  stageLayer: HTMLElement,
+  deckImg: HTMLImageElement,
+  target: Readonly<{ x: number; y: number }>,
+): Readonly<{ from: { x: number; y: number }; to: { x: number; y: number } }> | null {
+  const fromViewport = deckInspectImageCenter(deckImg)
+  if (!fromViewport) return null
 
   return {
     from: viewportPointRelativeTo(stageLayer, fromViewport.x, fromViewport.y),
-    to: viewportPointRelativeTo(stageLayer, toViewport.x, toViewport.y),
+    to: target,
   }
+}
+
+/** Pull-from-deck endpoints when the target center is in viewport coordinates. */
+export function cardPullFromDeckEndpointsFromViewport(
+  stageLayer: HTMLElement,
+  deckImg: HTMLImageElement,
+  targetViewport: Readonly<{ x: number; y: number }>,
+): Readonly<{ from: { x: number; y: number }; to: { x: number; y: number } }> | null {
+  return cardPullFromDeckEndpoints(
+    stageLayer,
+    deckImg,
+    viewportPointRelativeTo(stageLayer, targetViewport.x, targetViewport.y),
+  )
 }
 
 /** Viewport center for the discard pile inspect PNG. */

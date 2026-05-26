@@ -6,12 +6,14 @@ import { Cards } from '../../data/cards'
 import { drawCards } from './zones'
 import { normalizeBunnies } from '../bunnies'
 import { boostFireDealDamage, cardHasFireDamageTags } from '../cards/firepower'
+import { boostShieldGain, cardHasAddShieldTag } from '../cards/shieldPower'
 import { upgradeSpecificCards } from '../cards/upgrades'
 import { damageEnemy } from './damageEnemy'
 
 /** When set, ADD_BUNNIES from played card effects gains +player.power per stack (not used for relic pipelines). */
 export type ApplyEffectsOptions = Readonly<{
   powerBoostsCardAddBunnies?: boolean
+  shieldPowerBoostsCardGainShield?: boolean
   firepowerBoostsCardDealDamage?: boolean
 }>
 
@@ -26,7 +28,9 @@ export function applyEffects(
 
   for (const fx of effects) {
     if (fx.kind === 'DRAW_CARDS') {
-      s = drawCards(s, fx.amount)
+      const drew = drawCards(s, fx.amount)
+      s = drew.state
+      events.push(...drew.events)
     } else if (fx.kind === 'ADD_BUNNIES') {
       const bonus = opts?.powerBoostsCardAddBunnies ? s.player.power : 0
       const amt = fx.amount + bonus
@@ -39,7 +43,15 @@ export function applyEffects(
     } else if (fx.kind === 'GAIN_SHIELD') {
       const target = fx.target ?? 'player'
       if (target === 'player') {
-        s = { ...s, player: { ...s.player, shield: s.player.shield + fx.amount } }
+        let amount = fx.amount
+        if (opts?.shieldPowerBoostsCardGainShield && ctx.playedCardInstanceId) {
+          const inst = s.player.deck.cardById[ctx.playedCardInstanceId]
+          const tmpl = inst ? Cards[inst.templateId] : null
+          if (tmpl && cardHasAddShieldTag(tmpl.tags)) {
+            amount = boostShieldGain(amount, s.player.shieldPower)
+          }
+        }
+        s = { ...s, player: { ...s.player, shield: s.player.shield + amount } }
       } else if (target === 'selectedEnemy' && ctx.selectedEnemyId && s.combat) {
         const id = ctx.selectedEnemyId
         const c = s.combat
@@ -93,6 +105,8 @@ export function applyEffects(
       s = { ...s, player: { ...s.player, keys: s.player.keys + fx.amount } }
     } else if (fx.kind === 'GAIN_POWER') {
       s = { ...s, player: { ...s.player, power: s.player.power + fx.amount } }
+    } else if (fx.kind === 'GAIN_SHIELD_POWER') {
+      s = { ...s, player: { ...s.player, shieldPower: s.player.shieldPower + fx.amount } }
     } else if (fx.kind === 'GAIN_INK') {
       // Ink maps to energy in MVP. Intentionally allowed to exceed max ink.
       s = { ...s, player: { ...s.player, energy: s.player.energy + fx.amount } }
@@ -111,5 +125,5 @@ export function applyEffects(
   return { state: s, events }
 }
 
-export { scaleCardEffects } from '../cards/upgrades'
+export { applyCardInstanceEffectModifiers, scaleCardEffects } from '../cards/upgrades'
 

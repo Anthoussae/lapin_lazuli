@@ -21,15 +21,12 @@ export type CardTemplate = Readonly<{
   retain?: boolean
   tags: ReadonlyArray<string>
   effects: ReadonlyArray<Effect>
-  /**
-   * When this card receives upgrade counters (Practice, relic upgrades, etc.), each applied
-   * upgrade amount is multiplied by this value. Defaults to 1 when omitted.
-   */
-  upgradeMultiplier?: number
   /** When true, upgrade effects and hand selection for upgrades skip this card. */
   unupgradeable?: boolean
   /** When true, this card cannot be chosen for gem socketing. */
   unsocketable?: boolean
+  /** When true, card art uses full-color potion styling (not silhouetted). */
+  potion?: boolean
   /** Applied when this card is acquired outside combat (rewards, shop, etc.). */
   pickupEffects?: ReadonlyArray<Effect>
 }>
@@ -39,11 +36,11 @@ export const Cards: Readonly<Record<CardId, CardTemplate>> = {
     id: 'BUNNYMANCY',
     name: 'Bunnymancy',
     starter: true,
-    starterDeckNumber: 6,
+    starterDeckNumber: 5,
     poolFrequency: 5,
     cost: 1,
     tags: ['addBunnies'],
-    effects: [{ kind: 'ADD_BUNNIES', amount: 6 }],
+    effects: [{ kind: 'ADD_BUNNIES', amount: 6, upgradeValue: 1 }],
   },
   MULTIBUNNIES: {
     id: 'MULTIBUNNIES',
@@ -53,7 +50,7 @@ export const Cards: Readonly<Record<CardId, CardTemplate>> = {
     poolFrequency: 1,
     cost: 2,
     tags: ['multBunnies'],
-    effects: [{ kind: 'MULTIPLY_BUNNIES', amount: 2 }],
+    effects: [{ kind: 'MULTIPLY_BUNNIES', amount: 2, upgradeValue: 1 }],
   },
   PRACTICE: {
     id: 'PRACTICE',
@@ -65,7 +62,10 @@ export const Cards: Readonly<Record<CardId, CardTemplate>> = {
     exhaust: true,
     retain: true,
     tags: ['upgrade'],
-    effects: [{ kind: 'UPGRADE_SELECTED_CARD', numberOfTargets: 1, upgradeAmount: 1 }, { kind: 'DESTINY' }],
+    effects: [
+      { kind: 'UPGRADE_SELECTED_CARD', numberOfTargets: 1, upgradeAmount: 1, upgradeValue: 1 },
+      { kind: 'DESTINY', upgradeValue: 1 },
+    ],
   },
   PONDER: {
     id: 'PONDER',
@@ -74,7 +74,7 @@ export const Cards: Readonly<Record<CardId, CardTemplate>> = {
     poolFrequency: 4,
     cost: 1,
     tags: ['drawcards'],
-    effects: [{ kind: 'DRAW_CARDS', amount: 3 }],
+    effects: [{ kind: 'DRAW_CARDS', amount: 3, upgradeValue: 1 }],
   },
   DODGE: {
     id: 'DODGE',
@@ -83,8 +83,10 @@ export const Cards: Readonly<Record<CardId, CardTemplate>> = {
     poolFrequency: 2,
     cost: 1,
     tags: ['addShield', 'drawcards'],
-    effects: [{ kind: 'GAIN_SHIELD', amount: 2 }, { kind: 'DRAW_CARDS', amount: 1 }],
-    upgradeMultiplier: 0.7,
+    effects: [
+      { kind: 'GAIN_SHIELD', amount: 2, upgradeValue: 1 },
+      { kind: 'DRAW_CARDS', amount: 1, upgradeValue: 1 },
+    ],
   },
   WISE_BUNNIES: {
     id: 'WISE_BUNNIES',
@@ -93,8 +95,10 @@ export const Cards: Readonly<Record<CardId, CardTemplate>> = {
     poolFrequency: 2,
     cost: 1,
     tags: ['drawcards', 'addBunnies'],
-    effects: [{ kind: 'ADD_BUNNIES', amount: 3 }, { kind: 'DRAW_CARDS', amount: 2 }],
-    upgradeMultiplier: 0.7,
+    effects: [
+      { kind: 'ADD_BUNNIES', amount: 3, upgradeValue: 1 },
+      { kind: 'DRAW_CARDS', amount: 2, upgradeValue: 1 },
+    ],
   },
   INKSWELL: {
     id: 'INKSWELL_RITUAL',
@@ -104,7 +108,7 @@ export const Cards: Readonly<Record<CardId, CardTemplate>> = {
     cost: 1,
     exhaust: true,
     tags: ['generateInk'],
-    effects: [{ kind: 'GAIN_INK', amount: 3 }],
+    effects: [{ kind: 'GAIN_INK', amount: 3, upgradeValue: 1 }],
   },
   CLOUDBUNNY: {
     id: 'CLOUDBUNNY',
@@ -112,8 +116,9 @@ export const Cards: Readonly<Record<CardId, CardTemplate>> = {
     starter: false,
     poolFrequency: 4,
     cost: 0,
+    exhaust: false,
     tags: ['addBunnies'],
-    effects: [{ kind: 'ADD_BUNNIES', amount: 1 }],
+    effects: [{ kind: 'ADD_BUNNIES', amount: 1, upgradeValue: 1 }],
   },
   HEALTH_POTION: {
     id: 'HEALTH_POTION',
@@ -121,9 +126,10 @@ export const Cards: Readonly<Record<CardId, CardTemplate>> = {
     starter: false,
     poolFrequency: 1,
     cost: 0,
+    potion: true,
     unsocketable: true,
     tags: ['heal', 'consume'],
-    effects: [{ kind: 'HEAL', amount: 10 }],
+    effects: [{ kind: 'HEAL', amount: 10, upgradeValue: 1 }],
   },
   LETHEAN_WATER: {
     id: 'LETHEAN_WATER',
@@ -131,18 +137,19 @@ export const Cards: Readonly<Record<CardId, CardTemplate>> = {
     starter: false,
     poolFrequency: 1,
     cost: 0,
+    potion: true,
     tags: ['consume'],
-    effects: [{ kind: 'CONSUME_SELECTED_CARD', numberOfTargets: 1 }],
+    effects: [{ kind: 'CONSUME_SELECTED_CARD', numberOfTargets: 1, upgradeValue: 1 }],
   },
   DEFEND: {
     id: 'DEFEND',
     name: 'Defend',
     starter: true,
-    starterDeckNumber: 3,
+    starterDeckNumber: 4,
     poolFrequency: 5,
     cost: 1,
     tags: ['addShield'],
-    effects: [{ kind: 'GAIN_SHIELD', amount: 8 }],
+    effects: [{ kind: 'GAIN_SHIELD', amount: 8, upgradeValue: 1 }],
   },
   SHIELD_POTION: {
     id: 'SHIELD_POTION',
@@ -150,10 +157,10 @@ export const Cards: Readonly<Record<CardId, CardTemplate>> = {
     starter: false,
     poolFrequency: 1,
     cost: 0,
+    potion: true,
     unsocketable: true,
     tags: ['addShield', 'consume'],
-    upgradeMultiplier: 10,
-    effects: [{ kind: 'GAIN_SHIELD', amount: 30 }],
+    effects: [{ kind: 'GAIN_SHIELD', amount: 30, upgradeValue: 1 }],
   },
   FIREBALL: {
     id: 'FIREBALL',
@@ -162,7 +169,7 @@ export const Cards: Readonly<Record<CardId, CardTemplate>> = {
     poolFrequency: 3,
     cost: 1,
     tags: ['damage', 'fire'],
-    effects: [{ kind: 'DEAL_DAMAGE', amount: 10 }],
+    effects: [{ kind: 'DEAL_DAMAGE', amount: 10, upgradeValue: 1 }],
   },
   FORTRESS: {
     id: 'FORTRESS',
@@ -171,8 +178,10 @@ export const Cards: Readonly<Record<CardId, CardTemplate>> = {
     poolFrequency: 3,
     cost: 0,
     tags: ['addShield', 'lockShield'],
-    effects: [{ kind: 'GAIN_SHIELD', amount: 4 }, { kind: 'LOCK_ALL_SHIELD' }],
-    upgradeMultiplier: 0.5,
+    effects: [
+      { kind: 'GAIN_SHIELD', amount: 4, upgradeValue: 1 },
+      { kind: 'LOCK_ALL_SHIELD' },
+    ],
   },
   FIREBALL_POTION: {
     id: 'FIREBALL_POTION',
@@ -180,10 +189,10 @@ export const Cards: Readonly<Record<CardId, CardTemplate>> = {
     starter: false,
     poolFrequency: 1,
     cost: 0,
+    potion: true,
     unsocketable: true,
     tags: ['damage', 'fire', 'consume'],
-    upgradeMultiplier: 5,
-    effects: [{ kind: 'DEAL_DAMAGE', amount: 30 }],
+    effects: [{ kind: 'DEAL_DAMAGE', amount: 30, upgradeValue: 1 }],
   },
   SQUID_POTION: {
     id: 'SQUID_POTION',
@@ -191,9 +200,10 @@ export const Cards: Readonly<Record<CardId, CardTemplate>> = {
     starter: false,
     poolFrequency: 1,
     cost: 0,
+    potion: true,
     unsocketable: true,
     tags: ['generateInk', 'consume'],
-    effects: [{ kind: 'GAIN_INK', amount: 2 }],
+    effects: [{ kind: 'GAIN_INK', amount: 2, upgradeValue: 1 }],
   },
   BUNNY_POTION: {
     id: 'BUNNY_POTION',
@@ -201,10 +211,10 @@ export const Cards: Readonly<Record<CardId, CardTemplate>> = {
     starter: false,
     poolFrequency: 1,
     cost: 0,
+    potion: true,
     unsocketable: true,
     tags: ['addBunnies', 'consume'],
-    upgradeMultiplier: 5,
-    effects: [{ kind: 'ADD_BUNNIES', amount: 15 }],
+    effects: [{ kind: 'ADD_BUNNIES', amount: 15, upgradeValue: 1 }],
   },
   WISDOM_POTION: {
     id: 'WISDOM_POTION',
@@ -212,9 +222,10 @@ export const Cards: Readonly<Record<CardId, CardTemplate>> = {
     starter: false,
     poolFrequency: 1,
     cost: 0,
+    potion: true,
     unsocketable: true,
     tags: ['upgrade', 'consume'],
-    effects: [{ kind: 'UPGRADE_SELECTED_CARD', numberOfTargets: 1, upgradeAmount: 1 }],
+    effects: [{ kind: 'UPGRADE_SELECTED_CARD', numberOfTargets: 1, upgradeAmount: 1, upgradeValue: 1 }],
   },
   /** Burden: bad card; `poolFrequency: 0` — never drafted; only granted by effects. */
   LEAD_INGOT: {
@@ -248,7 +259,7 @@ export const Cards: Readonly<Record<CardId, CardTemplate>> = {
     unupgradeable: true,
     unsocketable: true,
     tags: ['burden', 'unplayable', 'consume'],
-    effects: [{ kind: 'CONSUME_IF_IN_HAND_AT_TURN_END' }],
+    effects: [{ kind: 'CONSUME_IF_IN_HAND_AT_TURN_END', upgradeValue: 1 }],
   },
 }
 
@@ -261,7 +272,12 @@ export function cardTemplateById(templateId: CardId): CardTemplate | undefined {
 /** Potion cards use full-color illustrations; other cards use silhouetted art. */
 export function isPotionCardId(cardId: CardId | undefined): boolean {
   if (cardId == null) return false
-  return cardId.endsWith('_POTION') || cardId === 'LETHEAN_WATER'
+  return cardTemplateById(cardId)?.potion === true
+}
+
+export function isBurdenCardId(cardId: CardId | undefined): boolean {
+  if (cardId == null) return false
+  return cardTemplateById(cardId)?.tags.includes('burden') === true
 }
 
 export type StarterDeckBuild = Readonly<{

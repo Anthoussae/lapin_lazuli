@@ -1,7 +1,8 @@
 import type { GameState } from '../../core/types/state'
 import type { PlayerAction } from '../../reducers/actions'
+import { hasPendingBurdenAdds } from './burdenAdd'
 
-/** True while defeat FX, bunny release, or end-of-turn hand animations are in flight. */
+/** True while defeat FX, bunny release, burden FX, or end-of-turn hand animations are in flight. */
 export function isCombatResolvePending(state: GameState): boolean {
   const combat = state.combat
   if (!combat) return false
@@ -9,6 +10,7 @@ export function isCombatResolvePending(state: GameState): boolean {
     !!combat.monsterDefeatPending ||
     !!combat.playerDefeatPending ||
     combat.bunnyReleasePending ||
+    hasPendingBurdenAdds(state) ||
     combat.pendingTurnStartDraw
   )
 }

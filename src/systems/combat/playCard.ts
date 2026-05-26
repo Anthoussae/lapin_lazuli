@@ -6,16 +6,17 @@ import { Cards } from '../../data/cards'
 import {
   cardInstanceConsumes,
   cardInstanceExhausts,
-  cardInstancePlayEffects,
+  cardInstanceResolvedPlayEffects,
   cardInstanceUpgradesAfterCasting,
 } from '../cards/cardEffects'
 import { isCardUpgradeable, upgradeCardInstance } from '../cards/upgrades'
-import { applyEffects, scaleCardEffects } from './resolveEffects'
+import { applyEffects } from './resolveEffects'
 import { setPhase } from '../../reducers/reduceGame'
 import { Relics } from '../../data/relics'
 import { applyRelicEffect } from '../relics/applyRelicEffects'
 import { consumeCardFromDeck } from './zones'
-import { cardInstanceInkCost } from '../cards/inkCost'
+import { cardHasFireTag, cardInstanceInkCost } from '../cards/inkCost'
+import { consumeFreeFirstFireSpellIfFireCard } from '../relics/phoenixFeatherQuill'
 
 export function playCard(state: GameState, cardInstanceId: CardInstanceId): { state: GameState; events: GameEvent[] } {
   if (!state.combat) return { state, events: [] }
@@ -24,11 +25,12 @@ export function playCard(state: GameState, cardInstanceId: CardInstanceId): { st
   if (!state.player.deck.hand.includes(cardInstanceId)) return { state, events: [] }
   if (inst.exhausted) return { state, events: [] }
   const tmpl = Cards[inst.templateId]
-  const cost = cardInstanceInkCost(inst, tmpl)
+  const inkOpts = { freeFirstFireSpell: state.combat.freeFirstFireSpell }
+  const cost = cardInstanceInkCost(inst, tmpl, inkOpts)
   if (cost === null || state.player.energy < cost) return { state, events: [] }
   const selectedEnemyId: EnemyInstanceId | null = state.combat.targeting.selectedEnemyId
 
-  const scaled = scaleCardEffects(cardInstancePlayEffects(inst), inst.upgrades)
+  const scaled = cardInstanceResolvedPlayEffects(inst)
   const handSelectionEffect = scaled.find(
     (fx): fx is Extract<Effect, { kind: 'UPGRADE_SELECTED_CARD' | 'CONSUME_SELECTED_CARD' }> =>
       fx.kind === 'UPGRADE_SELECTED_CARD' || fx.kind === 'CONSUME_SELECTED_CARD',
@@ -88,9 +90,12 @@ export function playCard(state: GameState, cardInstanceId: CardInstanceId): { st
     }
   }
 
-  const s1: GameState = {
+  let s1: GameState = {
     ...s0b,
     player: { ...s0b.player, energy: s0b.player.energy - cost },
+  }
+  if (cardHasFireTag(tmpl.tags)) {
+    s1 = consumeFreeFirstFireSpellIfFireCard(s1, tmpl)
   }
 
   let events: GameEvent[] = [{ type: 'EVT/CARD_PLAYED', cardInstanceId }]
@@ -99,6 +104,7 @@ export function playCard(state: GameState, cardInstanceId: CardInstanceId): { st
   // Rule: cards resolve first, then go to discard.
   const outFx = applyEffects(s1, scaled, { selectedEnemyId, playedCardInstanceId: cardInstanceId }, {
     powerBoostsCardAddBunnies: true,
+    shieldPowerBoostsCardGainShield: true,
     firepowerBoostsCardDealDamage: true,
   })
   events = events.concat(outFx.events)

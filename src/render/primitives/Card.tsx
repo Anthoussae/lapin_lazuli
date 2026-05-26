@@ -19,6 +19,8 @@ export type CardProps = Readonly<{
   nameUpgraded?: boolean
   /** Top-right ink label (e.g. "2", "Exhausted"). Omit when not applicable. */
   inkLabel?: string | null
+  /** Green ink when cost differs from printed (e.g. relic discount). */
+  inkModified?: boolean
   descriptionLines?: ReadonlyArray<CardDescLine>
   /** Plain multiline card text (legacy / travel flyer). Ignored when descriptionLines is set. */
   description?: string
@@ -34,6 +36,8 @@ export type CardProps = Readonly<{
   staticDisplay?: boolean
   /** When set, selects gem-tinted front frame and renders the gem icon. */
   socketedGemId?: GemId | null
+  /** Printer foil — rainbow sheen and hover tooltip on the front face. */
+  foil?: boolean
 }>
 
 function plainDescription(description: string): ReactNode {
@@ -56,6 +60,7 @@ export function Card(props: CardProps) {
     name,
     nameUpgraded,
     inkLabel,
+    inkModified,
     descriptionLines,
     description,
     cardId,
@@ -67,6 +72,7 @@ export function Card(props: CardProps) {
     onClick,
     staticDisplay = false,
     socketedGemId = null,
+    foil = false,
   } = props
 
   const clickable = onClick != null
@@ -99,15 +105,16 @@ export function Card(props: CardProps) {
     () => (descriptionLines ? collectKeywordIdsFromDescriptionLines(descriptionLines) : []),
     [descriptionLines],
   )
-  const showKeywordTooltips = face === 'front' && !staticDisplay && keywordIds.length > 0
-  const [keywordTip, setKeywordTip] = useState<null | { x: number; y: number }>(null)
+  const showHoverTooltips =
+    face === 'front' && !staticDisplay && (foil || keywordIds.length > 0)
+  const [hoverTip, setHoverTip] = useState<null | { x: number; y: number }>(null)
 
-  const placeKeywordTooltip = (e: MouseEvent<HTMLDivElement>) => {
-    if (!showKeywordTooltips) return
-    setKeywordTip(keywordTooltipsViewportPosition(e.currentTarget.getBoundingClientRect()))
+  const placeHoverTooltip = (e: MouseEvent<HTMLDivElement>) => {
+    if (!showHoverTooltips) return
+    setHoverTip(keywordTooltipsViewportPosition(e.currentTarget.getBoundingClientRect()))
   }
 
-  const clearKeywordTooltip = () => setKeywordTip(null)
+  const clearHoverTooltip = () => setHoverTip(null)
 
   const descriptionContent =
     descriptionLines && descriptionLines.length > 0 ? (
@@ -118,6 +125,7 @@ export function Card(props: CardProps) {
 
   const classes = [
     'gameCard',
+    foil && face === 'front' ? 'gameCard--foil' : null,
     socketed ? 'gameCard--socketed' : null,
     isPotionCardId(cardId) ? 'gameCard--potion' : null,
     clickable ? 'gameCard--clickable' : null,
@@ -145,9 +153,9 @@ export function Card(props: CardProps) {
         role={clickable ? 'button' : undefined}
         tabIndex={clickable && !disabled ? 0 : undefined}
         aria-disabled={clickable && disabled ? true : undefined}
-        onMouseEnter={showKeywordTooltips ? placeKeywordTooltip : undefined}
-        onMouseMove={showKeywordTooltips ? placeKeywordTooltip : undefined}
-        onMouseLeave={showKeywordTooltips ? clearKeywordTooltip : undefined}
+        onMouseEnter={showHoverTooltips ? placeHoverTooltip : undefined}
+        onMouseMove={showHoverTooltips ? placeHoverTooltip : undefined}
+        onMouseLeave={showHoverTooltips ? clearHoverTooltip : undefined}
         onClick={() => {
           if (!clickable || disabled) return
           onClick()
@@ -162,6 +170,7 @@ export function Card(props: CardProps) {
         alt=""
         draggable={false}
       />
+      {face === 'front' && foil ? <div className="gameCard__foilSheen" aria-hidden /> : null}
       {face === 'front' && gemImage ? (
         <img className="gameCard__gem" src={gemImage} alt="" draggable={false} />
       ) : null}
@@ -178,7 +187,12 @@ export function Card(props: CardProps) {
               </div>
             ) : null}
             {showInk ? (
-              <div className="gameCard__ink" aria-label={inkLabel === 'Exhausted' ? 'Exhausted' : `Ink cost ${inkLabel}`}>
+              <div
+                className={['gameCard__ink', inkModified ? 'gameCard__ink--modified' : null]
+                  .filter(Boolean)
+                  .join(' ')}
+                aria-label={inkLabel === 'Exhausted' ? 'Exhausted' : `Ink cost ${inkLabel}`}
+              >
                 {inkLabel}
               </div>
             ) : null}
@@ -190,7 +204,9 @@ export function Card(props: CardProps) {
         </div>
       ) : null}
       </div>
-      {keywordTip ? <KeywordTooltips ids={keywordIds} x={keywordTip.x} y={keywordTip.y} /> : null}
+      {hoverTip ? (
+        <KeywordTooltips ids={keywordIds} foil={foil} x={hoverTip.x} y={hoverTip.y} />
+      ) : null}
     </>
   )
 }

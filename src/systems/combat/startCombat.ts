@@ -14,7 +14,7 @@ import {
   combatHandDrawDeltaFromEnemies,
   combatMaxEnergyDeltaFromEnemies,
 } from '../../data/enemyBoons'
-import { shuffleBurdenIntoDeck } from '../cards/shuffleBurdenIntoDeck'
+import { enqueueBurdenAdds } from './burdenAdd'
 import { applyDrainingAtPlayerTurnStart } from './drainingBoon'
 import { clearActiveCombat } from './endCombat'
 import { putDestinyCardsInOpeningHand } from './destiny'
@@ -50,6 +50,9 @@ export function startCombat(
     bunnyReleaseTargetEnemyId: null,
     monsterDefeatPending: null,
     playerDefeatPending: false,
+    freeFirstFireSpell: false,
+    burdenAddQueue: [],
+    pendingOpeningHandDraw: null,
   }
 
   const player0 = spawned.state.player
@@ -83,10 +86,10 @@ export function startCombat(
   // Shuffle draw pile on combat start.
   s = shuffleDrawPile(s)
 
-  // Alchemist: shuffle Lead ingot(s) into the deck before opening hand (and before combat_start relics).
+  // Alchemist: lead ingot(s) are queued for add-to-deck FX before the opening hand draw.
   const leadCount = combatAlchemistLeadIngotCount(Object.values(enemyById))
-  for (let i = 0; i < leadCount; i++) {
-    s = shuffleBurdenIntoDeck(s, 'LEAD_INGOT')
+  if (leadCount > 0) {
+    s = enqueueBurdenAdds(s, 'LEAD_INGOT', leadCount, 'draw', e1.id)
   }
 
   // Relic triggers at combat start (bunnies etc).
@@ -124,7 +127,20 @@ export function startCombat(
   }
 
   s = putDestinyCardsInOpeningHand(s)
-  s = drawCards(s, combatRefreshDrawCount(s, bonusDraw))
-  return { state: s, events }
+
+  const combatAfter = s.combat
+  if (combatAfter && combatAfter.burdenAddQueue.length > 0) {
+    s = {
+      ...s,
+      combat: {
+        ...combatAfter,
+        pendingOpeningHandDraw: { bonusDraw },
+      },
+    }
+    return { state: s, events }
+  }
+
+  const openingDraw = drawCards(s, combatRefreshDrawCount(s, bonusDraw), { openingHand: true })
+  return { state: openingDraw.state, events }
 }
 

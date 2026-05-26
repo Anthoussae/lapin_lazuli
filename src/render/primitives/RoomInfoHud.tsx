@@ -3,7 +3,7 @@ import { pathRoomDisplay, pathShowsInformationDisplay, resolveActiveRoomPathId }
 
 export function RoomInfoHud(props: Readonly<{ state: GameState }>) {
   const pathId = resolveActiveRoomPathId(props.state)
-  if (!pathShowsInformationDisplay(pathId)) return null
+  if (pathId == null || !pathShowsInformationDisplay(pathId)) return null
 
   const { name, roomDescription } = pathRoomDisplay(pathId)
 

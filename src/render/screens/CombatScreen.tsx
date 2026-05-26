@@ -35,6 +35,8 @@ import { bunnyReleaseTotalMs } from '../bunnyReleaseConfig'
 import { monsterDefeatTotalMs } from '../monsterDefeatConfig'
 import { previewEnemyAfterBunnyDamage } from '../../systems/combat/bunnyReleaseTarget'
 import { canTakeCombatPlayerInput } from '../../systems/combat/combatInput'
+import { hasPendingBurdenAdds } from '../../systems/combat/burdenAdd'
+import { BurdenAddFx } from '../primitives/BurdenAddFx'
 
 type CombatScreenProps = Readonly<{
   state: GameState
@@ -102,8 +104,11 @@ export function CombatScreen(props: CombatScreenProps) {
     cardById: state.player.deck.cardById,
     power: state.player.power,
     firepowerMultiplier: state.player.firepowerMultiplier,
+    shieldPower: state.player.shieldPower,
+    freeFirstFireSpell: combat.freeFirstFireSpell,
     enabled: handVisible,
     pendingTurnStartDraw: combat.pendingTurnStartDraw,
+    burdenAddsBlocking: hasPendingBurdenAdds(state),
     onCompleteTurnStartDraw,
   })
 
@@ -120,6 +125,7 @@ export function CombatScreen(props: CombatScreenProps) {
       state.player.deck.cardById,
       (templateId) => Cards[templateId],
       state.player.energy,
+      { freeFirstFireSpell: combat.freeFirstFireSpell },
     )
   const canEndTurn = canTakeCombatPlayerInput(state) && !isFireReleasePlaying
   const endTurnNudgeGlow = canEndTurn && handVisible && !handHasPlayable
@@ -173,13 +179,22 @@ export function CombatScreen(props: CombatScreenProps) {
     if (!handSelection || handSelection.kind !== 'CONSUME_SELECTED_CARD') return
     for (const cid of handSelection.chosenIds) {
       const el = handSelectionSlotRefs.current.get(cid)
-      if (el) playCardConsume({ cardInstanceId: cid, sourceEl: el })
+      if (el)
+        playCardConsume({
+          cardInstanceId: cid,
+          sourceEl: el,
+          hostClassName: 'cardConsumeHost--combat',
+        })
     }
     const playedInst = state.player.deck.cardById[handSelection.playedCardInstanceId]
     if (playedInst && cardInstanceConsumes(playedInst)) {
       const anchor = pendingCastSlotRef.current
       if (anchor) {
-        playCardConsume({ cardInstanceId: handSelection.playedCardInstanceId, sourceEl: anchor })
+        playCardConsume({
+          cardInstanceId: handSelection.playedCardInstanceId,
+          sourceEl: anchor,
+          hostClassName: 'cardConsumeHost--combat',
+        })
       }
     }
   }, [handSelection, playCardConsume, state.player.deck.cardById])
@@ -247,6 +262,7 @@ export function CombatScreen(props: CombatScreenProps) {
                       template={t}
                       power={state.player.power}
                       firepowerMultiplier={state.player.firepowerMultiplier}
+                      shieldPower={state.player.shieldPower}
                       disabled={!chosen && picksLeft <= 0}
                       selected={chosen}
                       className="handSelectionCard"
@@ -333,7 +349,9 @@ export function CombatScreen(props: CombatScreenProps) {
               const inst = state.player.deck.cardById[cid]
               const t = inst ? Cards[inst.templateId] : undefined
               const inHand = state.player.deck.hand.includes(cid)
-              const canPlay = inHand && !!inst && !!t && cardInstanceIsPlayable(inst, t, state.player.energy)
+              const inkOpts = { freeFirstFireSpell: combat.freeFirstFireSpell }
+              const canPlay =
+                inHand && !!inst && !!t && cardInstanceIsPlayable(inst, t, state.player.energy, inkOpts)
               const hidden = isHandCardHidden(cid)
               return {
                 key: `hand-${idx}-${cid}`,
@@ -345,6 +363,8 @@ export function CombatScreen(props: CombatScreenProps) {
                     template={t}
                     power={state.player.power}
                     firepowerMultiplier={state.player.firepowerMultiplier}
+                    shieldPower={state.player.shieldPower}
+                    freeFirstFireSpell={combat.freeFirstFireSpell}
                     disabled={!canPlay}
                     className={hidden ? 'gameCard--traveling' : undefined}
                     onClick={() => {
@@ -417,6 +437,7 @@ export function CombatScreen(props: CombatScreenProps) {
           </Fragment>
         )
       })}
+      <BurdenAddFx state={state} dispatch={dispatch} />
       </div>
     </>
   )

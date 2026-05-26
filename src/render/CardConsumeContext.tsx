@@ -13,11 +13,15 @@ import { cardConsumeTotalMs } from './cardConsumeConfig'
 import { useRelicTravel } from './RelicTravelContext'
 import { viewportPointRelativeTo } from './relicBeltLayout'
 
+type CssVarStyle = Readonly<Record<`--${string}`, string>>
+
 type ActiveCardConsume = Readonly<{
   id: number
   x: number
   y: number
   seed: number
+  hostClassName?: string
+  hostStyle?: CssVarStyle
 }>
 
 export type CardConsumeRequest = Readonly<{
@@ -25,6 +29,10 @@ export type CardConsumeRequest = Readonly<{
   cardInstanceId?: CardInstanceId
   sourceEl?: HTMLElement
   sourceRect?: DOMRect
+  /** Optional host class for per-call styling overrides (CSS vars etc). */
+  hostClassName?: string
+  /** Optional per-call CSS var overrides applied to the host element. */
+  hostStyle?: CssVarStyle
   onComplete?: () => void
 }>
 
@@ -88,7 +96,7 @@ export function CardConsumeProvider(props: Readonly<{ children: ReactNode }>) {
         cardInstanceByFxIdRef.current.set(id, cardInstanceId)
       }
       if (req.onComplete) onCompleteByIdRef.current.set(id, req.onComplete)
-      setFxList((prev) => [...prev, { id, x, y, seed }])
+      setFxList((prev) => [...prev, { id, x, y, seed, hostClassName: req.hostClassName, hostStyle: req.hostStyle }])
 
       window.setTimeout(() => finishFx(id), cardConsumeTotalMs() + 48)
     },
@@ -109,8 +117,8 @@ export function CardConsumeProvider(props: Readonly<{ children: ReactNode }>) {
         {fxList.map((fx) => (
           <div
             key={fx.id}
-            className="cardConsumeHost"
-            style={{ left: `${fx.x}px`, top: `${fx.y}px` }}
+            className={['cardConsumeHost', fx.hostClassName].filter(Boolean).join(' ')}
+            style={{ left: `${fx.x}px`, top: `${fx.y}px`, ...(fx.hostStyle ?? {}) }}
           >
             <CardConsumeFx fxId={fx.id} seed={fx.seed} onComplete={handleFxComplete} />
           </div>

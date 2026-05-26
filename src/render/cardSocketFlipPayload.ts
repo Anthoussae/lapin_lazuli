@@ -11,6 +11,7 @@ export function cardSocketFlipPayload(
   inst: CardInstance,
   power: number,
   firepowerMultiplier: number,
+  shieldPower: number,
   socketedGemId: GemId | null,
 ): CardTravelPayload {
   const preview: CardInstance = { ...inst, socketedGemId }
@@ -21,7 +22,32 @@ export function cardSocketFlipPayload(
     name: formatCardInstanceDisplayName(template, preview),
     nameUpgraded: preview.upgrades > 0,
     inkLabel,
-    descriptionLines: cardDescriptionLinesForInstance(template, preview, power, firepowerMultiplier),
+    descriptionLines: cardDescriptionLinesForInstance(template, preview, power, firepowerMultiplier, shieldPower),
     socketedGemId: preview.socketedGemId ?? null,
+    foil: preview.foil === true,
   }
+}
+
+/** Card face data for deck travel FX from a live instance. */
+export function cardTravelPayloadForInstance(
+  template: CardTemplate,
+  inst: CardInstance,
+  power: number,
+  firepowerMultiplier: number,
+  shieldPower: number,
+): CardTravelPayload {
+  return cardSocketFlipPayload(template, inst, power, firepowerMultiplier, shieldPower, inst.socketedGemId ?? null)
+}
+
+/** Card face data for the foil flip overlay (before / after foiling). */
+export function cardFoilFlipPayload(
+  template: CardTemplate,
+  inst: CardInstance,
+  power: number,
+  firepowerMultiplier: number,
+  shieldPower: number,
+  foil: boolean,
+): CardTravelPayload {
+  const preview: CardInstance = foil ? { ...inst, foil: true } : inst
+  return cardSocketFlipPayload(template, preview, power, firepowerMultiplier, shieldPower, preview.socketedGemId ?? null)
 }

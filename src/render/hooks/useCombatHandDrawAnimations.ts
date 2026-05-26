@@ -3,7 +3,7 @@ import type { CardInstance, GameState } from '../../core/types/state'
 import type { CardInstanceId } from '../../core/types/ids'
 import { Cards } from '../../data/cards'
 import { cardDescriptionLinesForInstance, formatCardInstanceDisplayName } from '../../ui/describe'
-import { cardInstanceInkCost } from '../../systems/cards/inkCost'
+import { cardInstanceInkCost, cardInstanceInkCostModified } from '../../systems/cards/inkCost'
 import { cardViewportRect } from '../cardLayout'
 import { useCardConsume } from '../CardConsumeContext'
 import { useCardTravel } from '../CardTravelContext'
@@ -14,8 +14,11 @@ type UseCombatHandDrawAnimationsArgs = Readonly<{
   cardById: GameState['player']['deck']['cardById']
   power: number
   firepowerMultiplier: number
+  shieldPower: number
+  freeFirstFireSpell: boolean
   enabled: boolean
   pendingTurnStartDraw: boolean
+  burdenAddsBlocking: boolean
   onCompleteTurnStartDraw: () => void
 }>
 
@@ -24,9 +27,13 @@ function cardTravelPayload(
   inst: CardInstance | undefined,
   power: number,
   firepowerMultiplier: number,
+  shieldPower: number,
+  freeFirstFireSpell: boolean,
 ) {
   const template = inst ? Cards[inst.templateId] : undefined
-  const ink = inst && template ? cardInstanceInkCost(inst, template) : null
+  const inkOpts = { freeFirstFireSpell }
+  const ink = inst && template ? cardInstanceInkCost(inst, template, inkOpts) : null
+  const inkModified = inst && template ? cardInstanceInkCostModified(inst, template, inkOpts) : false
   return {
     cardId: inst?.templateId,
     name:
@@ -35,9 +42,13 @@ function cardTravelPayload(
         : inst?.templateId ?? cardInstanceId,
     nameUpgraded: (inst?.upgrades ?? 0) > 0,
     inkLabel: inst?.exhausted ? 'Exhausted' : ink !== null ? String(ink) : null,
+    inkModified,
     descriptionLines:
-      inst && template ? cardDescriptionLinesForInstance(template, inst, power, firepowerMultiplier) : [],
+      inst && template
+        ? cardDescriptionLinesForInstance(template, inst, power, firepowerMultiplier, shieldPower)
+        : [],
     socketedGemId: inst?.socketedGemId ?? null,
+    foil: inst?.foil === true,
   }
 }
 
@@ -80,8 +91,11 @@ export function useCombatHandDrawAnimations(args: UseCombatHandDrawAnimationsArg
     cardById,
     power,
     firepowerMultiplier,
+    shieldPower,
+    freeFirstFireSpell,
     enabled,
     pendingTurnStartDraw,
+    burdenAddsBlocking,
     onCompleteTurnStartDraw,
   } = args
   const { travelCardFromDeck, travelCardToDiscard, travelingCardKey, travelingDiscardCardKeys } =
@@ -127,7 +141,7 @@ export function useCombatHandDrawAnimations(args: UseCombatHandDrawAnimationsArg
   }, [])
 
   const processDrawQueue = useCallback(() => {
-    if (!enabled || processingRef.current || travelingCardKey || hasPendingDiscardWork() || hasPendingConsumeWork())
+    if (!enabled || burdenAddsBlocking || processingRef.current || travelingCardKey || hasPendingDiscardWork() || hasPendingConsumeWork())
       return
     if (drawQueueRef.current.length === 0) return
 
@@ -144,7 +158,7 @@ export function useCombatHandDrawAnimations(args: UseCombatHandDrawAnimationsArg
     travelCardFromDeck({
       cardKey: nextId,
       destEl,
-      card: cardTravelPayload(nextId, inst, power, firepowerMultiplier),
+      card: cardTravelPayload(nextId, inst, power, firepowerMultiplier, shieldPower, freeFirstFireSpell),
       onComplete: () => {
         drawQueueRef.current.shift()
         processingRef.current = false
@@ -153,12 +167,14 @@ export function useCombatHandDrawAnimations(args: UseCombatHandDrawAnimationsArg
       },
     })
   }, [
+    burdenAddsBlocking,
     cardById,
     enabled,
     firepowerMultiplier,
     hasPendingConsumeWork,
     hasPendingDiscardWork,
     power,
+    shieldPower,
     travelCardFromDeck,
     travelingCardKey,
   ])
@@ -183,6 +199,7 @@ export function useCombatHandDrawAnimations(args: UseCombatHandDrawAnimationsArg
         cardInstanceId: nextId,
         sourceEl: sourceEl ?? undefined,
         sourceRect: sourceEl ? undefined : sourceRect,
+        hostClassName: 'cardConsumeHost--combat',
         onComplete: () => {
           consumeInFlightRef.current.delete(nextId)
           consumeQueueRef.current = consumeQueueRef.current.filter((id) => id !== nextId)
@@ -217,7 +234,7 @@ export function useCombatHandDrawAnimations(args: UseCombatHandDrawAnimationsArg
         cardKey: nextId,
         sourceEl: sourceEl ?? undefined,
         sourceRect: sourceEl ? undefined : sourceRect,
-        card: cardTravelPayload(nextId, inst, power, firepowerMultiplier),
+        card: cardTravelPayload(nextId, inst, power, firepowerMultiplier, shieldPower, freeFirstFireSpell),
         onComplete: () => {
           discardInFlightRef.current.delete(nextId)
           discardQueueRef.current = discardQueueRef.current.filter((id) => id !== nextId)
@@ -229,15 +246,17 @@ export function useCombatHandDrawAnimations(args: UseCombatHandDrawAnimationsArg
     }
 
     if (waitingForSlot) requestAnimationFrame(() => processPendingDiscards())
-  }, [cardById, clearDiscardSlotCache, enabled, firepowerMultiplier, power, travelCardToDiscard])
+  }, [cardById, clearDiscardSlotCache, enabled, firepowerMultiplier, power, shieldPower, travelCardToDiscard])
 
   const tryCompleteTurnStartDraw = useCallback(() => {
     if (!pendingTurnStartDraw) return
+    if (burdenAddsBlocking) return
     if (processingRef.current || travelingCardKey) return
     if (hasPendingDiscardWork()) return
     if (hasPendingConsumeWork()) return
     onCompleteTurnStartDraw()
   }, [
+    burdenAddsBlocking,
     hasPendingConsumeWork,
     hasPendingDiscardWork,
     onCompleteTurnStartDraw,

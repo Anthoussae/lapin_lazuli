@@ -14,6 +14,7 @@ import { ShopScreen } from './screens/ShopScreen'
 import { RestScreen } from './screens/RestScreen'
 import { GemstoneCavernScreen } from './screens/GemstoneCavernScreen'
 import { TreasureRoomScreen } from './screens/TreasureRoomScreen'
+import { MysteryRoomScreen } from './screens/MysteryRoomScreen'
 import { RewardScreen } from './screens/RewardScreen'
 import { VictoryScreen } from './screens/VictoryScreen'
 import { DefeatScreen } from './screens/DefeatScreen'
@@ -92,10 +93,15 @@ export function GameView(props: Readonly<{ state: GameState; dispatch: (a: GameA
       {state.phase === 'REST' && <RestScreen {...screenProps} />}
       {state.phase === 'GEMSTONE_CAVERN' && <GemstoneCavernScreen {...screenProps} />}
       {state.phase === 'TREASURE_ROOM' && <TreasureRoomScreen {...screenProps} />}
+      {state.phase === 'EVENT' && state.mysteryRoom?.roomId && (
+        <MysteryRoomScreen {...screenProps} />
+      )}
       {state.phase === 'REWARD' && <RewardScreen {...screenProps} />}
       {state.phase === 'GAME_WIN' && <VictoryScreen {...screenProps} />}
       {state.phase === 'DEFEAT' && <DefeatScreen {...screenProps} />}
-      {showHud && <DeckInspect state={state} inCombat={!!inCombat} />}
+      {showHud && (
+        <DeckInspect state={state} inCombat={!!inCombat} />
+      )}
       </ShopUnaffordableRejectProvider>
       </GoldTravelProvider>
       </KeyTravelProvider>

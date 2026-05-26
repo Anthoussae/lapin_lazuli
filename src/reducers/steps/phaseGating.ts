@@ -2,6 +2,8 @@ import type { GameState } from '../../core/types/state'
 import type { PlayerAction } from '../actions'
 import { canTakeCombatPlayerInput, isCombatResolvePending } from '../../systems/combat/combatInput'
 import { isRewardLootFullyCollected } from '../../systems/rewards/rewardLoot'
+import { mysteryRoomIsEvent } from '../../data/mysteryRooms'
+import { collectorCanProceed } from '../../systems/events/collector'
 
 export function isActionLegalNow(state: GameState, action: PlayerAction): boolean {
   if (state.phase === 'BOOT') return false
@@ -78,6 +80,65 @@ export function isActionLegalNow(state: GameState, action: PlayerAction): boolea
       )
     }
     return action.type === 'GEMSTONE_CAVERN/PICK_GEM' || action.type === 'GEMSTONE_CAVERN/PROCEED'
+  }
+
+  if (state.phase === 'EVENT') {
+    const roomId = state.mysteryRoom?.roomId
+    if (!roomId || !mysteryRoomIsEvent(roomId)) return false
+    if (roomId === 'FONT_OF_LETHE') {
+      const fol = state.mysteryRoom?.fontOfLethe
+      if (action.type === 'FONT_OF_LETHE/SELECT_CARD' || action.type === 'FONT_OF_LETHE/FORGET') {
+        return fol != null && !fol.cardForgotten
+      }
+      if (action.type === 'EVENT/PROCEED') return fol?.cardForgotten === true
+      return false
+    }
+    if (roomId === 'PRINTER') {
+      const printer = state.mysteryRoom?.printer
+      const choiceOpen = printer != null && !printer.cardFoiled && !printer.cardDuplicated
+      if (
+        action.type === 'PRINTER/SELECT_CARD' ||
+        action.type === 'PRINTER/FOIL' ||
+        action.type === 'PRINTER/SELECT_DUPLICATE_CARD' ||
+        action.type === 'PRINTER/DUPLICATE'
+      ) {
+        return choiceOpen
+      }
+      if (action.type === 'EVENT/PROCEED') {
+        return printer?.cardFoiled === true || printer?.cardDuplicated === true
+      }
+      return false
+    }
+    if (roomId === 'COLLECTOR') {
+      const collector = state.mysteryRoom?.collector
+      if (action.type === 'COLLECTOR/REVEAL_OFFERED_CARD') {
+        return collector?.cardRevealed !== true
+      }
+      if (action.type === 'COLLECTOR/SELL') {
+        return (
+          collector?.cardRevealed === true &&
+          collector.sold !== true &&
+          collector.bulkAccepted !== true &&
+          collector.offeredCardInstanceId != null
+        )
+      }
+      if (action.type === 'COLLECTOR/ACCEPT_BULK') {
+        return collector?.cardRevealed === true && collector.sold !== true && collector.bulkAccepted !== true
+      }
+      if (action.type === 'COLLECTOR/ADD_BULK_CARD') {
+        const cards = collector?.bulkCards
+        return (
+          collector?.bulkAccepted === true &&
+          cards != null &&
+          action.index >= 0 &&
+          action.index < cards.length &&
+          action.index === collector.bulkCardsAdded
+        )
+      }
+      if (action.type === 'EVENT/PROCEED') return collectorCanProceed(state)
+      return false
+    }
+    return action.type === 'EVENT/PROCEED'
   }
 
   if (state.phase === 'DEFEAT' || state.phase === 'GAME_WIN') {

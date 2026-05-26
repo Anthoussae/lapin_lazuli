@@ -241,7 +241,7 @@ function beginPlayerTurn(state: GameState): { state: GameState; events: GameEven
   s = rollEnemyIntent(s)
   // Draw starting hand for the turn (base hand size + combat modifiers).
   s = shuffleDiscardIntoDrawIfNeeded(s)
-  s = drawCards(s, combatRefreshDrawCount(s, 0))
-  return { state: s, events: [...boonEvents, ...turnStart.events] }
+  const handDraw = drawCards(s, combatRefreshDrawCount(s, 0))
+  return { state: handDraw.state, events: [...boonEvents, ...turnStart.events, ...handDraw.events] }
 }
 

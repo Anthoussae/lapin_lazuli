@@ -16,12 +16,12 @@ export const Gems: Readonly<Record<GemId, GemTemplate>> = {
   LAPIS_LAZULI: {
     id: 'LAPIS_LAZULI',
     name: 'Lapis Lazuli',
-    effects: [{ kind: 'ADD_BUNNIES', amount: 3 }],
+    effects: [{ kind: 'ADD_BUNNIES', amount: 3, upgradeValue: 1 }],
   },
   EMERALD: {
     id: 'EMERALD',
     name: 'Emerald',
-    effects: [{ kind: 'GAIN_SHIELD', amount: 4 }],
+    effects: [{ kind: 'GAIN_SHIELD', amount: 4, upgradeValue: 1 }],
   },
   MALACHITE: {
     id: 'MALACHITE',
@@ -31,23 +31,26 @@ export const Gems: Readonly<Record<GemId, GemTemplate>> = {
   RUBY: {
     id: 'RUBY',
     name: 'Ruby',
-    effects: [{ kind: 'DEAL_DAMAGE', amount: 5 }],
+    effects: [{ kind: 'DEAL_DAMAGE', amount: 5, upgradeValue: 1 }],
   },
   SAPPHIRE: {
     id: 'SAPPHIRE',
     name: 'Sapphire',
-    effects: [{ kind: 'DRAW_CARDS', amount: 1 }],
+    effects: [
+      { kind: 'DRAW_CARDS', amount: 1, upgradeValue: 1 },
+      { kind: 'EXHAUST', upgradeValue: 1 },
+    ],
   },
   AMETHYST: {
     id: 'AMETHYST',
     name: 'Amethyst',
-    effects: [{ kind: 'MULTIPLY_BUNNIES', amount: 1.5 }],
+    effects: [{ kind: 'MULTIPLY_BUNNIES', amount: 1.5, upgradeValue: 1 }],
   },
   TOPAZ: {
     id: 'TOPAZ',
     name: 'Topaz',
     requiresTargetWithoutDestiny: true,
-    effects: [{ kind: 'DESTINY' }],
+    effects: [{ kind: 'DESTINY', upgradeValue: 1 }],
   },
   // COAL: {
   //   id: 'COAL',
@@ -57,6 +60,9 @@ export const Gems: Readonly<Record<GemId, GemTemplate>> = {
   DIAMOND: {
     id: 'DIAMOND',
     name: 'Diamond',
-    effects: [{ kind: 'UPGRADE_AFTER_CASTING' }, { kind: 'EXHAUST' }],
+    effects: [
+      { kind: 'UPGRADE_AFTER_CASTING', upgradeValue: 1 },
+      { kind: 'EXHAUST', upgradeValue: 1 },
+    ],
   },
 }

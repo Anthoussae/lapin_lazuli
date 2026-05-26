@@ -13,6 +13,10 @@
 .stageFrame .gemIcon--clickable,
 .stageFrame button.gemIcon:not(:disabled),
 .stageFrame .btn:not(:disabled),
+.stageFrame .fontOfLetheArtBtn.opaqueImageBtn--lit,
+.stageFrame .fontOfLetheForgetSubmit:not(:disabled),
+.stageFrame .printerFoilDialogSubmit:not(:disabled),
+.stageFrame .printerDuplicateDialogSubmit:not(:disabled),
 .stageFrame .handSelectionSubmit:not(:disabled) {
   cursor: pointer;
 }
@@ -118,6 +122,26 @@
   opacity: var(--combat-reward-screen-backdrop-opacity);
 }
 
+/* Fixed under reward panel content (see --combat-reward-leather-carpet-*). */
+.combatRewardLeatherCarpet {
+  position: fixed;
+  left: var(--combat-reward-leather-carpet-x);
+  top: var(--combat-reward-leather-carpet-y);
+  z-index: 0;
+  display: block;
+  width: var(--combat-reward-leather-carpet-size);
+  height: auto;
+  transform: translate(-50%, -50%);
+  filter: brightness(var(--combat-reward-leather-carpet-tone));
+  pointer-events: none;
+  user-select: none;
+}
+
+.combatRewardPanel > .screenTitleScreen {
+  font-size: var(--combat-reward-title-font-size);
+  transform: translate(var(--combat-reward-title-offset-x), var(--combat-reward-title-offset-y));
+}
+
 .screenBackdrop--cardReward .screenBackdrop__img {
   opacity: var(--card-reward-screen-backdrop-opacity);
 }
@@ -136,6 +160,862 @@
 
 .screenBackdrop--shop .screenBackdrop__img {
   opacity: var(--shop-screen-backdrop-opacity);
+}
+
+.screenBackdrop--fontOfLethe .screenBackdrop__img {
+  opacity: var(--font-of-lethe-screen-backdrop-opacity);
+}
+
+.screenBackdrop--collector .screenBackdrop__img {
+  opacity: var(--collector-screen-backdrop-opacity);
+}
+
+.screenBackdrop--printer .screenBackdrop__img {
+  opacity: var(--printer-screen-backdrop-opacity);
+}
+
+/* Printer art (see --printer-art-*). */
+.printerArt {
+  position: fixed;
+  left: var(--printer-art-x);
+  top: var(--printer-art-y);
+  z-index: var(--printer-art-z-index);
+  display: block;
+  width: var(--printer-art-size);
+  height: auto;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Speech bubble (see --printer-speech-bubble-*). */
+.printerSpeechBubble {
+  position: fixed;
+  left: var(--printer-speech-bubble-x);
+  top: var(--printer-speech-bubble-y);
+  z-index: var(--printer-speech-bubble-z-index);
+  display: block;
+  width: var(--printer-speech-bubble-size);
+  height: auto;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Dialogue (see --printer-dialogue-*). */
+.printerDialogue {
+  position: fixed;
+  left: var(--printer-dialogue-x);
+  top: var(--printer-dialogue-y);
+  z-index: var(--printer-dialogue-z-index);
+  transform: translate(-50%, -50%);
+  margin: 0;
+  max-width: var(--printer-dialogue-max-width);
+  font-family: var(--printer-dialogue-font-family);
+  font-size: var(--printer-dialogue-font-size);
+  font-weight: var(--printer-dialogue-font-weight);
+  line-height: var(--printer-dialogue-line-height);
+  color: var(--printer-dialogue-color);
+  text-align: center;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Fixed UI (see --printer-title-* / foil, proceed & duplicate buttons). */
+.printerTitle,
+.printerFoilBtn,
+.printerProceedBtn,
+.printerDuplicateBtn {
+  position: fixed;
+  z-index: var(--printer-ui-z-index);
+  transform: translate(-50%, -50%);
+  margin: 0;
+  text-align: center;
+}
+
+.printerTitle {
+  left: var(--printer-title-x);
+  top: var(--printer-title-y);
+  font-family: var(--font-title);
+  font-size: var(--printer-title-font-size);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--printer-title-color);
+  pointer-events: none;
+  user-select: none;
+}
+
+.btn.printerFoilBtn {
+  left: var(--printer-foil-btn-x);
+  top: var(--printer-foil-btn-y);
+  pointer-events: auto;
+  font-weight: 700;
+  background: var(--printer-foil-btn-bg);
+  border-color: var(--printer-foil-btn-border);
+  color: var(--printer-foil-btn-color);
+  text-shadow: var(--printer-foil-btn-text-shadow);
+  box-shadow: var(--printer-foil-btn-glow);
+  animation: printerFoilBtnGlowPulse var(--duration-printer-foil-btn-glow-pulse)
+    var(--ease-printer-foil-btn-glow-pulse) infinite;
+}
+
+.btn.printerFoilBtn:hover:not(:disabled) {
+  background: var(--printer-foil-btn-bg-hover);
+  border-color: var(--printer-foil-btn-border);
+  color: var(--printer-foil-btn-color);
+  box-shadow: var(--printer-foil-btn-glow-hover);
+  animation: none;
+}
+
+.btn.printerFoilBtn:active:not(:disabled) {
+  background: var(--printer-foil-btn-bg-active);
+  border-color: var(--printer-foil-btn-border);
+  color: var(--printer-foil-btn-color);
+  box-shadow: var(--printer-foil-btn-glow);
+  animation: none;
+  transform: translate(-50%, -50%) scale(0.98);
+}
+
+@keyframes printerFoilBtnGlowPulse {
+  0%,
+  100% {
+    box-shadow: var(--printer-foil-btn-glow);
+  }
+  50% {
+    box-shadow: var(--printer-foil-btn-glow-strong);
+  }
+}
+
+/* Printer foil-card dialog (see --printer-foil-dialog-*). */
+.printerFoilDialogOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--printer-foil-dialog-overlay-z);
+  display: grid;
+  place-items: center;
+  background: var(--printer-foil-dialog-overlay-bg);
+}
+
+.printerFoilDialogPanel {
+  position: relative;
+  width: var(--printer-foil-dialog-panel-width);
+  height: var(--printer-foil-dialog-panel-height);
+  border: var(--printer-foil-dialog-panel-rim-width) solid var(--printer-foil-dialog-panel-border-color);
+  border-radius: var(--printer-foil-dialog-panel-border-radius);
+  background: var(--printer-foil-dialog-panel-bg);
+  box-shadow: var(--printer-foil-dialog-panel-shadow);
+  padding: var(--printer-foil-dialog-panel-padding);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--printer-foil-dialog-panel-gap);
+}
+
+.printerFoilDialogTitle {
+  font-size: var(--printer-foil-dialog-title-font-size);
+  font-weight: 900;
+  letter-spacing: var(--printer-foil-dialog-title-letter-spacing);
+  text-transform: uppercase;
+  pointer-events: none;
+  color: var(--printer-foil-dialog-title-color);
+  text-shadow: var(--printer-foil-dialog-title-text-shadow);
+  margin: 0;
+}
+
+.printerFoilDialogSub {
+  font-size: var(--printer-foil-dialog-sub-font-size);
+  color: var(--printer-foil-dialog-sub-color);
+  text-shadow: var(--printer-foil-dialog-sub-text-shadow);
+  pointer-events: none;
+  margin: 0;
+}
+
+.printerFoilDialogActions {
+  display: flex;
+  gap: var(--printer-foil-dialog-actions-gap);
+  align-items: center;
+}
+
+.printerFoilDialogSubmit {
+  cursor: pointer;
+  border: var(--printer-foil-dialog-submit-border);
+  background: var(--printer-foil-dialog-submit-bg);
+  color: var(--printer-foil-dialog-submit-color);
+  text-shadow: var(--printer-foil-dialog-submit-text-shadow);
+  padding: var(--printer-foil-dialog-submit-padding);
+  border-radius: var(--printer-foil-dialog-submit-border-radius);
+  font-size: var(--printer-foil-dialog-submit-font-size);
+  font-weight: var(--printer-foil-dialog-submit-font-weight);
+  box-shadow: var(--printer-foil-btn-glow);
+  animation: printerFoilBtnGlowPulse var(--duration-printer-foil-btn-glow-pulse)
+    var(--ease-printer-foil-btn-glow-pulse) infinite;
+}
+
+.printerFoilDialogSubmit:hover:not(:disabled) {
+  background: var(--printer-foil-dialog-submit-bg-hover);
+  box-shadow: var(--printer-foil-btn-glow-hover);
+  animation: none;
+}
+
+.printerFoilDialogSubmit:active:not(:disabled) {
+  background: var(--printer-foil-dialog-submit-bg-active);
+  box-shadow: var(--printer-foil-btn-glow);
+  animation: none;
+}
+
+.printerFoilDialogSubmit:disabled {
+  cursor: not-allowed;
+  opacity: var(--printer-foil-dialog-submit-disabled-opacity);
+  animation: none;
+  box-shadow: var(--printer-foil-btn-shadow);
+}
+
+.printerFoilDialogHand {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--printer-foil-dialog-hand-gap);
+  padding: var(--printer-foil-dialog-hand-padding-y) var(--printer-foil-dialog-hand-padding-x);
+  border: var(--printer-foil-dialog-hand-rim-width) solid var(--printer-foil-dialog-hand-rim-color);
+  border-radius: var(--printer-foil-dialog-hand-border-radius);
+  background: var(--printer-foil-dialog-hand-bg);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+.printerFoilDialogCardSlot {
+  flex: 0 0 auto;
+  border-radius: 10px;
+}
+
+.printerFoilDialogCardSlot--animating {
+  visibility: hidden;
+}
+
+.printerFoilDialogCardSlot:has(.gameCard--selected) {
+  outline: var(--printer-foil-dialog-card-selected-outline-width) solid
+    var(--printer-foil-dialog-card-selected-outline-color);
+  outline-offset: 0;
+  box-shadow: var(--printer-foil-dialog-card-selected-glow);
+  animation: printerFoilDialogCardGlowPulse var(--duration-printer-foil-dialog-card-glow-pulse)
+    var(--ease-printer-foil-dialog-card-glow-pulse) infinite;
+}
+
+.printerFoilDialogHand .printerFoilDialogCard.gameCard--selected {
+  outline: none;
+  box-shadow: none;
+}
+
+.printerFoilDialogCard {
+  flex: 0 0 auto;
+}
+
+@keyframes printerFoilDialogCardGlowPulse {
+  0%,
+  100% {
+    box-shadow: var(--printer-foil-dialog-card-selected-glow);
+  }
+  50% {
+    box-shadow: var(--printer-foil-dialog-card-selected-glow-strong);
+  }
+}
+
+/* Printer duplicate-card dialog (see --printer-duplicate-dialog-*). */
+.printerDuplicateDialogOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--printer-duplicate-dialog-overlay-z);
+  display: grid;
+  place-items: center;
+  background: var(--printer-duplicate-dialog-overlay-bg);
+}
+
+.printerDuplicateDialogPanel {
+  position: relative;
+  width: var(--printer-duplicate-dialog-panel-width);
+  height: var(--printer-duplicate-dialog-panel-height);
+  border: var(--printer-duplicate-dialog-panel-rim-width) solid
+    var(--printer-duplicate-dialog-panel-border-color);
+  border-radius: var(--printer-duplicate-dialog-panel-border-radius);
+  background: var(--printer-duplicate-dialog-panel-bg);
+  box-shadow: var(--printer-duplicate-dialog-panel-shadow);
+  padding: var(--printer-duplicate-dialog-panel-padding);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--printer-duplicate-dialog-panel-gap);
+}
+
+.printerDuplicateDialogTitle {
+  font-size: var(--printer-duplicate-dialog-title-font-size);
+  font-weight: 900;
+  letter-spacing: var(--printer-duplicate-dialog-title-letter-spacing);
+  text-transform: uppercase;
+  pointer-events: none;
+  color: var(--printer-duplicate-dialog-title-color);
+  margin: 0;
+}
+
+.printerDuplicateDialogSub {
+  font-size: var(--printer-duplicate-dialog-sub-font-size);
+  color: var(--printer-duplicate-dialog-sub-color);
+  pointer-events: none;
+  margin: 0;
+}
+
+.printerDuplicateDialogActions {
+  display: flex;
+  gap: var(--printer-duplicate-dialog-actions-gap);
+  align-items: center;
+}
+
+.printerDuplicateDialogSubmit {
+  cursor: pointer;
+  border: var(--printer-duplicate-dialog-submit-rim-width) solid
+    var(--printer-duplicate-dialog-submit-border-color);
+  background: var(--printer-duplicate-dialog-submit-bg);
+  color: var(--printer-duplicate-dialog-submit-color);
+  padding: var(--printer-duplicate-dialog-submit-padding);
+  border-radius: var(--printer-duplicate-dialog-submit-border-radius);
+  font-size: var(--printer-duplicate-dialog-submit-font-size);
+  font-weight: var(--printer-duplicate-dialog-submit-font-weight);
+  font-family: var(--font-main);
+}
+
+.printerDuplicateDialogSubmit:hover:not(:disabled) {
+  background: var(--printer-duplicate-dialog-submit-bg-hover);
+}
+
+.printerDuplicateDialogSubmit:active:not(:disabled) {
+  background: var(--printer-duplicate-dialog-submit-bg-active);
+}
+
+.printerDuplicateDialogSubmit:disabled {
+  cursor: not-allowed;
+  opacity: var(--printer-duplicate-dialog-submit-disabled-opacity);
+}
+
+.printerDuplicateDialogHand {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--printer-duplicate-dialog-hand-gap);
+  padding: var(--printer-duplicate-dialog-hand-padding-y) var(--printer-duplicate-dialog-hand-padding-x);
+  border: var(--printer-duplicate-dialog-hand-rim-width) solid var(--printer-duplicate-dialog-hand-rim-color);
+  border-radius: var(--printer-duplicate-dialog-hand-border-radius);
+  background: var(--printer-duplicate-dialog-hand-bg);
+  box-shadow: inset 0 1px 0 rgba(255, 226, 171, 0.2);
+}
+
+.printerDuplicateDialogCardSlot {
+  flex: 0 0 auto;
+  border-radius: 10px;
+}
+
+.printerDuplicateDialogCardSlot--animating {
+  visibility: hidden;
+}
+
+.printerDuplicateDialogCardSlot:has(.gameCard--selected) {
+  outline: var(--printer-duplicate-dialog-card-selected-outline-width) solid
+    var(--printer-duplicate-dialog-card-selected-outline-color);
+  outline-offset: 0;
+  box-shadow: var(--printer-duplicate-dialog-card-selected-glow);
+}
+
+.printerDuplicateDialogHand .printerDuplicateDialogCard.gameCard--selected {
+  outline: none;
+  box-shadow: none;
+}
+
+.printerDuplicateDialogCard {
+  flex: 0 0 auto;
+}
+
+.printerProceedBtn,
+.printerDuplicateBtn {
+  pointer-events: auto;
+}
+
+.printerProceedBtn {
+  left: var(--printer-proceed-btn-x);
+  top: var(--printer-proceed-btn-y);
+}
+
+.btn.printerDuplicateBtn {
+  left: var(--printer-duplicate-btn-x);
+  top: var(--printer-duplicate-btn-y);
+  font-weight: 700;
+  background: var(--printer-duplicate-btn-bg);
+  border-color: var(--printer-duplicate-btn-border);
+  color: var(--printer-duplicate-btn-color);
+}
+
+.btn.printerDuplicateBtn:hover:not(:disabled) {
+  background: var(--printer-duplicate-btn-bg-hover);
+  border-color: var(--printer-duplicate-btn-border);
+  color: var(--printer-duplicate-btn-color);
+}
+
+.btn.printerDuplicateBtn:active:not(:disabled) {
+  background: var(--printer-duplicate-btn-bg-active);
+  border-color: var(--printer-duplicate-btn-border);
+  color: var(--printer-duplicate-btn-color);
+  transform: translate(-50%, -50%) scale(0.98);
+}
+
+/* Collector art (see --collector-art-*). */
+.collectorArt {
+  position: fixed;
+  left: var(--collector-art-x);
+  top: var(--collector-art-y);
+  z-index: var(--collector-art-z-index);
+  display: block;
+  width: var(--collector-art-size);
+  height: auto;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Speech bubble (see --collector-speech-bubble-*). */
+.collectorSpeechBubble {
+  position: fixed;
+  left: var(--collector-speech-bubble-x);
+  top: var(--collector-speech-bubble-y);
+  z-index: var(--collector-speech-bubble-z-index);
+  display: block;
+  width: var(--collector-speech-bubble-size);
+  height: auto;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Dialogue (see --collector-dialogue-*). */
+.collectorDialogue {
+  position: fixed;
+  left: var(--collector-dialogue-x);
+  top: var(--collector-dialogue-y);
+  z-index: var(--collector-dialogue-z-index);
+  transform: translate(-50%, -50%);
+  margin: 0;
+  max-width: var(--collector-dialogue-max-width);
+  font-family: var(--collector-dialogue-font-family);
+  font-size: var(--collector-dialogue-font-size);
+  font-weight: var(--collector-dialogue-font-weight);
+  line-height: var(--collector-dialogue-line-height);
+  color: var(--collector-dialogue-color);
+  text-align: center;
+  pointer-events: none;
+  user-select: none;
+}
+
+.collectorDialogue__cardName {
+  color: var(--collector-dialogue-card-name-color);
+}
+
+.collectorDialogue__sellPrice {
+  color: var(--collector-dialogue-sell-price-color);
+}
+
+/* Fixed UI (see --collector-title-* / action buttons). */
+.collectorTitle,
+.collectorSellBtn,
+.collectorAcceptBulkBtn,
+.collectorProceedBtn {
+  position: fixed;
+  z-index: var(--collector-ui-z-index);
+  transform: translate(-50%, -50%);
+  margin: 0;
+  text-align: center;
+  pointer-events: none;
+}
+
+.collectorTitle {
+  left: var(--collector-title-x);
+  top: var(--collector-title-y);
+  font-family: var(--font-title);
+  font-size: var(--collector-title-font-size);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--collector-title-color);
+}
+
+.collectorSellBtn,
+.collectorAcceptBulkBtn,
+.collectorProceedBtn {
+  pointer-events: auto;
+}
+
+.btn.collectorSellBtn {
+  left: var(--collector-sell-btn-x);
+  top: var(--collector-sell-btn-y);
+  background: var(--collector-sell-btn-bg);
+  border-color: var(--collector-sell-btn-border);
+  color: var(--collector-sell-btn-color);
+}
+
+.btn.collectorSellBtn:hover:not(:disabled) {
+  background: var(--collector-sell-btn-bg-hover);
+  border-color: var(--collector-sell-btn-border);
+  color: var(--collector-sell-btn-color);
+}
+
+.btn.collectorSellBtn:active:not(:disabled) {
+  background: var(--collector-sell-btn-bg-active);
+  border-color: var(--collector-sell-btn-bg-active);
+  color: var(--collector-sell-btn-color);
+}
+
+.btn.collectorAcceptBulkBtn {
+  left: var(--collector-accept-bulk-btn-x);
+  top: var(--collector-accept-bulk-btn-y);
+  background: var(--collector-accept-bulk-btn-bg);
+  border-color: var(--collector-accept-bulk-btn-border);
+  color: var(--collector-accept-bulk-btn-color);
+}
+
+.btn.collectorAcceptBulkBtn:hover:not(:disabled) {
+  background: var(--collector-accept-bulk-btn-bg-hover);
+  border-color: var(--collector-accept-bulk-btn-border);
+  color: var(--collector-accept-bulk-btn-color);
+}
+
+.btn.collectorAcceptBulkBtn:active:not(:disabled) {
+  background: var(--collector-accept-bulk-btn-bg-active);
+  border-color: var(--collector-accept-bulk-btn-bg-active);
+  color: var(--collector-accept-bulk-btn-color);
+}
+
+.collectorProceedBtn {
+  left: var(--collector-proceed-btn-x);
+  top: var(--collector-proceed-btn-y);
+}
+
+/* Offered card anchor (see --collector-offered-card-*); center = pull-from-deck target. */
+.collectorOfferedCard {
+  position: fixed;
+  left: var(--collector-offered-card-x);
+  top: var(--collector-offered-card-y);
+  z-index: var(--collector-offered-card-z-index);
+  width: var(--game-card-w);
+  height: var(--game-card-h);
+  transform: translate(-50%, -50%) scale(var(--collector-offered-card-scale));
+  transform-origin: center center;
+  pointer-events: none;
+}
+
+.collectorOfferedCard--hidden {
+  visibility: hidden;
+}
+
+.collectorOfferedCard__glow {
+  position: absolute;
+  inset: calc(-1 * var(--collector-offered-card-glow-halo-inset));
+  border-radius: 12px;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0;
+}
+
+.collectorOfferedCard--glow .collectorOfferedCard__glow {
+  animation: collectorOfferedCardGlowPulse var(--duration-collector-offered-card-glow-pulse)
+    var(--ease-collector-offered-card-glow-pulse) infinite;
+}
+
+.collectorOfferedCard__card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+}
+
+.collectorOfferedCard__card .gameCard {
+  width: 100%;
+  height: 100%;
+}
+
+/* Bulk reward preview (see --collector-bulk-card-*). */
+.collectorBulkCard {
+  position: fixed;
+  z-index: var(--collector-bulk-card-z-index);
+  width: var(--game-card-w);
+  height: var(--game-card-h);
+  transform: translate(-50%, -50%) scale(var(--collector-bulk-card-scale));
+  transform-origin: center center;
+  pointer-events: none;
+}
+
+.collectorBulkCard--0 {
+  left: var(--collector-bulk-card-0-x);
+  top: var(--collector-bulk-card-0-y);
+}
+
+.collectorBulkCard--1 {
+  left: var(--collector-bulk-card-1-x);
+  top: var(--collector-bulk-card-1-y);
+}
+
+.collectorBulkCard--hidden {
+  visibility: hidden;
+}
+
+.collectorBulkCard .gameCard {
+  width: 100%;
+  height: 100%;
+}
+
+.collectorOfferedCard--glow .collectorOfferedCard__card .gameCard {
+  outline: var(--collector-offered-card-glow-outline-width) solid
+    var(--collector-offered-card-glow-outline-color);
+  animation: collectorOfferedCardGlowShadow var(--duration-collector-offered-card-glow-pulse)
+    var(--ease-collector-offered-card-glow-pulse) infinite;
+}
+
+.inspectDeckCardSlot--collectorOffered {
+  z-index: 10;
+}
+
+.inspectDeckCardSlot--collectorOffered .gameCard {
+  outline: var(--collector-offered-card-glow-outline-width) solid
+    var(--collector-offered-card-glow-outline-color);
+  animation: collectorOfferedCardGlowShadow var(--duration-collector-offered-card-glow-pulse)
+    var(--ease-collector-offered-card-glow-pulse) infinite;
+}
+
+@keyframes collectorOfferedCardGlowPulse {
+  0%,
+  100% {
+    opacity: var(--collector-offered-card-glow-opacity-min);
+    box-shadow:
+      0 0 var(--collector-offered-card-glow-spread) var(--collector-offered-card-glow-color-soft),
+      0 0 var(--collector-offered-card-glow-spread-wide) var(--collector-offered-card-glow-color-soft);
+  }
+  50% {
+    opacity: var(--collector-offered-card-glow-opacity-peak);
+    box-shadow:
+      0 0 var(--collector-offered-card-glow-spread) var(--collector-offered-card-glow-color),
+      0 0 var(--collector-offered-card-glow-spread-wide) var(--collector-offered-card-glow-color-soft);
+  }
+}
+
+@keyframes collectorOfferedCardGlowShadow {
+  0%,
+  100% {
+    box-shadow:
+      0 0 calc(var(--collector-offered-card-glow-spread) * 0.85) var(--collector-offered-card-glow-color-soft),
+      0 0 calc(var(--collector-offered-card-glow-spread-wide) * 0.75) var(--collector-offered-card-glow-color-soft);
+  }
+  50% {
+    box-shadow:
+      0 0 var(--collector-offered-card-glow-spread) var(--collector-offered-card-glow-color),
+      0 0 var(--collector-offered-card-glow-spread-wide) var(--collector-offered-card-glow-color-soft);
+  }
+}
+
+.collectorProceedBtn:disabled {
+  cursor: not-allowed;
+  pointer-events: none;
+  opacity: 0.45;
+}
+
+/* Fountain art button (see --font-of-lethe-art-*). */
+.fontOfLetheArtBtn {
+  position: fixed;
+  left: var(--font-of-lethe-art-x);
+  top: var(--font-of-lethe-art-y);
+  z-index: var(--font-of-lethe-art-btn-z-index);
+  display: block;
+  width: var(--font-of-lethe-art-size);
+  padding: 0;
+  border: none;
+  background: transparent;
+  transform: translate(-50%, -50%);
+  cursor: default;
+  line-height: 0;
+  outline: none;
+  box-shadow: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.fontOfLetheArtBtn:focus,
+.fontOfLetheArtBtn:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.fontOfLetheArtBtn.opaqueImageBtn--lit {
+  cursor: pointer;
+}
+
+.fontOfLetheArtBtn--inactive {
+  pointer-events: none;
+}
+
+.fontOfLetheArtBtn__img {
+  display: block;
+  width: 100%;
+  height: auto;
+  pointer-events: none;
+  user-select: none;
+  transition: filter var(--font-of-lethe-art-hover-duration) ease;
+}
+
+.fontOfLetheArtBtn__img--empty {
+  filter: brightness(var(--font-of-lethe-empty-tone));
+}
+
+.fontOfLetheArtBtn.opaqueImageBtn--lit .fontOfLetheArtBtn__img {
+  filter: brightness(var(--font-of-lethe-art-hover-brightness));
+}
+
+/* Fixed UI (see --font-of-lethe-title-* / subtitle / proceed-btn). */
+.fontOfLetheTitle,
+.fontOfLetheSubtitle,
+.fontOfLetheProceedBtn {
+  position: fixed;
+  z-index: var(--font-of-lethe-ui-z-index);
+  transform: translate(-50%, -50%);
+  margin: 0;
+  text-align: center;
+  pointer-events: none;
+}
+
+.fontOfLetheTitle {
+  left: var(--font-of-lethe-title-x);
+  top: var(--font-of-lethe-title-y);
+  font-family: var(--font-title);
+  font-size: var(--font-of-lethe-title-font-size);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--font-of-lethe-title-color);
+}
+
+.fontOfLetheSubtitle {
+  left: var(--font-of-lethe-subtitle-x);
+  top: var(--font-of-lethe-subtitle-y);
+  font-family: var(--font-main);
+  font-size: var(--font-of-lethe-subtitle-font-size);
+  font-weight: 600;
+  color: var(--font-of-lethe-subtitle-color);
+}
+
+.fontOfLetheProceedBtn {
+  left: var(--font-of-lethe-proceed-btn-x);
+  top: var(--font-of-lethe-proceed-btn-y);
+  pointer-events: auto;
+}
+
+.fontOfLetheProceedBtn:disabled {
+  cursor: not-allowed;
+  pointer-events: none;
+  opacity: 0.45;
+}
+
+.fontOfLetheProceedBtn:not(:disabled) {
+  animation: fontOfLetheProceedNudgePulse var(--font-of-lethe-proceed-nudge-pulse-duration) ease-in-out infinite;
+}
+
+@keyframes fontOfLetheProceedNudgePulse {
+  0%,
+  100% {
+    box-shadow: var(--font-of-lethe-proceed-nudge-glow);
+  }
+  50% {
+    box-shadow: var(--font-of-lethe-proceed-nudge-glow-strong);
+  }
+}
+
+.fontOfLetheForgetOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--font-of-lethe-forget-overlay-z);
+  display: grid;
+  place-items: center;
+  background: var(--font-of-lethe-forget-overlay-bg);
+}
+
+.fontOfLetheForgetPanel {
+  position: relative;
+  width: var(--font-of-lethe-forget-panel-width);
+  height: var(--font-of-lethe-forget-panel-height);
+  border: var(--font-of-lethe-forget-panel-rim-width) solid var(--font-of-lethe-forget-panel-rim-color);
+  border-radius: var(--font-of-lethe-forget-panel-border-radius);
+  background: var(--font-of-lethe-forget-panel-bg);
+  box-shadow: var(--font-of-lethe-forget-panel-box-shadow);
+  padding: var(--font-of-lethe-forget-panel-padding);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--font-of-lethe-forget-panel-gap);
+}
+
+.fontOfLetheForgetTitle {
+  font-size: var(--font-of-lethe-forget-title-font-size);
+  font-weight: 900;
+  letter-spacing: var(--font-of-lethe-forget-title-letter-spacing);
+  text-transform: uppercase;
+  pointer-events: none;
+  color: var(--font-of-lethe-forget-title-color);
+  margin: 0;
+}
+
+.fontOfLetheForgetSub {
+  font-size: var(--font-of-lethe-forget-sub-font-size);
+  color: var(--font-of-lethe-forget-sub-color);
+  pointer-events: none;
+  margin: 0;
+}
+
+.fontOfLetheForgetActions {
+  display: flex;
+  gap: var(--font-of-lethe-forget-actions-gap);
+  align-items: center;
+}
+
+.fontOfLetheForgetSubmit {
+  cursor: pointer;
+  border: var(--font-of-lethe-forget-submit-border);
+  background: var(--font-of-lethe-forget-submit-bg);
+  color: var(--font-of-lethe-forget-submit-color);
+  padding: var(--font-of-lethe-forget-submit-padding);
+  border-radius: var(--font-of-lethe-forget-submit-border-radius);
+  font-size: var(--font-of-lethe-forget-submit-font-size);
+  font-weight: var(--font-of-lethe-forget-submit-font-weight);
+}
+
+.fontOfLetheForgetSubmit:hover:not(:disabled) {
+  background: var(--font-of-lethe-forget-submit-hover-bg);
+}
+
+.fontOfLetheForgetSubmit:disabled {
+  cursor: not-allowed;
+  opacity: var(--font-of-lethe-forget-submit-disabled-opacity);
+}
+
+.fontOfLetheForgetHand {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--font-of-lethe-forget-hand-gap);
+  padding: var(--font-of-lethe-forget-hand-padding-y) var(--font-of-lethe-forget-hand-padding-x);
+  border: var(--font-of-lethe-forget-hand-rim-width) solid var(--font-of-lethe-forget-hand-rim-color);
+  border-radius: var(--font-of-lethe-forget-hand-border-radius);
+  background: var(--font-of-lethe-forget-hand-bg);
+}
+
+.fontOfLetheForgetCard {
+  flex: 0 0 auto;
 }
 
 .mapCenter {
@@ -190,7 +1070,10 @@
   height: auto;
   pointer-events: none;
   user-select: none;
-  transform: translate(var(--shop-shelves-bg-nudge-x), var(--shop-shelves-bg-nudge-y));
+  transform-origin: center center;
+  transform:
+    translate(var(--shop-shelves-bg-nudge-x), var(--shop-shelves-bg-nudge-y))
+    scale(var(--shop-shelves-bg-x-stretch), var(--shop-shelves-bg-y-stretch));
 }
 
 .shopShelves .shopGrid {
@@ -204,6 +1087,10 @@
   gap: var(--shop-shelves-grid-gap);
   box-sizing: border-box;
   transform: translate(var(--shop-shelves-grid-nudge-x), var(--shop-shelves-grid-nudge-y));
+}
+
+.shopShelves .shopGrid > .shopShelfSlot:nth-child(n + 4):nth-child(-n + 6) {
+  transform: translateY(var(--shop-shelves-row-2-nudge-y));
 }
 
 .shopShelfSlot {
@@ -315,8 +1202,47 @@
   padding: 0.12em 0.2em;
 }
 
+/* Fixed left of viewport (see --main-menu-player-*). */
+.mainMenuPlayerPlaceholder {
+  position: fixed;
+  left: var(--main-menu-player-x);
+  top: var(--main-menu-player-y);
+  z-index: 1;
+  width: var(--main-menu-player-size);
+  height: var(--main-menu-player-size);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  user-select: none;
+}
+
+.mainMenuPlayerPlaceholder__art {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transform-origin: bottom center;
+  animation: mainMenuPlayerSway var(--main-menu-player-sway-duration) ease-in-out infinite;
+}
+
+@keyframes mainMenuPlayerSway {
+  0%,
+  100% {
+    transform: rotate(calc(var(--main-menu-player-rotate) - var(--main-menu-player-sway-deg)));
+  }
+  50% {
+    transform: rotate(calc(var(--main-menu-player-rotate) + var(--main-menu-player-sway-deg)));
+  }
+}
+
 .titleScreenPanelGame .btn {
   margin-top: calc(var(--game-h) * 0.01 * 0.005px);
+}
+
+.titleScreenPanelGame .btn:disabled {
+  opacity: 1;
+  background: var(--color-button-active);
+  border-color: var(--color-button-active);
+  transition: var(--transition-button);
 }
 
 .btn {
@@ -332,6 +1258,11 @@
 }
 .btn:hover:not(:disabled) {
   background: var(--color-button-hover);
+}
+.btn:active:not(:disabled) {
+  opacity: 1;
+  background: var(--color-button-active);
+  border-color: var(--color-button-active);
 }
 .btn:disabled {
   opacity: 0.5;
@@ -1108,6 +2039,29 @@ button.gemIcon {
   pointer-events: none;
 }
 
+.cardConsumeHost--fontOfLetheForgetPoof {
+  z-index: var(--font-of-lethe-ui-z-index);
+}
+
+/* Combat — 50% larger consume aftermath sprite (see --combat-consume-aftermath-scale). */
+.cardConsumeHost--combat {
+  --card-consume-aftermath-w: calc(var(--card-consume-aftermath-w) * var(--combat-consume-aftermath-scale));
+  --card-consume-aftermath-h: calc(var(--card-consume-aftermath-h) * var(--combat-consume-aftermath-scale));
+}
+
+/* Collector sell — 50% larger consume burst (see --collector-sell-consume-scale). */
+.cardConsumeHost--collectorSell {
+  --card-consume-puff-height-tiny: calc(var(--card-consume-puff-height-tiny) * var(--collector-sell-consume-scale));
+  --card-consume-puff-height-poof: calc(var(--card-consume-puff-height-poof) * var(--collector-sell-consume-scale));
+  --card-consume-puff-height-big: calc(var(--card-consume-puff-height-big) * var(--collector-sell-consume-scale));
+  --card-consume-aftermath-w: calc(var(--card-consume-aftermath-w) * var(--collector-sell-consume-scale));
+  --card-consume-aftermath-h: calc(var(--card-consume-aftermath-h) * var(--collector-sell-consume-scale));
+  --card-consume-puff-spread-base: calc(var(--card-consume-puff-spread-base) * var(--collector-sell-consume-scale));
+  --card-consume-puff-spread-range: calc(var(--card-consume-puff-spread-range) * var(--collector-sell-consume-scale));
+  --card-consume-puff-drift-min: calc(var(--card-consume-puff-drift-min) * var(--collector-sell-consume-scale));
+  --card-consume-puff-drift-range: calc(var(--card-consume-puff-drift-range) * var(--collector-sell-consume-scale));
+}
+
 .cardConsumeFx {
   position: absolute;
   left: 0;
@@ -1466,6 +2420,11 @@ button.gemIcon {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .mainMenuPlayerPlaceholder__art {
+    animation: none;
+    transform: rotate(var(--main-menu-player-rotate));
+  }
+
   .relicIcon__img.triggerFx--source,
   .combatMonsterPlaceholder__art.triggerFx--source,
   .shieldIconDisplay__art.triggerFx--source,
@@ -2062,6 +3021,25 @@ button.gemIcon {
   transition: filter 0.2s ease;
 }
 
+.inspectDeckBtn__img.inspectDeckBtn__img--fontOfLetheForgetGlow {
+  animation: fontOfLetheForgetDeckGlow var(--duration-font-of-lethe-forget-deck-glow) ease-in-out;
+}
+
+@keyframes fontOfLetheForgetDeckGlow {
+  0% {
+    filter: none;
+  }
+  45% {
+    filter:
+      brightness(var(--font-of-lethe-forget-deck-glow-brightness))
+      drop-shadow(0 0 10px var(--font-of-lethe-forget-deck-glow-core))
+      drop-shadow(0 0 18px var(--font-of-lethe-forget-deck-glow-halo));
+  }
+  100% {
+    filter: none;
+  }
+}
+
 .inspectDeckBtn.opaqueImageBtn--lit {
   cursor: pointer;
 }
@@ -2076,8 +3054,8 @@ button.gemIcon {
 
 .inspectDiscardBtn {
   position: absolute;
-  left: 12px;
-  bottom: calc(12px + var(--inspect-deck-icon-height) + 8px);
+  left: var(--inspect-discard-icon-x);
+  bottom: var(--inspect-discard-icon-y);
   z-index: 6;
   margin: 0;
   padding: 0;
@@ -2098,12 +3076,17 @@ button.gemIcon {
 
 .inspectDiscardBtn__img {
   display: block;
-  height: var(--inspect-discard-icon-height);
+  height: var(--inspect-discard-icon-size);
   width: auto;
   max-width: none;
   pointer-events: none;
   user-select: none;
   transition: filter 0.2s ease;
+}
+
+.inspectDiscardBtn .opaqueImageBtn__hoverOverlay {
+  left: var(--inspect-discard-count-x);
+  top: var(--inspect-discard-count-y);
 }
 
 .inspectDiscardBtn.opaqueImageBtn--lit {
@@ -3186,6 +4169,17 @@ button.gemIcon {
     top var(--duration-card-draw-travel) cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+.cardTravelFlyer--pullFromDeck {
+  z-index: var(--pull-from-deck-flyer-z);
+  perspective: var(--pull-from-deck-perspective);
+}
+
+.cardTravelFlyer--pullFromDeck.cardTravelFlyer--moving {
+  transition:
+    left var(--duration-pull-from-deck-travel) var(--ease-pull-from-deck-travel),
+    top var(--duration-pull-from-deck-travel) var(--ease-pull-from-deck-travel);
+}
+
 .cardTravelFlyer--toDiscard.cardTravelFlyer--moving {
   transition:
     left var(--duration-card-discard-travel) cubic-bezier(0.16, 1, 0.3, 1),
@@ -3212,6 +4206,26 @@ button.gemIcon {
 
 .cardTravelMotion--fromDeck.cardTravelMotion--moving {
   transform: translate(-50%, -50%) scale(1) rotate(0deg);
+}
+
+.cardTravelMotion--pullFromDeck {
+  transition: transform var(--duration-pull-from-deck-travel) var(--ease-pull-from-deck-travel);
+  transform: translate(-50%, -50%) scale(var(--pull-from-deck-dest-scale))
+    rotate(var(--pull-from-deck-dest-rotate));
+}
+
+.cardTravelMotion--pullFromDeck.cardTravelMotion--pullFromDeckOrigin {
+  transform: translate(-50%, -50%) scale(var(--pull-from-deck-origin-scale))
+    rotate(var(--pull-from-deck-origin-rotate));
+}
+
+.cardTravelMotion--pullFromDeck.cardTravelMotion--moving {
+  transform: translate(-50%, -50%) scale(var(--pull-from-deck-dest-scale))
+    rotate(var(--pull-from-deck-dest-rotate));
+}
+
+.cardTravelFlyer--pullFromDeck .cardTravelFlipper {
+  transition: transform var(--duration-pull-from-deck-flip) var(--ease-pull-from-deck-flip);
 }
 
 .cardTravelMotion--toDiscard {
@@ -3675,10 +4689,23 @@ button.gemIcon {
   filter: var(--card-front-filter);
 }
 
+.gameCard__foilSheen {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--card-foil-sheen-gradient);
+  opacity: var(--card-foil-sheen-opacity);
+  mix-blend-mode: var(--card-foil-sheen-blend);
+  pointer-events: none;
+  user-select: none;
+  z-index: 1;
+}
+
 .gameCard--socketed {
   --color-card-name: var(--color-card-socketed-name);
   --color-card-name-upgraded: var(--color-card-socketed-name-upgraded);
   --color-card-ink: var(--color-card-socketed-ink);
+  --color-card-ink-modified: var(--color-card-socketed-ink-modified);
   --color-card-text: var(--color-card-socketed-text);
   --color-card-text-amt-up: var(--color-card-socketed-text-amt-up);
   --color-card-text-amt-down: var(--color-card-socketed-text-amt-down);
@@ -3717,6 +4744,7 @@ button.gemIcon {
   pointer-events: none;
   overflow: hidden;
   min-height: 0;
+  z-index: 2;
 }
 
 .gameCard__header {
@@ -3753,6 +4781,10 @@ button.gemIcon {
   line-height: var(--font-card-ink-line-height);
   color: var(--color-card-ink);
   white-space: nowrap;
+}
+
+.gameCard__ink--modified {
+  color: var(--color-card-ink-modified);
 }
 
 .gameCard__art {

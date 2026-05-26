@@ -4,6 +4,7 @@ import type { CardId, CardInstanceId, EnemyId, EnemyInstanceId, GemId, PathId, R
 import type { AnimState } from '../../animation/types'
 import type { InputState } from '../../input/types'
 import type { EnemyBoonId } from '../../data/enemyBoons'
+import type { MysteryRoomId } from '../../data/mysteryRooms'
 import type { EnemyIntentKind } from '../../data/enemyIntentKinds'
 
 export type Phase =
@@ -36,6 +37,10 @@ export type CardInstance = Readonly<{
   socketedGemId: GemId | null
   /** When true, this instance cannot receive a gem (templates or prior socketing). */
   unsocketable: boolean
+  /** Foil: +50% (rounded up) to effect amounts after upgrades and to upgradeValues before upgrades. */
+  foil?: boolean
+  /** Sticker modification (not yet implemented in gameplay). */
+  sticker?: boolean
 }>
 
 export type RelicInstance = Readonly<{
@@ -64,6 +69,45 @@ export type GemstoneSocketingState = Readonly<{
 export type GemstoneCavernState = Readonly<{
   offered: ReadonlyArray<GemId>
   socketing: GemstoneSocketingState | null
+}>
+
+/** Font of Lethe event — pick a deck card to permanently remove. */
+export type FontOfLetheState = Readonly<{
+  selectedCardInstanceId: CardInstanceId | null
+  cardForgotten: boolean
+}>
+
+/** The Printer — foil one card or duplicate one card, then proceed. */
+export type PrinterState = Readonly<{
+  selectedCardInstanceId: CardInstanceId | null
+  duplicateSelectedCardInstanceId: CardInstanceId | null
+  cardFoiled: boolean
+  cardDuplicated: boolean
+}>
+
+/** The Collector — offers to buy the player's best card or trade bulk cards. */
+export type CollectorState = Readonly<{
+  offeredCardInstanceId: CardInstanceId | null
+  /** True after the pull-from-deck reveal animation finishes (or when no card to offer). */
+  cardRevealed: boolean
+  /** Rolled when the room is entered (inclusive range; see collector event). */
+  sellPrice: number
+  /** True after the player sold the offered card and received {@link sellPrice} gold. */
+  sold: boolean
+  /** True after the player chose bulk cards (mutually exclusive with {@link sold}). */
+  bulkAccepted: boolean
+  /** Rolled on accept; same shape as card reward offers. */
+  bulkCards: ReadonlyArray<Readonly<{ cardId: CardId; upgrades: number }>> | null
+  /** Count of {@link bulkCards} instances added to the deck after travel FX. */
+  bulkCardsAdded: number
+}>
+
+/** Populated while phase is `EVENT` (Mystery path: rolled room behind the door). */
+export type MysteryRoomState = Readonly<{
+  roomId: MysteryRoomId
+  fontOfLethe?: FontOfLetheState
+  printer?: PrinterState
+  collector?: CollectorState
 }>
 
 /** Rolled encounter shown on the path picker (committed when the player chooses that slot). */
@@ -177,6 +221,8 @@ export type PlayerState = Readonly<{
   gold: number
   bunnies: number
   power: number
+  /** Bonus temporary shield from cards tagged addShield. */
+  shieldPower: number
   /** Multiplier for damage on cards tagged fire and damage; 0 means no bonus. */
   firepowerMultiplier: number
   luck: number
@@ -194,6 +240,15 @@ export type PlayerState = Readonly<{
     discardPile: ReadonlyArray<CardInstanceId>
   }>
   relics: ReadonlyArray<RelicInstance>
+}>
+
+/** Queued burden grant shown with card-to-deck FX before mutating the deck. */
+export type BurdenAddEntry = Readonly<{
+  cardId: CardId
+  upgrades: number
+  zone: 'draw' | 'discard'
+  /** Enemy applying the burden (combat FX origin); null uses the default preview slot. */
+  sourceEnemyId: EnemyInstanceId | null
 }>
 
 export type HandSelectionState = Readonly<{
@@ -238,6 +293,15 @@ export type CombatState = Readonly<{
   playerDefeatPending: boolean
   /** True after enemy turn until the post-discard hand draw runs (separate from discard for animations). */
   pendingTurnStartDraw: boolean
+  /** Burden cards waiting for add-to-deck/discard FX (applied front-to-back). */
+  burdenAddQueue: ReadonlyArray<BurdenAddEntry>
+  /** Opening hand draw deferred until {@link burdenAddQueue} is empty (Alchemist lead ingots, etc.). */
+  pendingOpeningHandDraw: Readonly<{ bonusDraw: number }> | null
+  /**
+   * Phoenix-feather Quill: first fire spell each combat costs 0 ink.
+   * Set at combat start when the relic is owned; cleared when a fire-tagged card is played.
+   */
+  freeFirstFireSpell: boolean
 }>
 
 export type UiState = Readonly<{
@@ -291,6 +355,8 @@ export type GameState = Readonly<{
   treasureRoom: TreasureRoomState | null
   /** Populated while phase is `GEMSTONE_CAVERN`. */
   gemstoneCavern: GemstoneCavernState | null
+  /** Populated while phase is `EVENT` (Mystery path). */
+  mysteryRoom: MysteryRoomState | null
   pathSelection: PathSelectionState | null
   cardReward: CardRewardState | null
   /** Stock for the current SHOP visit (9 slots). */
@@ -302,6 +368,11 @@ export type GameState = Readonly<{
    * (set to selectedLevel + path.cooldown when the player picks that path).
    */
   pathCooldownUntil: Readonly<Partial<Record<PathId, number>>>
+  /**
+   * Mystery rooms with cooldown: minimum game level before this room id may be rolled again
+   * (set to selectedLevel + room.cooldown when the player picks a mystery path).
+   */
+  mysteryRoomCooldownUntil: Readonly<Partial<Record<MysteryRoomId, number>>>
   defeat: DefeatState | null
   ui: UiState
 }>

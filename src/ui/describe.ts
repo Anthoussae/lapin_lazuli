@@ -7,7 +7,8 @@ import type { GemId } from '../core/types/ids'
 import type { CardInstance } from '../core/types/state'
 import { cardBaseEffects } from '../systems/cards/cardEffects'
 import { boostFireDealDamage, cardHasFireDamageTags } from '../systems/cards/firepower'
-import { displayUpgradeTierCount, offeredUpgradeTiersToEffectScaling, scaleCardEffects } from '../systems/cards/upgrades'
+import { boostShieldGain, cardHasAddShieldTag } from '../systems/cards/shieldPower'
+import { applyCardInstanceEffectModifiers } from '../systems/cards/upgrades'
 import {
   cardKeywordIds,
   CARD_KEYWORDS,
@@ -47,6 +48,8 @@ export function describeEffect(fx: Effect): string {
       if (t === 'selectedEnemy') return `give the targeted enemy ${fx.amount} ${plural(fx.amount, 'shield')}`
       return `gain ${fx.amount} ${plural(fx.amount, 'shield')}`
     }
+    case 'GAIN_SHIELD_EQUAL_TO_LEVEL':
+      return 'gain shields equal to your level'
     case 'GAIN_LOCKED_SHIELD':
       return `gain ${fx.amount} locked ${plural(fx.amount, 'shield')}`
     case 'LOCK_ALL_SHIELD':
@@ -71,6 +74,8 @@ export function describeEffect(fx: Effect): string {
       return `gain ${fx.amount} ${plural(fx.amount, 'key')}`
     case 'GAIN_POWER':
       return `gain ${fx.amount} ${plural(fx.amount, 'power')}`
+    case 'GAIN_SHIELD_POWER':
+      return `gain ${fx.amount} shield power`
     case 'GAIN_FIREPOWER_MULTIPLIER':
       return `gain ${fx.amount} firepower`
     case 'GAIN_LUCK':
@@ -89,6 +94,8 @@ export function describeEffect(fx: Effect): string {
       if (fx.numberOfTargets === 1) return `upgrade your ${pretty}`
       return `upgrade ${fx.numberOfTargets} of your ${pretty}`
     }
+    case 'ACTIVATE_FREE_FIRST_FIRE_SPELL':
+      return 'your first fire spell each combat costs 0 ink'
   }
 }
 
@@ -110,6 +117,7 @@ const RELIC_TRIGGER_LINE: Partial<Record<TriggerDef['on'], (eff: string) => stri
   combat_start: (eff) => `At combat start, ${eff}.`,
   turn_start: (eff) => `At turn start, ${eff}.`,
   draw_starting_hand: (eff) => `When drawing your starting hand, ${eff}.`,
+  onNonOpenerCardDraw: (eff) => `Whenever you draw a card other than into your opening hand, ${eff}.`,
   onRest: (eff) => `When you rest, ${eff}.`,
   onSleep: (eff) => `When you sleep, ${eff}.`,
 }
@@ -169,13 +177,13 @@ export function formatCardName(name: string, upgrades: number): string {
   return `${name} + ${upgrades}`
 }
 
-/** Card name from instance effect-scaling upgrades (multiplier shown as base tier count). */
+/** Card name from instance effect-scaling upgrade counter. */
 export function formatCardDisplayName(
   card: CardTemplate,
   effectScalingUpgrades: number,
   socketedGemId: GemId | null = null,
 ): string {
-  const base = formatCardName(card.name, displayUpgradeTierCount(card.id, effectScalingUpgrades))
+  const base = formatCardName(card.name, effectScalingUpgrades)
   if (!socketedGemId) return base
   const gem = Gems[socketedGemId]
   if (!gem) return base
@@ -186,24 +194,24 @@ export function formatCardInstanceDisplayName(card: CardTemplate, inst: CardInst
   return formatCardDisplayName(card, inst.upgrades, inst.socketedGemId ?? null)
 }
 
-/** `upgrades` is the instance counter used by {@link scaleCardEffects} (after upgradeMultiplier). */
+/** `upgrades` is the instance counter used by {@link applyCardInstanceEffectModifiers}. */
 export function describeCardWithUpgrades(
   card: CardTemplate,
   upgrades: number,
   socketedGemId: GemId | null = null,
+  foil = false,
 ): string {
-  const scaled: ReadonlyArray<Effect> = scaleCardEffects(cardBaseEffects(card.id, socketedGemId), upgrades)
+  const scaled = applyCardInstanceEffectModifiers(cardBaseEffects(card.id, socketedGemId), upgrades, foil)
   return describeEffectsOrConsumeFallback(card, scaled, socketedGemId)
 }
 
 export function describeCardInstance(card: CardTemplate, inst: CardInstance): string {
-  return describeCardWithUpgrades(card, inst.upgrades, inst.socketedGemId ?? null)
+  return describeCardWithUpgrades(card, inst.upgrades, inst.socketedGemId ?? null, inst.foil === true)
 }
 
-/** Shop/reward rows: `upgradeApplications` is pre-acquisition tier count (multiplier applied here). */
+/** Shop/reward rows: `upgradeApplications` is the pre-acquisition upgrade counter. */
 export function describeOfferedCardWithUpgrades(card: CardTemplate, upgradeApplications: number): string {
-  const scaling = offeredUpgradeTiersToEffectScaling(card.id, upgradeApplications)
-  return describeCardWithUpgrades(card, scaling)
+  return describeCardWithUpgrades(card, upgradeApplications)
 }
 
 export type CardDescAmountFormat = 'integer' | 'multiplier'
@@ -237,9 +245,10 @@ function effectDescriptionLine(
   displayFx: Effect,
   power: number,
   firepowerMultiplier: number,
+  shieldPower: number,
 ): CardDescLine {
   const segments = capitalizeFirstSegment(
-    buildEffectSegments(card, baseFx, displayFx, power, firepowerMultiplier),
+    buildEffectSegments(card, baseFx, displayFx, power, firepowerMultiplier, shieldPower),
   )
   return { kind: 'segments', segments }
 }
@@ -250,6 +259,7 @@ function buildEffectSegments(
   displayFx: Effect,
   power: number,
   firepowerMultiplier: number,
+  shieldPower: number,
 ): CardDescSegment[] {
   switch (displayFx.kind) {
     case 'DRAW_CARDS':
@@ -293,10 +303,14 @@ function buildEffectSegments(
           txt(` ${plural(displayFx.amount, 'shield')}.`),
         ]
       }
+      const display =
+        cardHasAddShieldTag(card.tags) && shieldPower > 0
+          ? boostShieldGain(displayFx.amount, shieldPower)
+          : displayFx.amount
       return [
         txt('gain '),
-        amtSeg(base, displayFx.amount),
-        txt(` ${plural(displayFx.amount, 'shield')}.`),
+        amtSeg(base, display),
+        txt(` ${plural(display, 'shield')}.`),
       ]
     }
     case 'GAIN_LOCKED_SHIELD':
@@ -402,7 +416,7 @@ function buildEffectSegments(
 }
 
 /**
- * Structured card description lines. ADD_BUNNIES rows carry base (scaled, no power) vs display (with power bonus when power > 0).
+ * Structured card description lines. ADD_BUNNIES / addShield GAIN_SHIELD rows show base vs boosted amounts in green.
  */
 export function cardDescriptionLines(
   card: CardTemplate,
@@ -410,6 +424,8 @@ export function cardDescriptionLines(
   power: number,
   socketedGemId: GemId | null = null,
   firepowerMultiplier = 0,
+  shieldPower = 0,
+  foil = false,
 ): CardDescLine[] {
   const baseEffects = cardBaseEffects(card.id, socketedGemId)
   const lines: CardDescLine[] = []
@@ -419,10 +435,14 @@ export function cardDescriptionLines(
     if (!lines.length && card.tags.includes('consume')) return [plainCardDescLine('Consume.')]
     return lines
   }
-  const baseScaled = scaleCardEffects(baseEffects, 0).filter((fx) => !isDescriptionKeywordEffect(fx))
-  const scaled = scaleCardEffects(baseEffects, upgrades).filter((fx) => !isDescriptionKeywordEffect(fx))
+  const baseScaled = applyCardInstanceEffectModifiers(baseEffects, 0, foil).filter(
+    (fx) => !isDescriptionKeywordEffect(fx),
+  )
+  const scaled = applyCardInstanceEffectModifiers(baseEffects, upgrades, foil).filter(
+    (fx) => !isDescriptionKeywordEffect(fx),
+  )
   const effectLines: CardDescLine[] = scaled.map((fx, i) =>
-    effectDescriptionLine(card, baseScaled[i] ?? fx, fx, power, firepowerMultiplier),
+    effectDescriptionLine(card, baseScaled[i] ?? fx, fx, power, firepowerMultiplier, shieldPower),
   )
   const keywordIds = cardKeywordIds(card, socketedGemId)
   const keywordLines: CardDescLine[] = keywordIds.length ? [{ kind: 'keywords', ids: keywordIds }] : []
@@ -458,8 +478,17 @@ export function cardDescriptionLinesForInstance(
   inst: CardInstance,
   power: number,
   firepowerMultiplier = 0,
+  shieldPower = 0,
 ): CardDescLine[] {
-  return cardDescriptionLines(card, inst.upgrades, power, inst.socketedGemId ?? null, firepowerMultiplier)
+  return cardDescriptionLines(
+    card,
+    inst.upgrades,
+    power,
+    inst.socketedGemId ?? null,
+    firepowerMultiplier,
+    shieldPower,
+    inst.foil === true,
+  )
 }
 
 export function cardDescriptionLinesForOffer(
@@ -467,8 +496,8 @@ export function cardDescriptionLinesForOffer(
   upgradeApplications: number,
   power = 0,
   firepowerMultiplier = 0,
+  shieldPower = 0,
 ): CardDescLine[] {
-  const scaling = offeredUpgradeTiersToEffectScaling(card.id, upgradeApplications)
-  return cardDescriptionLines(card, scaling, power, null, firepowerMultiplier)
+  return cardDescriptionLines(card, upgradeApplications, power, null, firepowerMultiplier, shieldPower)
 }
 

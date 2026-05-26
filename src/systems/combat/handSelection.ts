@@ -5,16 +5,17 @@ import { setPhase } from '../../reducers/reduceGame'
 import {
   cardInstanceConsumes,
   cardInstanceExhausts,
-  cardInstancePlayEffects,
+  cardInstanceResolvedPlayEffects,
   cardInstanceUpgradesAfterCasting,
 } from '../cards/cardEffects'
-import { upgradeCardInstance, scaleCardEffects } from '../cards/upgrades'
+import { upgradeCardInstance } from '../cards/upgrades'
 import { Cards } from '../../data/cards'
 import { Relics } from '../../data/relics'
 import { applyRelicEffect } from '../relics/applyRelicEffects'
 import { applyEffects } from './resolveEffects'
 import { consumeCardFromDeck } from './zones'
-import { cardInstanceInkCost } from '../cards/inkCost'
+import { cardHasFireTag, cardInstanceInkCost } from '../cards/inkCost'
+import { consumeFreeFirstFireSpellIfFireCard } from '../relics/phoenixFeatherQuill'
 
 export function cancelHandSelection(state: GameState): { state: GameState; events: GameEvent[] } {
   const combat = state.combat
@@ -88,7 +89,8 @@ function resolveHandSelection(state: GameState, chosenIds: ReadonlyArray<CardIns
     return { state: setPhase({ ...state, combat: { ...combat, handSelection: null } }, 'COMBAT_PLAYER_READY'), events: [] }
   }
   const tmpl = Cards[inst.templateId]
-  const cost = cardInstanceInkCost(inst, tmpl)
+  const inkOpts = { freeFirstFireSpell: state.combat.freeFirstFireSpell }
+  const cost = cardInstanceInkCost(inst, tmpl, inkOpts)
   if (cost === null || state.player.energy < cost) {
     // Energy changed while modal open; treat as cancel but keep pick closed.
     return { state: setPhase({ ...state, combat: { ...combat, handSelection: null } }, 'COMBAT_PLAYER_READY'), events: [] }
@@ -106,6 +108,9 @@ function resolveHandSelection(state: GameState, chosenIds: ReadonlyArray<CardIns
 
   // Pay cost.
   s = { ...s, player: { ...s.player, energy: s.player.energy - cost } }
+  if (cardHasFireTag(tmpl.tags)) {
+    s = consumeFreeFirstFireSpellIfFireCard(s, tmpl)
+  }
 
   if (cardInstanceConsumes(inst)) {
     s = consumeCardFromDeck(s, playedId)
@@ -126,11 +131,12 @@ function resolveHandSelection(state: GameState, chosenIds: ReadonlyArray<CardIns
   }
 
   // Apply any non-interactive effects the card might also have (if we add such cards later).
-  const scaled = scaleCardEffects(cardInstancePlayEffects(inst), inst.upgrades)
+  const scaled = cardInstanceResolvedPlayEffects(inst)
   const nonInteractiveFx = scaled.filter((fx) => fx.kind !== 'UPGRADE_SELECTED_CARD' && fx.kind !== 'CONSUME_SELECTED_CARD')
   const selectedEnemyId = s.combat?.targeting.selectedEnemyId ?? null
   const out = applyEffects(s, nonInteractiveFx, { selectedEnemyId, playedCardInstanceId: playedId }, {
     powerBoostsCardAddBunnies: true,
+    shieldPowerBoostsCardGainShield: true,
     firepowerBoostsCardDealDamage: true,
   })
   s = out.state

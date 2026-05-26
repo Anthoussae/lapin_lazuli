@@ -8,6 +8,7 @@ import {
   monsterDoor,
   openBossDoor,
   openDoor,
+  mysteryDoor,
   restDoor,
   shopDoor,
   treasureDoor,
@@ -19,6 +20,7 @@ const PATH_DOOR_BY_ID: Readonly<Partial<Record<PathId, string>>> = {
   SHOP: shopDoor,
   TREASURE_ROOM: treasureDoor,
   GEMSTONE_CAVERN: gemDoor,
+  MYSTERY: mysteryDoor,
 }
 
 export function pathDoorArt(pathId: PathId): string {

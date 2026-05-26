@@ -144,7 +144,13 @@ export function ShopScreen(props: ScreenProps) {
                       name: label,
                       inkLabel: t?.cost !== null && t?.cost !== undefined ? String(t.cost) : null,
                       descriptionLines: t
-                        ? cardDescriptionLinesForOffer(t, item.upgrades, state.player.power, state.player.firepowerMultiplier)
+                        ? cardDescriptionLinesForOffer(
+                            t,
+                            item.upgrades,
+                            state.player.power,
+                            state.player.firepowerMultiplier,
+                            state.player.shieldPower,
+                          )
                         : [],
                     },
                     onComplete: () => enqueue({ type: 'SHOP/BUY_ITEM', slotIndex }),
@@ -156,6 +162,7 @@ export function ShopScreen(props: ScreenProps) {
                   offerUpgradeApplications={item.upgrades}
                   power={state.player.power}
                   firepowerMultiplier={state.player.firepowerMultiplier}
+                  shieldPower={state.player.shieldPower}
                   className={isChosen ? 'gameCard--traveling' : undefined}
                 />
                 <span className="shopCardOffer__price">{item.price}g</span>

@@ -10,7 +10,13 @@ import {
 import { flushSync } from 'react-dom'
 import type { CardId, GemId } from '../core/types/ids'
 import { cardBackArt } from './assets/cardImages'
-import { cardDeckTravelEndpoints, cardDiscardTravelEndpoints, cardHandTravelEndpoints } from './cardLayout'
+import {
+  cardDeckTravelEndpoints,
+  cardDiscardTravelEndpoints,
+  cardHandTravelEndpoints,
+  cardPullFromDeckEndpoints,
+} from './cardLayout'
+import { pullFromDeckTotalMs } from './cardPullFromDeckConfig'
 import type { CardDescLine } from '../ui/describe'
 import { Card } from './primitives/Card'
 import { useRelicTravel } from './RelicTravelContext'
@@ -21,8 +27,10 @@ export type CardTravelPayload = Readonly<{
   name: string
   nameUpgraded?: boolean
   inkLabel: string | null
+  inkModified?: boolean
   descriptionLines: ReadonlyArray<CardDescLine>
   socketedGemId?: GemId | null
+  foil?: boolean
 }>
 
 export type CardTravelToDeckRequest = Readonly<{
@@ -39,6 +47,14 @@ export type CardTravelFromDeckRequest = Readonly<{
   onComplete: () => void
 }>
 
+/** Pull from deck to a fixed center in game-stage local coordinates (see {@link cardPullFromDeckEndpoints}). */
+export type CardTravelPullFromDeckRequest = Readonly<{
+  cardKey: string
+  target: Readonly<{ x: number; y: number }>
+  card: CardTravelPayload
+  onComplete: () => void
+}>
+
 export type CardTravelToDiscardRequest = Readonly<{
   cardKey: string
   sourceEl?: HTMLElement
@@ -49,7 +65,11 @@ export type CardTravelToDiscardRequest = Readonly<{
 
 type TravelPoint = Readonly<{ x: number; y: number }>
 
-type CardTravelDirection = 'toDeck' | 'fromDeck' | 'toDiscard'
+type CardTravelDirection = 'toDeck' | 'fromDeck' | 'pullFromDeck' | 'toDiscard'
+
+function isPullFromDeckDirection(direction: CardTravelDirection): boolean {
+  return direction === 'fromDeck' || direction === 'pullFromDeck'
+}
 
 type ActiveFlight = Readonly<{
   cardKey: string
@@ -70,6 +90,7 @@ type CardTravelContextValue = Readonly<{
   travelingDiscardCardKeys: ReadonlySet<string>
   travelCardToDeck: (req: CardTravelToDeckRequest) => void
   travelCardFromDeck: (req: CardTravelFromDeckRequest) => void
+  travelCardPullFromDeck: (req: CardTravelPullFromDeckRequest) => void
   travelCardToDiscard: (req: CardTravelToDiscardRequest) => void
 }>
 
@@ -85,7 +106,10 @@ function cardTravelPosition(flight: ActiveFlight): TravelPoint {
   if (flight.direction === 'toDiscard') {
     return flight.phase === 'moving' && flight.moving ? flight.to : flight.from
   }
-  return flight.phase === 'flip' || (flight.phase === 'moving' && flight.moving) ? flight.to : flight.from
+  if (isPullFromDeckDirection(flight.direction)) {
+    return flight.phase === 'flip' || (flight.phase === 'moving' && flight.moving) ? flight.to : flight.from
+  }
+  return flight.from
 }
 
 export function CardTravelProvider(props: Readonly<{ children: ReactNode }>) {
@@ -133,10 +157,70 @@ export function CardTravelProvider(props: Readonly<{ children: ReactNode }>) {
   const beginFromDeckFlip = useCallback(() => {
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        setFlight((f) => (f && f.direction === 'fromDeck' ? { ...f, flipped: false } : f))
+        setFlight((f) =>
+          f && isPullFromDeckDirection(f.direction) ? { ...f, flipped: false } : f,
+        )
       })
     })
   }, [])
+
+  const startPullFromDeckFlight = useCallback(
+    (
+      req: Readonly<{
+        cardKey: string
+        card: CardTravelPayload
+        from: TravelPoint
+        to: TravelPoint
+        onComplete: () => void
+        direction: 'fromDeck' | 'pullFromDeck'
+      }>,
+    ) => {
+      flushSync(() => {
+        setTravelingCardKey(req.cardKey)
+      })
+
+      let finished = false
+      const finishFlight = () => {
+        if (finished) return
+        finished = true
+        finishFlightRef.current = null
+        setFlight(null)
+        setTravelingCardKey(null)
+        req.onComplete()
+      }
+      finishFlightRef.current = finishFlight
+      fromDeckTravelDoneRef.current = false
+
+      setFlight({
+        cardKey: req.cardKey,
+        card: req.card,
+        from: req.from,
+        to: req.to,
+        onComplete: req.onComplete,
+        direction: req.direction,
+        phase: 'moving',
+        flipped: true,
+        moving: false,
+      })
+
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setFlight((f) =>
+            f && isPullFromDeckDirection(f.direction) ? { ...f, moving: true } : f,
+          )
+        })
+      })
+
+      const totalMs =
+        req.direction === 'pullFromDeck'
+          ? pullFromDeckTotalMs()
+          : readRootDurationMs('--duration-card-draw-travel') +
+            readRootDurationMs('--duration-card-draw-flip') +
+            readRootDurationMs('--duration-card-draw-finish-buffer')
+      window.setTimeout(finishFlight, totalMs)
+    },
+    [],
+  )
 
   const finishActiveFlight = useCallback(() => {
     finishFlightRef.current?.()
@@ -214,46 +298,43 @@ export function CardTravelProvider(props: Readonly<{ children: ReactNode }>) {
         return
       }
 
-      flushSync(() => {
-        setTravelingCardKey(req.cardKey)
-      })
-
-      let finished = false
-      const finishFlight = () => {
-        if (finished) return
-        finished = true
-        finishFlightRef.current = null
-        setFlight(null)
-        setTravelingCardKey(null)
-        req.onComplete()
-      }
-      finishFlightRef.current = finishFlight
-      fromDeckTravelDoneRef.current = false
-
-      setFlight({
+      startPullFromDeckFlight({
         cardKey: req.cardKey,
         card: req.card,
         from: endpoints.from,
         to: endpoints.to,
         onComplete: req.onComplete,
         direction: 'fromDeck',
-        phase: 'moving',
-        flipped: true,
-        moving: false,
       })
-
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          setFlight((f) => (f && f.direction === 'fromDeck' ? { ...f, moving: true } : f))
-        })
-      })
-
-      const travelMs = readRootDurationMs('--duration-card-draw-travel')
-      const flipMs = readRootDurationMs('--duration-card-draw-flip')
-      const bufferMs = readRootDurationMs('--duration-card-draw-finish-buffer')
-      window.setTimeout(finishFlight, travelMs + flipMs + bufferMs)
     },
-    [stageLayerRef],
+    [stageLayerRef, startPullFromDeckFlight],
+  )
+
+  const travelCardPullFromDeck = useCallback(
+    (req: CardTravelPullFromDeckRequest) => {
+      const stage = stageLayerRef.current
+      const deckImg = deckInspectImageRef.current
+      if (!stage || !deckImg) {
+        req.onComplete()
+        return
+      }
+
+      const endpoints = cardPullFromDeckEndpoints(stage, deckImg, req.target)
+      if (!endpoints) {
+        req.onComplete()
+        return
+      }
+
+      startPullFromDeckFlight({
+        cardKey: req.cardKey,
+        card: req.card,
+        from: endpoints.from,
+        to: endpoints.to,
+        onComplete: req.onComplete,
+        direction: 'pullFromDeck',
+      })
+    },
+    [stageLayerRef, startPullFromDeckFlight],
   )
 
   const travelCardToDiscard = useCallback(
@@ -329,7 +410,7 @@ export function CardTravelProvider(props: Readonly<{ children: ReactNode }>) {
     if (fromDeckTravelDoneRef.current) return
     fromDeckTravelDoneRef.current = true
     setFlight((f) =>
-      f && f.direction === 'fromDeck'
+      f && isPullFromDeckDirection(f.direction)
         ? {
             ...f,
             phase: 'flip',
@@ -361,6 +442,7 @@ export function CardTravelProvider(props: Readonly<{ children: ReactNode }>) {
         travelingDiscardCardKeys,
         travelCardToDeck,
         travelCardFromDeck,
+        travelCardPullFromDeck,
         travelCardToDiscard,
       }}
     >
@@ -411,16 +493,18 @@ function CardTravelFlyer(props: Readonly<{
     onFromDeckFlipEnd,
     onToDiscardTravelEnd,
   } = props
-  const fromDeck = flight.direction === 'fromDeck'
+  const pullFromDeck = isPullFromDeckDirection(flight.direction)
+  const pullFromDeckTokenized = flight.direction === 'pullFromDeck'
   const toDiscard = flight.direction === 'toDiscard'
   const moving = flight.moving
-  const fromDeckAtOrigin = fromDeck && flight.phase === 'moving' && !moving
+  const pullAtOrigin = pullFromDeck && flight.phase === 'moving' && !moving
 
   return (
     <div
       className={[
         'cardTravelFlyer',
-        fromDeck ? 'cardTravelFlyer--fromDeck' : null,
+        pullFromDeck && !pullFromDeckTokenized ? 'cardTravelFlyer--fromDeck' : null,
+        pullFromDeckTokenized ? 'cardTravelFlyer--pullFromDeck' : null,
         toDiscard ? 'cardTravelFlyer--toDiscard' : null,
         moving ? 'cardTravelFlyer--moving' : null,
       ]
@@ -433,7 +517,7 @@ function CardTravelFlyer(props: Readonly<{
       onTransitionEnd={(e) => {
         if (e.currentTarget !== e.target) return
         if (!moving || (e.propertyName !== 'left' && e.propertyName !== 'top')) return
-        if (fromDeck) onFromDeckTravelEnd()
+        if (pullFromDeck) onFromDeckTravelEnd()
         else if (toDiscard) onToDiscardTravelEnd(flight.cardKey)
         else onToDeckTravelEnd()
       }}
@@ -442,8 +526,10 @@ function CardTravelFlyer(props: Readonly<{
       <div
         className={[
           'cardTravelMotion',
-          fromDeck ? 'cardTravelMotion--fromDeck' : null,
-          fromDeckAtOrigin ? 'cardTravelMotion--fromDeckOrigin' : null,
+          pullFromDeck && !pullFromDeckTokenized ? 'cardTravelMotion--fromDeck' : null,
+          pullFromDeckTokenized ? 'cardTravelMotion--pullFromDeck' : null,
+          pullAtOrigin && !pullFromDeckTokenized ? 'cardTravelMotion--fromDeckOrigin' : null,
+          pullAtOrigin && pullFromDeckTokenized ? 'cardTravelMotion--pullFromDeckOrigin' : null,
           toDiscard ? 'cardTravelMotion--toDiscard' : null,
           moving ? 'cardTravelMotion--moving' : null,
         ]
@@ -458,7 +544,7 @@ function CardTravelFlyer(props: Readonly<{
             if (e.currentTarget !== e.target) return
             if (e.propertyName !== 'transform') return
             if (flight.direction === 'toDeck' && flight.flipped && !moving) onToDeckFlipEnd()
-            if (fromDeck && !flight.flipped && flight.phase === 'flip') onFromDeckFlipEnd()
+            if (pullFromDeck && !flight.flipped && flight.phase === 'flip') onFromDeckFlipEnd()
           }}
         >
           <div className="cardTravelFlipper__face cardTravelFlipper__face--front">
@@ -468,8 +554,10 @@ function CardTravelFlyer(props: Readonly<{
               name={flight.card.name}
               nameUpgraded={flight.card.nameUpgraded}
               inkLabel={flight.card.inkLabel}
+              inkModified={flight.card.inkModified}
               descriptionLines={flight.card.descriptionLines}
               socketedGemId={flight.card.socketedGemId ?? null}
+              foil={flight.card.foil === true}
               staticDisplay
             />
           </div>

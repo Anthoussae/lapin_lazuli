@@ -9,6 +9,7 @@ export type TriggerDef = Readonly<{
   on:
     | 'onPickup'
     | 'draw_starting_hand'
+    | 'onNonOpenerCardDraw'
     | 'combat_start'
     | 'turn_start'
     | 'card_played'
@@ -69,12 +70,12 @@ export const Relics: Readonly<Record<RelicId, RelicTemplate>> = {
     thumb: 'S',
     starter: true,
     unique: true,
-    text: "+2 cards in each opening hand.",
+    text: "+3 cards in each opening hand.",
     triggers: [
       {
         id: 'ARCANE_SCROLL_STARTING_HAND',
         on: 'draw_starting_hand',
-        effect: { kind: 'DRAW_CARDS', amount: 2 },
+        effect: { kind: 'DRAW_CARDS', amount: 3 },
         triggerFx: {},
       },
     ],
@@ -112,6 +113,30 @@ export const Relics: Readonly<Record<RelicId, RelicTemplate>> = {
     unique: true,
     text: "+1 bunny power.",
     triggers: [{ id: 'MAGIC_WAND_PICKUP', on: 'onPickup', effect: { kind: 'GAIN_POWER', amount: 1 } }],
+  },
+  RED_HAT: {
+    id: 'RED_HAT',
+    name: 'Red Hat',
+    thumb: 'R',
+    starter: true,
+    unique: true,
+    text: 'Double all fire damage.',
+    triggers: [{ id: 'RED_HAT_PICKUP', on: 'onPickup', effect: { kind: 'GAIN_FIREPOWER_MULTIPLIER', amount: 2 } }],
+  },
+  PHOENIX_FEATHER_QUILL: {
+    id: 'PHOENIX_FEATHER_QUILL',
+    name: 'Phoenix-feather Quill',
+    thumb: 'Q',
+    starter: true,
+    unique: true,
+    text: 'The first fire spell you cast each combat costs 0 ink.',
+    triggers: [
+      {
+        id: 'PHOENIX_FEATHER_QUILL_COMBAT_START',
+        on: 'combat_start',
+        effect: { kind: 'ACTIVATE_FREE_FIRST_FIRE_SPELL' },
+      },
+    ],
   },
   ENCHANTED_ENCYCLOPAEDIA: {
     id: 'ENCHANTED_ENCYCLOPAEDIA',
@@ -154,13 +179,43 @@ export const Relics: Readonly<Record<RelicId, RelicTemplate>> = {
   },
   SHAKUJO: {
     id: 'SHAKUJO',
-    name: 'Shakujo',
+    name: 'Shakujō',
     thumb: 'S',
-    text: "Double all fire damage.",
     starter: true,
     unique: true,
+    text: '+1 shield power.',
+    triggers: [{ id: 'SHAKUJO_PICKUP', on: 'onPickup', effect: { kind: 'GAIN_SHIELD_POWER', amount: 1 } }],
+  },
+  MAGES_TOME: {
+    id: 'MAGES_TOME',
+    name: "Mage's Tome",
+    thumb: 'T',
+    starter: true,
+    unique: true,
+    text: 'Whenever you draw a card other than into your opening hand, add 1 bunny.',
     triggers: [
-      { id: 'SHAKUJO_PICKUP', on: 'onPickup', effect: { kind: 'GAIN_FIREPOWER_MULTIPLIER', amount: 2 } },
+      {
+        id: 'MAGES_TOME_NON_OPENER_DRAW',
+        on: 'onNonOpenerCardDraw',
+        effect: { kind: 'ADD_BUNNIES', amount: 1 },
+        triggerFx: { targets: [{ kind: 'cauldron', role: 'buff' }] },
+      },
+    ],
+  },
+  PAPER_BOAT: {
+    id: 'PAPER_BOAT',
+    name: 'Paper Boat',
+    thumb: 'P',
+    starter: true,
+    unique: true,
+    text: 'At the start combat, gain shields equal to your level.',
+    triggers: [
+      {
+        id: 'PAPER_BOAT_COMBAT_START',
+        on: 'combat_start',
+        effect: { kind: 'GAIN_SHIELD_EQUAL_TO_LEVEL' },
+        triggerFx: { targets: [{ kind: 'playerShield', role: 'buff' }] },
+      },
     ],
   },
   BANANA: {

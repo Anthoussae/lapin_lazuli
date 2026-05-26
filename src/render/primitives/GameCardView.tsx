@@ -6,7 +6,7 @@ import {
   formatCardInstanceDisplayName,
   formatCardName,
 } from '../../ui/describe'
-import { cardInstanceInkCost } from '../../systems/cards/inkCost'
+import { cardInstanceInkCost, cardInstanceInkCostModified } from '../../systems/cards/inkCost'
 import { Card } from './Card'
 
 export type GameCardViewProps = Readonly<{
@@ -19,6 +19,9 @@ export type GameCardViewProps = Readonly<{
   cardInstanceId?: string
   power?: number
   firepowerMultiplier?: number
+  shieldPower?: number
+  /** Phoenix-feather Quill: fire spells cost 0 until the first fire spell is cast. */
+  freeFirstFireSpell?: boolean
   disabled?: boolean
   selected?: boolean
   className?: string
@@ -35,6 +38,8 @@ export function GameCardView(props: GameCardViewProps) {
     cardInstanceId,
     power = 0,
     firepowerMultiplier = 0,
+    shieldPower = 0,
+    freeFirstFireSpell = false,
     disabled,
     selected,
     className,
@@ -44,9 +49,9 @@ export function GameCardView(props: GameCardViewProps) {
 
   const descriptionLines =
     inst && template
-      ? cardDescriptionLinesForInstance(template, inst, power, firepowerMultiplier)
+      ? cardDescriptionLinesForInstance(template, inst, power, firepowerMultiplier, shieldPower)
       : template && offerUpgradeApplications !== undefined
-        ? cardDescriptionLinesForOffer(template, offerUpgradeApplications, power, firepowerMultiplier)
+        ? cardDescriptionLinesForOffer(template, offerUpgradeApplications, power, firepowerMultiplier, shieldPower)
         : []
 
   const name =
@@ -57,12 +62,15 @@ export function GameCardView(props: GameCardViewProps) {
         ? formatCardName(template.name, offerUpgradeApplications)
         : inst?.templateId ?? cardInstanceId ?? '')
 
+  const inkOpts = { freeFirstFireSpell }
   const ink =
     inst && template
-      ? cardInstanceInkCost(inst, template)
+      ? cardInstanceInkCost(inst, template, inkOpts)
       : template?.cost !== null && template?.cost !== undefined
         ? template.cost
         : null
+  const inkModified =
+    inst && template ? cardInstanceInkCostModified(inst, template, inkOpts) : false
   const inkLabel = inst?.exhausted ? 'Exhausted' : ink !== null ? String(ink) : null
 
   const nameUpgraded =
@@ -76,6 +84,7 @@ export function GameCardView(props: GameCardViewProps) {
       name={name || undefined}
       nameUpgraded={nameUpgraded}
       inkLabel={inkLabel}
+      inkModified={inkModified}
       descriptionLines={descriptionLines}
       disabled={disabled}
       exhausted={inst?.exhausted}
@@ -84,6 +93,7 @@ export function GameCardView(props: GameCardViewProps) {
       onClick={onClick}
       staticDisplay={staticDisplay}
       socketedGemId={inst?.socketedGemId ?? null}
+      foil={inst?.foil === true}
     />
   )
 }

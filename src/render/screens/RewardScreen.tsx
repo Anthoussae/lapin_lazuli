@@ -3,7 +3,7 @@ import { plainCelesteBackdrop, plainGreyBackdropCombat } from '../assets/backdro
 import { CardOfferRow } from '../primitives/CardOfferRow'
 import { CenteredPanel } from '../primitives/CenteredPanel'
 import { RelicOfferRow } from '../primitives/RelicOfferRow'
-import { goldBagSprite, keySprite } from '../assets/displayImages'
+import { goldBagSprite, keySprite, leatherCarpet } from '../assets/displayImages'
 import { useGoldTravel } from '../GoldTravelContext'
 import { useKeyTravel } from '../KeyTravelContext'
 import type { ScreenProps } from './types'
@@ -48,9 +48,24 @@ export function RewardScreen(props: ScreenProps) {
           draggable={false}
         />
       </div>
+      {!useCardRewardBackdrop ? (
+        <img
+          className="combatRewardLeatherCarpet"
+          src={leatherCarpet}
+          alt=""
+          draggable={false}
+          aria-hidden
+        />
+      ) : null}
       <CenteredPanel
         title={title}
-        panelClassName={showCardOrRelicChoice && rewardKind === 'CARD' ? 'cardOfferPanel' : undefined}
+        panelClassName={
+          showCardOrRelicChoice && rewardKind === 'CARD'
+            ? 'cardOfferPanel'
+            : !useCardRewardBackdrop
+              ? 'combatRewardPanel'
+              : undefined
+        }
       >
         {rw != null && hasLoot && !lootComplete ? (
           <div className="rewardLootRow">
@@ -100,6 +115,7 @@ export function RewardScreen(props: ScreenProps) {
             offers={state.cardReward?.kind === 'CARD' ? state.cardReward.offered : []}
             power={state.player.power}
             firepowerMultiplier={state.player.firepowerMultiplier}
+            shieldPower={state.player.shieldPower}
             onPick={(cardId) => enqueue({ type: 'REWARD/PICK_CARD', cardId })}
           />
         ) : showCardOrRelicChoice && rewardKind === 'RELIC' && state.cardReward?.kind === 'RELIC' ? (

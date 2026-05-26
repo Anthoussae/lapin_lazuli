@@ -3,7 +3,7 @@ import type { GemId } from '../../core/types/ids'
 import type { Effect } from '../../data/effects'
 import { cardTemplateById, Cards } from '../../data/cards'
 import { Gems } from '../../data/gems'
-import { scaleCardEffects } from './upgrades'
+import { applyCardInstanceEffectModifiers } from './upgrades'
 
 export function cardBaseEffects(templateId: string, socketedGemId: GemId | null = null): ReadonlyArray<Effect> {
   const card = cardTemplateById(templateId)
@@ -22,6 +22,15 @@ export function cardInstanceBaseEffects(inst: CardInstance): ReadonlyArray<Effec
 
 export function cardInstanceHasDestiny(inst: CardInstance): boolean {
   return cardInstanceBaseEffects(inst).some((fx) => fx.kind === 'DESTINY')
+}
+
+/** Play effects with instance upgrades and foil (before power / fire / shield boosts). */
+export function cardInstanceResolvedPlayEffects(inst: CardInstance): ReadonlyArray<Effect> {
+  return applyCardInstanceEffectModifiers(
+    cardInstancePlayEffects(inst),
+    inst.upgrades,
+    inst.foil === true,
+  )
 }
 
 /** Effects that resolve when a card is played (excludes combat-start / deck-meta kinds). */
@@ -67,7 +76,7 @@ export function cardInstanceConsumes(inst: CardInstance): boolean {
 
 /** True when playing this card opens the hand-selection modal instead of resolving immediately. */
 export function cardInstanceOpensHandSelection(inst: CardInstance): boolean {
-  const scaled = scaleCardEffects(cardInstancePlayEffects(inst), inst.upgrades)
+  const scaled = cardInstanceResolvedPlayEffects(inst)
   const handSelectionEffect = scaled.find(
     (fx): fx is Extract<Effect, { kind: 'UPGRADE_SELECTED_CARD' | 'CONSUME_SELECTED_CARD' }> =>
       fx.kind === 'UPGRADE_SELECTED_CARD' || fx.kind === 'CONSUME_SELECTED_CARD',

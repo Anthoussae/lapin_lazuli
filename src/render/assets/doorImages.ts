@@ -9,6 +9,7 @@ import monsterDoor from '../../assets/images/doors/monsterDoor.png'
 import restDoor from '../../assets/images/doors/restDoor.png'
 import shopDoor from '../../assets/images/doors/shopDoor.png'
 import treasureDoor from '../../assets/images/doors/treasureDoor.png'
+import mysteryDoor from '../../assets/images/doors/mysteryDoor.png'
 
 export {
   openDoor,
@@ -21,6 +22,7 @@ export {
   restDoor,
   shopDoor,
   treasureDoor,
+  mysteryDoor,
 }
 
 export const PATH_DOOR_PRELOAD_URLS: readonly string[] = [
@@ -35,4 +37,5 @@ export const PATH_DOOR_PRELOAD_URLS: readonly string[] = [
   restDoor,
   shopDoor,
   treasureDoor,
+  mysteryDoor,
 ]

@@ -1,6 +1,13 @@
 import type { GameState } from '../../core/types/state'
 import type { CardInstanceId } from '../../core/types/ids'
+import type { GameEvent } from '../../reducers/events'
 import { rngInt } from '../../core/rng/rng'
+import { applyNonOpenerCardDrawRelicTriggers } from '../relics/triggers'
+
+export type DrawCardsOpts = Readonly<{
+  /** Combat opening hand at startCombat; skips onNonOpenerCardDraw relic triggers. */
+  openingHand?: boolean
+}>
 
 export function consumeCardFromDeck(state: GameState, cardInstanceId: CardInstanceId): GameState {
   const cardById = { ...state.player.deck.cardById }
@@ -57,12 +64,17 @@ export function shuffleDrawPile(state: GameState): GameState {
   return { ...state, rng, player: { ...state.player, deck: { ...state.player.deck, drawPile: arr } } }
 }
 
-export function drawCards(state: GameState, count: number): GameState {
+export function drawCards(
+  state: GameState,
+  count: number,
+  opts?: DrawCardsOpts,
+): { state: GameState; events: GameEvent[] } {
   let s = state
+  const events: GameEvent[] = []
   for (let i = 0; i < count; i++) {
     s = shuffleDiscardIntoDrawIfNeeded(s)
     const top = s.player.deck.drawPile[0]
-    if (!top) return s
+    if (!top) return { state: s, events }
     s = {
       ...s,
       player: {
@@ -74,8 +86,13 @@ export function drawCards(state: GameState, count: number): GameState {
         },
       },
     }
+    if (!opts?.openingHand) {
+      const triggered = applyNonOpenerCardDrawRelicTriggers(s)
+      s = triggered.state
+      events.push(...triggered.events)
+    }
   }
-  return s
+  return { state: s, events }
 }
 
 /** How many cards to draw when refreshing the player's hand during combat. */

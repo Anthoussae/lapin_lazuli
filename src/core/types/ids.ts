@@ -16,6 +16,10 @@ export type RelicId =
   | 'LUCKY_EGG'
   | 'SHAKUJO'
   | 'BANANA'
+  | 'RED_HAT'
+  | 'PHOENIX_FEATHER_QUILL'
+  | 'MAGES_TOME'
+  | 'PAPER_BOAT'
 export type EnemyId = string
 export type PathId = string
 

@@ -15,6 +15,12 @@ import blackCarpet from '../../assets/images/displayElements/blackCarpet.png'
 import blackCarpet2 from '../../assets/images/displayElements/blackCarpet2.png'
 import greenCarpet from '../../assets/images/displayElements/greenCarpet.png'
 import mythicCarpet from '../../assets/images/displayElements/mythicCarpet.png'
+import leatherCarpet from '../../assets/images/displayElements/leatherCarpet.png'
+import collectorSprite from '../../assets/images/displayElements/collector.png'
+import speechBubbleRightSprite from '../../assets/images/displayElements/speechBubbleRight.png'
+import fontOfLetheEmpty from '../../assets/images/displayElements/fontOfLetheEmpty.png'
+import fontOfLetheFull from '../../assets/images/displayElements/fontOfLetheFull.png'
+import printerSprite from '../../assets/images/displayElements/printer.png'
 import leapingBunnyBack from '../../assets/images/displayElements/leapingBunnyBack.png'
 import leapingBunnyFront from '../../assets/images/displayElements/leapingBunnyFront.png'
 import tinyBunny from '../../assets/images/displayElements/tinyBunny.png'
@@ -77,6 +83,12 @@ export {
   blackCarpet2,
   greenCarpet,
   mythicCarpet,
+  leatherCarpet,
+  collectorSprite,
+  speechBubbleRightSprite,
+  fontOfLetheEmpty,
+  fontOfLetheFull,
+  printerSprite,
   coin1Sprite,
   coin2Sprite,
   goldBagSprite,

@@ -2,62 +2,65 @@ import type { CardId, CardInstanceId } from '../../core/types/ids'
 import type { GameState } from '../../core/types/state'
 import { Cards } from '../../data/cards'
 import type { Effect } from '../../data/effects'
+import { foilCardEffectAmounts, foilCardEffectUpgradeValues } from './foil'
 
 export function isCardUpgradeable(templateId: CardId): boolean {
   return !Cards[templateId]?.unupgradeable
-}
-
-/** Upgrade counters added to a card instance after {@link CardTemplate.upgradeMultiplier} (ceiled to an integer). */
-export function effectiveCardUpgradeDelta(templateId: CardId, amount: number): number {
-  if (amount <= 0) return 0
-  const mult = Cards[templateId]?.upgradeMultiplier ?? 1
-  return Math.ceil(amount * mult)
-}
-
-/** Shop/reward upgrade tiers → same counter units as {@link scaleCardEffects} and card instances. */
-export function offeredUpgradeTiersToEffectScaling(templateId: CardId, upgradeApplications: number): number {
-  return effectiveCardUpgradeDelta(templateId, upgradeApplications)
-}
-
-/** {@code +N} suffix on card names from effect-scaling upgrade counters on instances. */
-export function displayUpgradeTierCount(templateId: CardId, effectScalingUpgrades: number): number {
-  if (effectScalingUpgrades <= 0) return 0
-  const mult = Cards[templateId]?.upgradeMultiplier ?? 1
-  if (mult <= 1) return effectScalingUpgrades
-  return Math.floor(effectScalingUpgrades / mult)
 }
 
 function ceilScaledAmount(base: number, perUpgrade: number, upgrades: number): number {
   return Math.ceil(base + perUpgrade * upgrades)
 }
 
+function effectUpgradePerTier(fx: Effect): number {
+  return fx.upgradeValue ?? 0
+}
+
+function scaleEffect(fx: Effect, upgrades: number): Effect {
+  const per = effectUpgradePerTier(fx)
+  if (per <= 0) return fx
+
+  if (
+    fx.kind === 'UPGRADE_SELECTED_CARD' ||
+    fx.kind === 'CONSUME_SELECTED_CARD' ||
+    fx.kind === 'UPGRADE_SPECIFIC_CARD'
+  ) {
+    return { ...fx, numberOfTargets: fx.numberOfTargets + per * upgrades }
+  }
+
+  if ('amount' in fx) {
+    return { ...fx, amount: ceilScaledAmount(fx.amount, per, upgrades) }
+  }
+
+  return fx
+}
+
+/** Applies each effect's `upgradeValue` for the given instance upgrade counter. */
 export function scaleCardEffects(effects: ReadonlyArray<Effect>, upgrades: number): ReadonlyArray<Effect> {
   if (upgrades <= 0) return effects
-  return effects.map((fx) => {
-    if (fx.kind === 'DRAW_CARDS') return { ...fx, amount: ceilScaledAmount(fx.amount, 1, upgrades) }
-    if (fx.kind === 'GAIN_INK') return { ...fx, amount: ceilScaledAmount(fx.amount, 1, upgrades) }
-    if (fx.kind === 'HEAL') return { ...fx, amount: ceilScaledAmount(fx.amount, 10, upgrades) }
-    if (fx.kind === 'GAIN_SHIELD') return { ...fx, amount: ceilScaledAmount(fx.amount, 6, upgrades) }
-    if (fx.kind === 'GAIN_LOCKED_SHIELD') return { ...fx, amount: ceilScaledAmount(fx.amount, 4, upgrades) }
-    if (fx.kind === 'DEAL_DAMAGE') return { ...fx, amount: ceilScaledAmount(fx.amount, 6, upgrades) }
-    if (fx.kind === 'ADD_BUNNIES') return { ...fx, amount: ceilScaledAmount(fx.amount, 3, upgrades) }
-    if (fx.kind === 'MULTIPLY_BUNNIES') {
-      return { ...fx, amount: ceilScaledAmount(fx.amount, 0.5, upgrades) }
-    }
-    // Practice+: each card upgrade adds one selectable target; upgrade depth per target stays at template upgradeAmount.
-    if (fx.kind === 'UPGRADE_SELECTED_CARD') return { ...fx, numberOfTargets: fx.numberOfTargets + upgrades }
-    if (fx.kind === 'CONSUME_SELECTED_CARD') return { ...fx, numberOfTargets: fx.numberOfTargets + upgrades }
-    if (fx.kind === 'UPGRADE_SPECIFIC_CARD') return { ...fx, numberOfTargets: fx.numberOfTargets + upgrades }
-    return fx
-  })
+  return effects.map((fx) => scaleEffect(fx, upgrades))
+}
+
+/**
+ * Card + gem effects with instance upgrades and optional foil.
+ * Order: foil upgradeValues → upgrade scaling → foil amounts (before power/fire/shield boosts).
+ */
+export function applyCardInstanceEffectModifiers(
+  effects: ReadonlyArray<Effect>,
+  upgrades: number,
+  foil: boolean,
+): ReadonlyArray<Effect> {
+  let scaled = effects
+  if (foil) scaled = foilCardEffectUpgradeValues(scaled)
+  scaled = scaleCardEffects(scaled, upgrades)
+  if (foil) scaled = foilCardEffectAmounts(scaled)
+  return scaled
 }
 
 export function upgradeCardInstance(state: GameState, cardInstanceId: CardInstanceId, amount: number): GameState {
   const inst = state.player.deck.cardById[cardInstanceId]
-  if (!inst || !isCardUpgradeable(inst.templateId)) return state
-  const delta = effectiveCardUpgradeDelta(inst.templateId, amount)
-  if (delta <= 0) return state
-  const next = { ...inst, upgrades: inst.upgrades + delta }
+  if (!inst || !isCardUpgradeable(inst.templateId) || amount <= 0) return state
+  const next = { ...inst, upgrades: inst.upgrades + amount }
   return {
     ...state,
     player: {
@@ -115,4 +118,3 @@ export function upgradeSpecificCards(
   for (const id of ids.slice(0, numberOfTargets)) s = upgradeCardInstance(s, id, upgradeAmount)
   return s
 }
-

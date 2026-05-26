@@ -103,7 +103,18 @@ export function isPlayerAction(a: GameAction): a is PlayerAction {
     a.type === 'GEMSTONE_CAVERN/PICK_GEM' ||
     a.type === 'GEMSTONE_CAVERN/SKIP_SOCKETING' ||
     a.type === 'GEMSTONE_CAVERN/SELECT_SOCKET_CARD' ||
-    a.type === 'GEMSTONE_CAVERN/CONFIRM_SOCKETING'
+    a.type === 'GEMSTONE_CAVERN/CONFIRM_SOCKETING' ||
+    a.type === 'EVENT/PROCEED' ||
+    a.type === 'FONT_OF_LETHE/SELECT_CARD' ||
+    a.type === 'FONT_OF_LETHE/FORGET' ||
+    a.type === 'PRINTER/SELECT_CARD' ||
+    a.type === 'PRINTER/FOIL' ||
+    a.type === 'PRINTER/SELECT_DUPLICATE_CARD' ||
+    a.type === 'PRINTER/DUPLICATE' ||
+    a.type === 'COLLECTOR/REVEAL_OFFERED_CARD' ||
+    a.type === 'COLLECTOR/SELL' ||
+    a.type === 'COLLECTOR/ACCEPT_BULK' ||
+    a.type === 'COLLECTOR/ADD_BULK_CARD'
   )
 }
 

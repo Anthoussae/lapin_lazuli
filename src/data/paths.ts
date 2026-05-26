@@ -11,6 +11,7 @@ export type PathMapRoute =
   | 'treasure_room'
   | 'card_reward'
   | 'gemstone_cavern'
+  | 'mystery'
 
 /** Post-combat victory reward draft; miniboss/boss use relic triple-offer (see resolveEvents). */
 export type PathVictoryRewardKind = 'cards' | 'relics'
@@ -140,7 +141,7 @@ export const Paths: Readonly<Record<PathId, PathTemplate>> = {
     roomDescription: 'Use your gold!',
     frequency: 2,
     duplicatesAllowed: false,
-    minimumLevel: 6,
+    minimumLevel: 5,
     cooldown: 5,
   },
   TREASURE_ROOM: {
@@ -167,6 +168,17 @@ export const Paths: Readonly<Record<PathId, PathTemplate>> = {
     minimumLevel: 5,
     cooldown: 5,
   },
+  MYSTERY: {
+    id: 'MYSTERY',
+    kind: 'event',
+    mapRoute: 'mystery',
+    name: 'Mystery',
+    roomDescription: 'An unknown room awaits.',
+    frequency: 20,
+    duplicatesAllowed: false,
+    minimumLevel: 0,
+    cooldown: 3,
+  },
 }
 
 export const PathPool: ReadonlyArray<PathId> = [
@@ -179,6 +191,7 @@ export const PathPool: ReadonlyArray<PathId> = [
   'SHOP',
   'TREASURE_ROOM',
   'GEMSTONE_CAVERN',
+  'MYSTERY',
 ]
 
 /** Miniboss / boss paths: relic reward screen and fixed post-fight key (no luck key roll). */
@@ -186,11 +199,20 @@ export function pathVictoryOffersRelicPick(pathId: PathId | null | undefined): b
   return pathId != null && Paths[pathId]?.postCombatRewardKind === 'relics'
 }
 
+/** Door-centered path iris on choose (combat and Mystery). */
+export function pathUsesDoorIris(pathId: PathId): boolean {
+  const p = Paths[pathId]
+  if (!p) return false
+  if (p.kind === 'combat' || p.kind === 'boss') return true
+  return p.mapRoute === 'mystery'
+}
+
 const PHASE_ROOM_PATH: Readonly<Partial<Record<Phase, PathId>>> = {
   SHOP: 'SHOP',
   REST: 'REST',
   TREASURE_ROOM: 'TREASURE_ROOM',
   GEMSTONE_CAVERN: 'GEMSTONE_CAVERN',
+  EVENT: 'MYSTERY',
 }
 
 /** Path id for the current room HUD, or null when not inside a room (map pick, title, starter relic). */

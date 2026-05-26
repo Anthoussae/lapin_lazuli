@@ -10,6 +10,7 @@ export type GameAction =
   | { type: 'COMBAT/COMPLETE_MONSTER_DEFEAT' }
   | { type: 'COMBAT/COMPLETE_PLAYER_DEFEAT' }
   | { type: 'COMBAT/COMPLETE_TURN_START_DRAW' }
+  | { type: 'COMBAT/COMPLETE_BURDEN_ADD' }
   | PlayerAction
 
 export type PlayerAction =
@@ -40,6 +41,17 @@ export type PlayerAction =
   | { type: 'GEMSTONE_CAVERN/SKIP_SOCKETING' }
   | { type: 'GEMSTONE_CAVERN/SELECT_SOCKET_CARD'; cardInstanceId: CardInstanceId }
   | { type: 'GEMSTONE_CAVERN/CONFIRM_SOCKETING' }
+  | { type: 'EVENT/PROCEED' }
+  | { type: 'FONT_OF_LETHE/SELECT_CARD'; cardInstanceId: CardInstanceId }
+  | { type: 'FONT_OF_LETHE/FORGET' }
+  | { type: 'PRINTER/SELECT_CARD'; cardInstanceId: CardInstanceId }
+  | { type: 'PRINTER/FOIL' }
+  | { type: 'PRINTER/SELECT_DUPLICATE_CARD'; cardInstanceId: CardInstanceId }
+  | { type: 'PRINTER/DUPLICATE' }
+  | { type: 'COLLECTOR/REVEAL_OFFERED_CARD' }
+  | { type: 'COLLECTOR/SELL' }
+  | { type: 'COLLECTOR/ACCEPT_BULK' }
+  | { type: 'COLLECTOR/ADD_BULK_CARD'; index: number }
 
 export type SystemAction =
   | { type: 'SYS/ENTER_PHASE'; phase: string }

@@ -13,6 +13,9 @@ export function applyRelicEffect(state: GameState, fx: Effect): GameState {
     if (target !== 'player') return state
     return { ...state, player: { ...state.player, shield: state.player.shield + fx.amount } }
   }
+  if (fx.kind === 'GAIN_SHIELD_EQUAL_TO_LEVEL') {
+    return { ...state, player: { ...state.player, shield: state.player.shield + state.level } }
+  }
   if (fx.kind === 'GAIN_LOCKED_SHIELD') {
     return { ...state, player: { ...state.player, lockedShield: state.player.lockedShield + fx.amount } }
   }
@@ -30,6 +33,9 @@ export function applyRelicEffect(state: GameState, fx: Effect): GameState {
   }
   if (fx.kind === 'GAIN_POWER') {
     return { ...state, player: { ...state.player, power: state.player.power + fx.amount } }
+  }
+  if (fx.kind === 'GAIN_SHIELD_POWER') {
+    return { ...state, player: { ...state.player, shieldPower: state.player.shieldPower + fx.amount } }
   }
   if (fx.kind === 'GAIN_FIREPOWER_MULTIPLIER') {
     return {
@@ -63,6 +69,10 @@ export function applyRelicEffect(state: GameState, fx: Effect): GameState {
   }
   if (fx.kind === 'UPGRADE_SPECIFIC_CARD') {
     return upgradeSpecificCards(state, fx.target, fx.numberOfTargets, fx.upgradeAmount)
+  }
+  if (fx.kind === 'ACTIVATE_FREE_FIRST_FIRE_SPELL') {
+    if (!state.combat) return state
+    return { ...state, combat: { ...state.combat, freeFirstFireSpell: true } }
   }
 
   return state

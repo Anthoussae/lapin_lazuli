@@ -7,6 +7,7 @@ import { applyRelicEffect } from './applyRelicEffects'
 export type RelicTriggerKind =
   | 'onPickup'
   | 'draw_starting_hand'
+  | 'onNonOpenerCardDraw'
   | 'combat_start'
   | 'turn_start'
   | 'card_played'
@@ -24,6 +25,20 @@ export function applyRelicTriggers(state: GameState, relicId: RelicId, on: Relic
     s = applyRelicEffect(s, trig.effect)
   }
   return s
+}
+
+export function applyNonOpenerCardDrawRelicTriggers(state: GameState): { state: GameState; events: GameEvent[] } {
+  let s = state
+  const events: GameEvent[] = []
+  for (const rInst of s.player.relics) {
+    const tmpl = Relics[rInst.templateId]
+    for (const trig of tmpl.triggers) {
+      if (trig.on !== 'onNonOpenerCardDraw') continue
+      s = applyRelicEffect(s, trig.effect)
+      events.push({ type: 'EVT/RELIC_TRIGGERED', relicId: rInst.templateId, trigger: trig.id })
+    }
+  }
+  return { state: s, events }
 }
 
 export function applyTurnStartRelicTriggers(state: GameState): { state: GameState; events: GameEvent[] } {

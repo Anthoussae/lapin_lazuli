@@ -15,6 +15,12 @@ export type CardKeywordDef = Readonly<{
 /** Display order for keyword lines on cards. */
 export const CARD_KEYWORD_ORDER: ReadonlyArray<CardKeywordId> = ['exhaust', 'retain', 'destiny']
 
+/** Tooltip for foiled card instances (printer room). */
+export const FOIL_CARD_TOOLTIP: Readonly<{ label: string; tooltip: string }> = {
+  label: 'Foil',
+  tooltip: '50% enhanced values',
+}
+
 export const CARD_KEYWORDS: Record<CardKeywordId, CardKeywordDef> = {
   exhaust: {
     id: 'exhaust',

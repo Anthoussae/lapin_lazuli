@@ -1,7 +1,7 @@
 import type { EnemyInstanceId } from '../../core/types/ids'
 import type { EnemyIntent, EnemyIntentEffects, GameState } from '../../core/types/state'
 import { applyPlayerDamageThroughShields } from './shieldDamage'
-import { shuffleBurdenIntoDeck } from '../cards/shuffleBurdenIntoDeck'
+import { enqueueBurdenAdds } from './burdenAdd'
 import {
   burdenShuffleEntriesFromIntentEffects,
   enemyLockedShieldGainFromIntentEffects,
@@ -40,7 +40,11 @@ function applyEnemySelfBuffs(
   return { ...state, combat: { ...combat, enemies: { ...combat.enemies, enemyById } } }
 }
 
-function applyPlayerDebuffs(state: GameState, effects: EnemyIntentEffects | undefined): GameState {
+function applyPlayerDebuffs(
+  state: GameState,
+  effects: EnemyIntentEffects | undefined,
+  sourceEnemyId: EnemyInstanceId | null,
+): GameState {
   let s = state
   const bunnyDrainAdd = playerTurnStartBunnyDrainFromIntentEffects(effects)
   if (bunnyDrainAdd > 0 && s.combat) {
@@ -53,9 +57,7 @@ function applyPlayerDebuffs(state: GameState, effects: EnemyIntentEffects | unde
     }
   }
   for (const { cardId, count } of burdenShuffleEntriesFromIntentEffects(effects)) {
-    for (let i = 0; i < count; i++) {
-      s = shuffleBurdenIntoDeck(s, cardId)
-    }
+    s = enqueueBurdenAdds(s, cardId, count, 'draw', sourceEnemyId)
   }
   return s
 }
@@ -64,8 +66,12 @@ function resolveBuff(state: GameState, enemyId: EnemyInstanceId, intent: Extract
   return applyEnemySelfBuffs(state, enemyId, intent.effects)
 }
 
-function resolveDebuff(state: GameState, intent: Extract<EnemyIntent, { kind: 'DEBUFF' }>): GameState {
-  return applyPlayerDebuffs(state, intent.effects)
+function resolveDebuff(
+  state: GameState,
+  enemyId: EnemyInstanceId,
+  intent: Extract<EnemyIntent, { kind: 'DEBUFF' }>,
+): GameState {
+  return applyPlayerDebuffs(state, intent.effects, enemyId)
 }
 
 function resolveAttack(
@@ -106,7 +112,7 @@ function resolveAttack(
     }
   }
   s = applyEnemySelfBuffs(s, enemyId, intent.effects)
-  s = applyPlayerDebuffs(s, intent.effects)
+  s = applyPlayerDebuffs(s, intent.effects, enemyId)
   return { state: s, playerDied: nextHp <= 0 }
 }
 
@@ -117,6 +123,6 @@ export function resolveEnemyIntent(
 ): ResolveEnemyIntentResult {
   if (intent.kind === 'WAIT') return { state, playerDied: false }
   if (intent.kind === 'BUFF') return { state: resolveBuff(state, enemyId, intent), playerDied: false }
-  if (intent.kind === 'DEBUFF') return { state: resolveDebuff(state, intent), playerDied: false }
+  if (intent.kind === 'DEBUFF') return { state: resolveDebuff(state, enemyId, intent), playerDied: false }
   return resolveAttack(state, enemyId, intent)
 }

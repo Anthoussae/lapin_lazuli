@@ -6,6 +6,7 @@ import { isActionLegalNow } from './phaseGating'
 import { startCombat } from '../../systems/combat/startCombat'
 import { playCard } from '../../systems/combat/playCard'
 import { cancelHandSelection, pickHandSelectionCard, submitHandSelection } from '../../systems/combat/handSelection'
+import { completeBurdenAdd } from '../../systems/combat/burdenAdd'
 import { endPlayerTurn, completeBunnyRelease, completeTurnStartDraw } from '../../systems/combat/turns'
 import { completeMonsterDefeat } from '../../systems/combat/monsterDefeat'
 import { completePlayerDefeat } from '../../systems/combat/playerDefeat'
@@ -17,13 +18,30 @@ import type { CardId, CardInstanceId, PathId, RelicId } from '../../core/types/i
 import { mkCardInstance, mkRelicInstance } from '../../systems/factories'
 import { buildStarterDeck } from '../../data/cards'
 import { PathPool, Paths } from '../../data/paths'
+import type { MysteryRoomId } from '../../data/mysteryRooms'
+import { mkMysteryRoomState, MysteryRooms, mysteryRoomIsEvent, mysteryRoomPathId, rollMysteryRoom } from '../../data/mysteryRooms'
+import {
+  applyCollectorAcceptBulk,
+  applyCollectorAddBulkCard,
+  applyCollectorSell,
+  collectorCanProceed,
+  initCollectorMysteryRoom,
+  revealCollectorOfferedCard,
+} from '../../systems/events/collector'
+import { forgetFontOfLetheCard, fontOfLetheCanProceed, selectFontOfLetheCard } from '../../systems/events/fontOfLethe'
+import {
+  duplicatePrinterCard,
+  foilPrinterCard,
+  printerCanProceed,
+  selectPrinterCard,
+  selectPrinterDuplicateCard,
+} from '../../systems/events/printer'
 import { determineLocks } from '../../systems/paths/determineLocks'
 import { isCombatPath, rollPathCombatEncounter } from '../../systems/paths/rollPathCombat'
 import { populateCardReward } from '../../systems/rewards/cardRewards'
 import { isRewardLootFullyCollected } from '../../systems/rewards/rewardLoot'
 import { pickThreeShopRelics, populateShop } from '../../systems/shop/populateShop'
 import { assignShopPrices } from '../../systems/shop/assignPrice'
-import { effectiveCardUpgradeDelta } from '../../systems/cards/upgrades'
 import { applyCardPickupEffects } from '../../systems/cards/pickupEffects'
 import { applyRelicTriggers } from '../../systems/relics/triggers'
 import { computeSleepHealAmount } from '../../systems/rest/sleepHeal'
@@ -66,6 +84,10 @@ export function applyAction(state: GameState, action: GameAction): { state: Game
 
   if (action.type === 'COMBAT/COMPLETE_TURN_START_DRAW') {
     return completeTurnStartDraw(state)
+  }
+
+  if (action.type === 'COMBAT/COMPLETE_BURDEN_ADD') {
+    return completeBurdenAdd(state)
   }
 
   if (isPlayerAction(action)) {
@@ -138,6 +160,28 @@ function applyPlayerAction(state: GameState, action: PlayerAction): { state: Gam
       if (next === state) return { state, events: [] }
       return continueAfterGemstoneCavern(next)
     }
+    case 'EVENT/PROCEED':
+      return continueAfterMysteryRoom(state)
+    case 'FONT_OF_LETHE/SELECT_CARD':
+      return { state: selectFontOfLetheCard(state, action.cardInstanceId), events: [] }
+    case 'FONT_OF_LETHE/FORGET':
+      return { state: forgetFontOfLetheCard(state), events: [] }
+    case 'PRINTER/SELECT_CARD':
+      return { state: selectPrinterCard(state, action.cardInstanceId), events: [] }
+    case 'PRINTER/FOIL':
+      return { state: foilPrinterCard(state), events: [] }
+    case 'PRINTER/SELECT_DUPLICATE_CARD':
+      return { state: selectPrinterDuplicateCard(state, action.cardInstanceId), events: [] }
+    case 'PRINTER/DUPLICATE':
+      return { state: duplicatePrinterCard(state), events: [] }
+    case 'COLLECTOR/REVEAL_OFFERED_CARD':
+      return { state: revealCollectorOfferedCard(state), events: [] }
+    case 'COLLECTOR/SELL':
+      return { state: applyCollectorSell(state), events: [] }
+    case 'COLLECTOR/ACCEPT_BULK':
+      return { state: applyCollectorAcceptBulk(state), events: [] }
+    case 'COLLECTOR/ADD_BULK_CARD':
+      return { state: applyCollectorAddBulkCard(state, action.index), events: [] }
   }
 }
 
@@ -186,7 +230,7 @@ function pickRewardCard(state: GameState, cardId: CardId): { state: GameState; e
   // Add a new instance of the chosen card to the player's deck (out of combat).
   const serial = state.player.nextCardInstanceSerial
   const newId = `c${serial}` as CardInstanceId
-  const inst = mkCardInstance(newId, cardId, effectiveCardUpgradeDelta(cardId, offer.upgrades))
+  const inst = mkCardInstance(newId, cardId, offer.upgrades)
   const cardById2 = { ...state.player.deck.cardById, [inst.id]: inst }
   const drawPile2 = [...state.player.deck.drawPile, inst.id]
 
@@ -209,6 +253,7 @@ function pickRewardCard(state: GameState, cardId: CardId): { state: GameState; e
     defeat: null,
     treasureRoom: null,
     gemstoneCavern: null,
+    mysteryRoom: null,
     pathSelection: pathPick.pathSelection,
     activeRoomPathId: null,
   }
@@ -235,6 +280,7 @@ function pickRewardRelic(state: GameState, relicId: RelicId): { state: GameState
     treasureRoom: null,
     shop: null,
     gemstoneCavern: null,
+    mysteryRoom: null,
   }
   sPickup = applyRelicTriggers(sPickup, relicId, 'onPickup')
 
@@ -290,7 +336,7 @@ function buyShopItem(state: GameState, slotIndex: number): { state: GameState; e
 
   const serial = state.player.nextCardInstanceSerial
   const newId = `c${serial}` as CardInstanceId
-  const inst = mkCardInstance(newId, item.cardId, effectiveCardUpgradeDelta(item.cardId, item.upgrades))
+  const inst = mkCardInstance(newId, item.cardId, item.upgrades)
   const cardById2 = { ...state.player.deck.cardById, [inst.id]: inst }
   const drawPile2 = [...state.player.deck.drawPile, inst.id]
 
@@ -343,6 +389,7 @@ function startStarterRelicSelection(state: GameState): GameState {
     restOutcome: null,
     shop: null,
     pathCooldownUntil: {},
+    mysteryRoomCooldownUntil: {},
     player: {
       ...state.player,
       nextCardInstanceSerial: 1,
@@ -361,6 +408,7 @@ function startStarterRelicSelection(state: GameState): GameState {
     relicSelection: { category: 'STARTER_RELICS', offered },
     treasureRoom: null,
     gemstoneCavern: null,
+    mysteryRoom: null,
   }
   return setPhase(s2, 'RELIC_SELECT_STARTER')
 }
@@ -387,6 +435,7 @@ function chooseStarterRelic(state: GameState, relicId: RelicId): GameState {
     relicSelection: null,
     treasureRoom: null,
     gemstoneCavern: null,
+    mysteryRoom: null,
     pathSelection: pathPick.pathSelection,
     activeRoomPathId: null,
   }
@@ -444,7 +493,7 @@ function rollPaths(
 
 function advanceToNextPathSelectionAfterNode(
   state: GameState,
-  fromPhase: 'REST' | 'SHOP' | 'TREASURE_ROOM' | 'GEMSTONE_CAVERN',
+  fromPhase: 'REST' | 'SHOP' | 'TREASURE_ROOM' | 'GEMSTONE_CAVERN' | 'EVENT',
 ): { state: GameState; events: GameEvent[] } {
   if (state.phase !== fromPhase) return { state, events: [] }
 
@@ -462,6 +511,7 @@ function advanceToNextPathSelectionAfterNode(
     shop: null,
     treasureRoom: null,
     gemstoneCavern: null,
+    mysteryRoom: null,
     pathSelection: pathPick.pathSelection,
     activeRoomPathId: null,
   }
@@ -527,6 +577,15 @@ function continueAfterGemstoneCavern(state: GameState): { state: GameState; even
   return advanceToNextPathSelectionAfterNode(state, 'GEMSTONE_CAVERN')
 }
 
+function continueAfterMysteryRoom(state: GameState): { state: GameState; events: GameEvent[] } {
+  const roomId = state.mysteryRoom?.roomId
+  if (!roomId || !mysteryRoomIsEvent(roomId)) return { state, events: [] }
+  if (roomId === 'FONT_OF_LETHE' && !fontOfLetheCanProceed(state)) return { state, events: [] }
+  if (roomId === 'COLLECTOR' && !collectorCanProceed(state)) return { state, events: [] }
+  if (roomId === 'PRINTER' && !printerCanProceed(state)) return { state, events: [] }
+  return advanceToNextPathSelectionAfterNode(state, 'EVENT')
+}
+
 function pickTreasureRoomRelic(state: GameState, relicId: RelicId): GameState {
   if (state.phase !== 'TREASURE_ROOM') return state
   const tr = state.treasureRoom
@@ -589,6 +648,136 @@ function withPathCooldownApplied(state: GameState, pathId: PathId): GameState {
   }
 }
 
+function withMysteryRoomCooldownApplied(state: GameState, roomId: MysteryRoomId): GameState {
+  const cd = MysteryRooms[roomId]?.cooldown ?? 0
+  if (cd <= 0) return state
+  return {
+    ...state,
+    mysteryRoomCooldownUntil: { ...state.mysteryRoomCooldownUntil, [roomId]: state.level + cd },
+  }
+}
+
+function applyNonCombatMapRoute(
+  baseState: GameState,
+  routePathId: PathId,
+): { state: GameState; events: GameEvent[] } {
+  const mapRoute = Paths[routePathId]?.mapRoute ?? 'combat'
+  switch (mapRoute) {
+    case 'shop': {
+      const ownedRelics = new Set(baseState.player.relics.map((r) => r.templateId))
+      const stockOut = populateShop(baseState.rng, ownedRelics, baseState.level, baseState.player.luck)
+      const priced = assignShopPrices(stockOut.rng, stockOut.stock, {
+        stock: stockOut.stock,
+        ownedRelicTemplateIds: ownedRelics,
+        playerGold: baseState.player.gold,
+        level: baseState.level,
+      })
+      return {
+        state: setPhase(
+          {
+            ...baseState,
+            rng: priced.rng,
+            restOutcome: null,
+            cardReward: null,
+            treasureRoom: null,
+            mysteryRoom: null,
+            shop: { items: priced.items },
+          },
+          'SHOP',
+        ),
+        events: [],
+      }
+    }
+    case 'rest': {
+      const p = baseState.player
+      const sleepHealAmount = computeSleepHealAmount(p.maxHp, p.hp)
+      return {
+        state: setPhase(
+          {
+            ...baseState,
+            restOutcome: { sleepHealAmount, slept: false, studied: false },
+            cardReward: null,
+            treasureRoom: null,
+            shop: null,
+            mysteryRoom: null,
+          },
+          'REST',
+        ),
+        events: [],
+      }
+    }
+    case 'treasure_room': {
+      const ownedRelics = new Set(baseState.player.relics.map((r) => r.templateId))
+      const relicPick = pickThreeShopRelics(baseState.rng, ownedRelics)
+      return {
+        state: setPhase(
+          {
+            ...baseState,
+            rng: relicPick.rng,
+            restOutcome: null,
+            cardReward: null,
+            shop: null,
+            mysteryRoom: null,
+            treasureRoom: { offered: relicPick.relicIds, selectionComplete: false },
+          },
+          'TREASURE_ROOM',
+        ),
+        events: [],
+      }
+    }
+    case 'card_reward': {
+      const rewardOut = populateCardReward({
+        rng: baseState.rng,
+        baseRewardLevel: baseState.level,
+        luck: baseState.player.luck,
+        count: 3,
+      })
+      return {
+        state: setPhase(
+          {
+            ...baseState,
+            rng: rewardOut.rng,
+            restOutcome: null,
+            treasureRoom: null,
+            mysteryRoom: null,
+            cardReward: {
+              kind: 'CARD',
+              offered: rewardOut.offered,
+              goldEarned: 0,
+              keysEarned: 0,
+              goldPickedUp: true,
+              keysPickedUp: true,
+            },
+          },
+          'REWARD',
+        ),
+        events: [],
+      }
+    }
+    case 'gemstone_cavern': {
+      const gemRoll = rollGemOffers(baseState.rng, 3)
+      return {
+        state: setPhase(
+          {
+            ...baseState,
+            rng: gemRoll.rng,
+            restOutcome: null,
+            cardReward: null,
+            treasureRoom: null,
+            shop: null,
+            mysteryRoom: null,
+            gemstoneCavern: { offered: gemRoll.offered, socketing: null },
+          },
+          'GEMSTONE_CAVERN',
+        ),
+        events: [],
+      }
+    }
+    default:
+      return { state: baseState, events: [] }
+  }
+}
+
 function choosePath(
   state: GameState,
   pathId: PathId,
@@ -607,118 +796,58 @@ function choosePath(
   )
   const mapRoute = Paths[pathId]?.mapRoute ?? 'combat'
 
-  // Branch order irrelevant (each path id maps to one route). Combat reuses pre-rolled previews when present;
-  // otherwise {@link rollPathCombatEncounter} runs here (same RNG contract as before the mapRoute switch).
-  switch (mapRoute) {
-    case 'shop': {
-      const ownedRelics = new Set(baseState.player.relics.map((r) => r.templateId))
-      const stockOut = populateShop(baseState.rng, ownedRelics, baseState.level, baseState.player.luck)
-      const priced = assignShopPrices(stockOut.rng, stockOut.stock, {
-        stock: stockOut.stock,
-        ownedRelicTemplateIds: ownedRelics,
-        playerGold: baseState.player.gold,
-        level: baseState.level,
-      })
-      return {
-        state: setPhase(
-        {
-          ...baseState,
-          rng: priced.rng,
-          restOutcome: null,
-          cardReward: null,
-          treasureRoom: null,
-          shop: { items: priced.items },
-        },
-        'SHOP',
-        ),
-        events: [],
+  if (mapRoute === 'mystery') {
+    const roomRoll = rollMysteryRoom(
+      baseState.rng,
+      baseState.level,
+      baseState.player.deck.cardById,
+      baseState.mysteryRoomCooldownUntil,
+    )
+    const cooledState = withMysteryRoomCooldownApplied({ ...baseState, rng: roomRoll.rng }, roomRoll.roomId)
+    const revealedPathId = mysteryRoomPathId(roomRoll.roomId)
+    if (revealedPathId) {
+      const revealedState: GameState = {
+        ...cooledState,
+        activeRoomPathId: revealedPathId,
+        mysteryRoom: null,
       }
-    }
-    case 'rest': {
-      const p = baseState.player
-      const sleepHealAmount = computeSleepHealAmount(p.maxHp, p.hp)
-      return {
-        state: setPhase(
-          {
-            ...baseState,
-            restOutcome: { sleepHealAmount, slept: false, studied: false },
-            cardReward: null,
-            treasureRoom: null,
-            shop: null,
-          },
-          'REST',
-        ),
-        events: [],
+      if (isCombatPath(revealedPathId)) {
+        const encounter = rollPathCombatEncounter(revealedState.rng, revealedState.level, revealedPathId)
+        const sCombat = { ...revealedState, rng: encounter.rng }
+        const out = startCombat(
+          sCombat,
+          encounter.preview.enemyTemplateId,
+          revealedPathId,
+          encounter.preview.boons,
+          encounter.preview.maxHp,
+        )
+        return { state: out.state, events: out.events }
       }
+      return applyNonCombatMapRoute(revealedState, revealedPathId)
     }
-    case 'treasure_room': {
-      const ownedRelics = new Set(baseState.player.relics.map((r) => r.templateId))
-      const relicPick = pickThreeShopRelics(baseState.rng, ownedRelics)
-      return {
-        state: setPhase(
+    const eventPrep = cooledState
+    const collectorInit =
+      roomRoll.roomId === 'COLLECTOR' ? initCollectorMysteryRoom(eventPrep.rng, eventPrep) : null
+    return {
+      state: setPhase(
         {
-          ...baseState,
-          rng: relicPick.rng,
-          restOutcome: null,
-          cardReward: null,
-          shop: null,
-          treasureRoom: { offered: relicPick.relicIds, selectionComplete: false },
-        },
-        'TREASURE_ROOM',
-        ),
-        events: [],
-      }
-    }
-    case 'card_reward': {
-      const rewardOut = populateCardReward({
-        rng: baseState.rng,
-        baseRewardLevel: baseState.level,
-        luck: baseState.player.luck,
-        count: 3,
-      })
-      return {
-        state: setPhase(
-        {
-          ...baseState,
-          rng: rewardOut.rng,
-          restOutcome: null,
-          treasureRoom: null,
-          cardReward: {
-            kind: 'CARD',
-            offered: rewardOut.offered,
-            goldEarned: 0,
-            keysEarned: 0,
-            goldPickedUp: true,
-            keysPickedUp: true,
-          },
-        },
-        'REWARD',
-        ),
-        events: [],
-      }
-    }
-    case 'gemstone_cavern': {
-      const gemRoll = rollGemOffers(baseState.rng, 3)
-      return {
-        state: setPhase(
-        {
-          ...baseState,
-          rng: gemRoll.rng,
+          ...cooledState,
+          rng: collectorInit?.rng ?? roomRoll.rng,
           restOutcome: null,
           cardReward: null,
           treasureRoom: null,
           shop: null,
-          gemstoneCavern: { offered: gemRoll.offered, socketing: null },
+          gemstoneCavern: null,
+          mysteryRoom: collectorInit?.mysteryRoom ?? mkMysteryRoomState(roomRoll.roomId),
         },
-        'GEMSTONE_CAVERN',
-        ),
-        events: [],
-      }
+        'EVENT',
+      ),
+      events: [],
     }
-    case 'combat':
-    default: {
-      break
-    }
+  }
+
+  if (mapRoute !== 'combat') {
+    return applyNonCombatMapRoute(baseState, pathId)
   }
 
   let preview: PathCombatPreview | null = combatPreview

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { PathCombatPreview } from '../../core/types/state'
 import type { PathId } from '../../core/types/ids'
-import { Paths } from '../../data/paths'
+import { Paths, pathUsesDoorIris } from '../../data/paths'
 import { Enemies } from '../../data/enemies'
 import { EnemyBoons } from '../../data/enemyBoons'
 import { isCombatPath } from '../../systems/paths/rollPathCombat'
@@ -167,7 +167,7 @@ export function PathScreen(props: ScreenProps) {
                     enqueue({ type: 'PATH/UNLOCK_SLOT', slotIndex: idx })
                     return
                   }
-                  if (!isCombatPath(id)) {
+                  if (!pathUsesDoorIris(id)) {
                     enqueue({ type: 'PATH/CHOOSE', pathId: id, slotIndex: idx })
                     return
                   }

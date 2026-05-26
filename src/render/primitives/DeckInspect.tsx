@@ -1,16 +1,26 @@
-import { useCallback, useEffect, useState, type AnimationEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type AnimationEvent } from 'react'
 import type { GameState } from '../../core/types/state'
 import { Cards } from '../../data/cards'
 import { useCardTravelOptional } from '../CardTravelContext'
 import { deckInspectSprite, discardInspectSprite } from '../assets/displayImages'
 import { useTriggerFxArtProps } from '../TriggerFxContext'
+import { useCardConsume } from '../CardConsumeContext'
+import { fontOfLetheForgetConsumeDelayMs } from '../fontOfLetheForgetFxConfig'
 import { GameCardView } from './GameCardView'
 import { InspectPileCardSlot } from './InspectPileCardSlot'
 import { InspectPileCloseButton } from './InspectPileCloseButton'
 import { OpaqueImageButton } from './OpaqueImageButton'
 
+function collectorDeckHighlightId(state: GameState): string | null {
+  if (state.phase !== 'EVENT' || state.mysteryRoom?.roomId !== 'COLLECTOR') return null
+  const collector = state.mysteryRoom.collector
+  if (!collector || collector.sold || collector.bulkAccepted) return null
+  return collector.offeredCardInstanceId ?? null
+}
+
 export function DeckInspect(props: Readonly<{ state: GameState; inCombat: boolean }>) {
   const { state, inCombat } = props
+  const highlightCardInstanceId = collectorDeckHighlightId(state)
   const [deckOpen, setDeckOpen] = useState(false)
   const [discardOpen, setDiscardOpen] = useState(false)
   const pileOpen = deckOpen || discardOpen
@@ -18,6 +28,7 @@ export function DeckInspect(props: Readonly<{ state: GameState; inCombat: boolea
   const [overlayExiting, setOverlayExiting] = useState(false)
   const power = state.player.power
   const firepowerMultiplier = state.player.firepowerMultiplier
+  const shieldPower = state.player.shieldPower
 
   useEffect(() => {
     if (pileOpen) {
@@ -44,6 +55,9 @@ export function DeckInspect(props: Readonly<{ state: GameState; inCombat: boolea
   const discardPileCount = state.player.deck.discardPile.length
   const cardTravel = useCardTravelOptional()
   const deckFx = useTriggerFxArtProps({ kind: 'deck' })
+  const { playCardConsume } = useCardConsume()
+  const [folGlowKey, setFolGlowKey] = useState(0)
+  const prevForgottenRef = useRef(false)
 
   const closeInspectPanel = useCallback(() => {
     setDeckOpen(false)
@@ -56,6 +70,24 @@ export function DeckInspect(props: Readonly<{ state: GameState; inCombat: boolea
     setOverlayMounted(false)
     setOverlayExiting(false)
   }, [overlayExiting])
+
+  useEffect(() => {
+    const fol = state.mysteryRoom?.fontOfLethe
+    const forgotten = fol?.cardForgotten === true
+    const justForgot = forgotten && !prevForgottenRef.current
+    prevForgottenRef.current = forgotten
+    if (!justForgot) return
+
+    // Deck glow: force a new img key so the CSS animation restarts reliably.
+    setFolGlowKey((n) => n + 1)
+
+    // Consume burst on the deck icon (and let the dialog separately spawn one for the card).
+    const deckImg = cardTravel?.deckInspectImageRef.current
+    if (deckImg) {
+      const delay = fontOfLetheForgetConsumeDelayMs()
+      window.setTimeout(() => playCardConsume({ sourceEl: deckImg }), delay)
+    }
+  }, [state.mysteryRoom?.fontOfLethe?.cardForgotten, cardTravel?.deckInspectImageRef, playCardConsume])
 
   return (
     <>
@@ -72,8 +104,14 @@ export function DeckInspect(props: Readonly<{ state: GameState; inCombat: boolea
       ) : null}
       <OpaqueImageButton
         className={deckOpen ? 'inspectDeckBtn inspectDeckBtn--panelOpen' : 'inspectDeckBtn'}
-        imageClassName={['inspectDeckBtn__img', deckFx.className].filter(Boolean).join(' ')}
-        imageKey={deckFx.key}
+        imageClassName={[
+          'inspectDeckBtn__img',
+          deckFx.className,
+          folGlowKey > 0 ? 'inspectDeckBtn__img--fontOfLetheForgetGlow' : null,
+        ]
+          .filter(Boolean)
+          .join(' ')}
+        imageKey={(deckFx.key ?? 0) + folGlowKey * 1000}
         imageRef={cardTravel?.deckInspectImageRef}
         src={deckInspectSprite}
         alt="Inspect deck"
@@ -100,13 +138,17 @@ export function DeckInspect(props: Readonly<{ state: GameState; inCombat: boolea
                     const inst = state.player.deck.cardById[cid]
                     const t = inst ? Cards[inst.templateId] : undefined
                     return (
-                      <InspectPileCardSlot key={`pile-${idx}-${cid}`}>
+                      <InspectPileCardSlot
+                        key={`pile-${idx}-${cid}`}
+                        collectorOffered={highlightCardInstanceId === cid}
+                      >
                         <GameCardView
                           cardInstanceId={cid}
                           inst={inst}
                           template={t}
                           power={power}
                           firepowerMultiplier={firepowerMultiplier}
+                          shieldPower={shieldPower}
                         />
                       </InspectPileCardSlot>
                     )
@@ -116,12 +158,16 @@ export function DeckInspect(props: Readonly<{ state: GameState; inCombat: boolea
                 Object.values(state.player.deck.cardById).map((inst) => {
                   const t = Cards[inst.templateId]
                   return (
-                    <InspectPileCardSlot key={inst.id}>
+                    <InspectPileCardSlot
+                      key={inst.id}
+                      collectorOffered={highlightCardInstanceId === inst.id}
+                    >
                       <GameCardView
                         inst={inst}
                         template={t}
                         power={power}
                         firepowerMultiplier={firepowerMultiplier}
+                        shieldPower={shieldPower}
                       />
                     </InspectPileCardSlot>
                   )
