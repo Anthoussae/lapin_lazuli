@@ -31,6 +31,7 @@ export function initialState(seed = 12345): GameState {
       bunnies: 0,
       power: 0,
       shieldPower: 0,
+      firepower: 0,
       firepowerMultiplier: 0,
       luck: 0,
       upgradeChance: 0,

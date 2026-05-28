@@ -174,9 +174,9 @@ export const Paths: Readonly<Record<PathId, PathTemplate>> = {
     mapRoute: 'mystery',
     name: 'Mystery',
     roomDescription: 'An unknown room awaits.',
-    frequency: 20,
+    frequency: 2,
     duplicatesAllowed: false,
-    minimumLevel: 0,
+    minimumLevel: 3,
     cooldown: 3,
   },
 }

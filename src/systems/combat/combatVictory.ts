@@ -9,21 +9,25 @@ import { Enemies } from '../../data/enemies'
 import { rollDice } from '../../core/rng/dice'
 import { rngNext } from '../../core/rng/rng'
 import { applyRelicEffect } from '../relics/applyRelicEffects'
+import { applyCombatEndRelicTriggers, applyMinibossDefeatedRelicTriggers } from '../relics/triggers'
 import { populateCardReward } from '../rewards/cardRewards'
 import { initialRewardLootFlags } from '../rewards/rewardLoot'
 import { pickThreeShopRelics } from '../shop/populateShop'
 import { clearActiveCombat } from './endCombat'
+import { purgeCombatEphemeralCards } from './purgeEphemeralCards'
 
-function shuffleAllZonesIntoDeck(state: GameState): GameState {
-  const deck0 = state.player.deck
-  const merged = [...deck0.drawPile, ...deck0.discardPile, ...deck0.hand]
+function shuffleAllZonesIntoDeck(state: GameState): { state: GameState; phasedIn: ReadonlyArray<string> } {
+  const purged = purgeCombatEphemeralCards(state)
+  const deck0 = purged.player.deck
+  const phasedOut = purged.combat?.phasedOut ?? []
+  const merged = [...deck0.drawPile, ...deck0.discardPile, ...deck0.hand, ...phasedOut]
   let s: GameState = {
-    ...state,
-    player: { ...state.player, deck: { ...deck0, drawPile: merged, discardPile: [], hand: [] } },
+    ...purged,
+    player: { ...purged.player, deck: { ...deck0, drawPile: merged, discardPile: [], hand: [] } },
   }
   s = shuffleDiscardIntoDrawIfNeeded(s)
   s = shuffleDrawPile(s)
-  return s
+  return { state: s, phasedIn: phasedOut }
 }
 
 function resetExhausted(state: GameState): GameState {
@@ -40,27 +44,35 @@ function combatKeyChance(pathId: PathId | null, luck: number): number {
   return Math.min(1, Math.max(0, pct / 100))
 }
 
+/** Post-combat gold: Nd6 + luck × multiplier by combat path tier. */
+function victoryGoldDiceAndLuck(pathId: PathId | null): Readonly<{ diceCount: number; luckMultiplier: number }> {
+  switch (pathId) {
+    case 'MEDIUM_ENEMY':
+      return { diceCount: 2, luckMultiplier: 1 }
+    case 'HARD_ENEMY':
+      return { diceCount: 3, luckMultiplier: 1 }
+    case 'MINIBOSS':
+      return { diceCount: 5, luckMultiplier: 2 }
+    case 'BOSS':
+      return { diceCount: 10, luckMultiplier: 3 }
+    case 'EASY_ENEMY':
+    default:
+      return { diceCount: 1, luckMultiplier: 1 }
+  }
+}
+
 function computeVictoryGoldAndKeys(
   rngIn: GameState['rng'],
-  combat: NonNullable<GameState['combat']>,
-  level: number,
   entryPathId: PathId | null,
   luck: number,
   isRelicRewardFight: boolean,
 ): { rng: GameState['rng']; goldGain: number; keysEarned: number } {
   let rng = rngIn
 
-  const [rBase, baseRoll] = rollDice(rng, { count: 1, sides: 4 })
-  rng = rBase
-  let gold = baseRoll * level
-
-  for (const e of Object.values(combat.enemies.enemyById)) {
-    for (let i = 0; i < e.boons.length; i++) {
-      const [rB, bRoll] = rollDice(rng, { count: 1, sides: 4 })
-      rng = rB
-      gold += bRoll * level
-    }
-  }
+  const { diceCount, luckMultiplier } = victoryGoldDiceAndLuck(entryPathId)
+  const [rGold, diceTotal] = rollDice(rng, { count: diceCount, sides: 6 })
+  rng = rGold
+  const gold = diceTotal + luck * luckMultiplier
 
   let keysEarned: number
   if (isRelicRewardFight) {
@@ -95,6 +107,7 @@ export function applyCombatVictory(state: GameState): { state: GameState; events
       .reduce((a, b) => Math.max(a, b), 0) || 1
 
   let sTrig: GameState = resetExhausted(state)
+  const relicEvents: GameEvent[] = []
   for (const rInst of sTrig.player.relics) {
     const rTmpl = Relics[rInst.templateId]
     for (const trig of rTmpl.triggers) {
@@ -103,14 +116,18 @@ export function applyCombatVictory(state: GameState): { state: GameState; events
     }
   }
 
-  const goldKeys = computeVictoryGoldAndKeys(
-    sTrig.rng,
-    combatSnapshot,
-    level,
-    entryPathId,
-    sTrig.player.luck,
-    isRelicRewardFight,
-  )
+  // Miniboss-only relic triggers (e.g. Orchid) fire on victory resolution for the MINIBOSS path.
+  if (entryPathId === 'MINIBOSS') {
+    const miniboss = applyMinibossDefeatedRelicTriggers(sTrig)
+    sTrig = miniboss.state
+    relicEvents.push(...miniboss.events)
+  }
+
+  const combatEnd = applyCombatEndRelicTriggers(sTrig)
+  sTrig = combatEnd.state
+  relicEvents.push(...combatEnd.events)
+
+  const goldKeys = computeVictoryGoldAndKeys(sTrig.rng, entryPathId, sTrig.player.luck, isRelicRewardFight)
   const { goldGain, keysEarned } = goldKeys
 
   sTrig = {
@@ -118,7 +135,9 @@ export function applyCombatVictory(state: GameState): { state: GameState; events
     rng: goldKeys.rng,
   }
 
-  let s2: GameState = shuffleAllZonesIntoDeck(sTrig)
+  const shuffled = shuffleAllZonesIntoDeck(sTrig)
+  let s2: GameState = shuffled.state
+  const phaseInEvents: GameEvent[] = shuffled.phasedIn.map((id) => ({ type: 'EVT/CARD_PHASED_IN', cardInstanceId: id as any }))
 
   if (isFinalBossVictory) {
     const cleared = clearActiveCombat(s2)
@@ -130,7 +149,7 @@ export function applyCombatVictory(state: GameState): { state: GameState; events
       },
       'GAME_WIN',
     )
-    return { state: s2, events: [{ type: 'EVT/COMBAT_ENDED', result: 'VICTORY' }] }
+    return { state: s2, events: [...relicEvents, ...phaseInEvents, { type: 'EVT/COMBAT_ENDED', result: 'VICTORY' }] }
   }
 
   let nextRng = s2.rng
@@ -171,5 +190,5 @@ export function applyCombatVictory(state: GameState): { state: GameState; events
     },
     'REWARD',
   )
-  return { state: s2, events: [{ type: 'EVT/COMBAT_ENDED', result: 'VICTORY' }] }
+  return { state: s2, events: [...relicEvents, ...phaseInEvents, { type: 'EVT/COMBAT_ENDED', result: 'VICTORY' }] }
 }

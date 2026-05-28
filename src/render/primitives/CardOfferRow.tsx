@@ -9,6 +9,7 @@ import { RelicRejectPuffs } from './RelicRejectPuffs'
 export type CardOffer = Readonly<{
   cardId: CardId
   upgrades: number
+  foil?: boolean
 }>
 
 export function CardOfferRow(
@@ -16,11 +17,13 @@ export function CardOfferRow(
     offers: ReadonlyArray<CardOffer>
     onPick: (cardId: CardId) => void
     power?: number
+    firepower?: number
     firepowerMultiplier?: number
     shieldPower?: number
+    hasGreenHat?: boolean
   }>,
 ) {
-  const { offers, onPick, power = 0, firepowerMultiplier = 0, shieldPower = 0 } = props
+  const { offers, onPick, power = 0, firepower = 0, firepowerMultiplier = 0, shieldPower = 0, hasGreenHat = false } = props
   const { travelCardToDeck, travelingCardKey } = useCardTravel()
   const picking = travelingCardKey != null
 
@@ -52,8 +55,18 @@ export function CardOfferRow(
                       name: label,
                       inkLabel: t?.cost !== null && t?.cost !== undefined ? String(t.cost) : null,
                       descriptionLines: t
-                        ? cardDescriptionLinesForOffer(t, o.upgrades, power, firepowerMultiplier, shieldPower)
+                        ? cardDescriptionLinesForOffer(
+                            t,
+                            o.upgrades,
+                            power,
+                            firepower,
+                            firepowerMultiplier,
+                            shieldPower,
+                            o.foil === true,
+                            hasGreenHat,
+                          )
                         : [],
+                      foil: o.foil === true,
                     },
                     onComplete: () => onPick(o.cardId),
                   })
@@ -62,9 +75,12 @@ export function CardOfferRow(
                 <GameCardView
                   template={t}
                   offerUpgradeApplications={o.upgrades}
+                  offerFoil={o.foil === true}
                   power={power}
+                  firepower={firepower}
                   firepowerMultiplier={firepowerMultiplier}
                   shieldPower={shieldPower}
+                  hasGreenHat={hasGreenHat}
                   className={[
                     isRejected ? 'gameCard--rejected' : null,
                     isChosen ? 'gameCard--traveling' : null,

@@ -67,6 +67,7 @@ export function CollectorScreen({ state, enqueue }: ScreenProps) {
   const inst = offeredId ? state.player.deck.cardById[offeredId] : undefined
   const template = inst ? Cards[inst.templateId] : undefined
   const power = state.player.power
+  const firepower = state.player.firepower
   const firepowerMultiplier = state.player.firepowerMultiplier
   const shieldPower = state.player.shieldPower
 
@@ -88,6 +89,7 @@ export function CollectorScreen({ state, enqueue }: ScreenProps) {
     destination: 'deck',
     onApplied: (index) => enqueue({ type: 'COLLECTOR/ADD_BULK_CARD', index }),
     power,
+    firepower,
     firepowerMultiplier,
     shieldPower,
   })
@@ -126,6 +128,7 @@ export function CollectorScreen({ state, enqueue }: ScreenProps) {
             template,
             inst,
             power,
+            firepower,
             firepowerMultiplier,
             shieldPower,
           ),
@@ -146,6 +149,7 @@ export function CollectorScreen({ state, enqueue }: ScreenProps) {
     cardRevealed,
     deckInspectImageRef,
     enqueue,
+    firepower,
     firepowerMultiplier,
     inst,
     offeredId,
@@ -221,8 +225,10 @@ export function CollectorScreen({ state, enqueue }: ScreenProps) {
                 inst={inst}
                 template={template}
                 power={power}
+                firepower={firepower}
                 firepowerMultiplier={firepowerMultiplier}
                 shieldPower={shieldPower}
+                hasGreenHat={state.player.relics.some((r) => r.templateId === 'GREEN_HAT')}
                 staticDisplay
               />
             </div>
@@ -260,9 +266,12 @@ export function CollectorScreen({ state, enqueue }: ScreenProps) {
               <GameCardView
                 template={t}
                 offerUpgradeApplications={offer.upgrades}
+                offerFoil={offer.foil === true}
                 power={power}
+                firepower={firepower}
                 firepowerMultiplier={firepowerMultiplier}
                 shieldPower={shieldPower}
+                hasGreenHat={state.player.relics.some((r) => r.templateId === 'GREEN_HAT')}
                 staticDisplay
                 className={isTraveling ? 'gameCard--traveling' : undefined}
               />

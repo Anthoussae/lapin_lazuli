@@ -13,10 +13,22 @@ function RelicBeltSlot(
     slotIndex: number
     templateId: RelicId
     relic: RelicTemplate | undefined
+    state: GameState
   }>,
 ) {
-  const { slotIndex, templateId, relic } = props
+  const { slotIndex, templateId, relic, state } = props
   const triggerFx = useTriggerFxArtProps({ kind: 'relic', slotIndex })
+  const render = relic?.render
+  const counter =
+    render?.kind === 'RelicCounter' && render.value === 'cardsPlayedThisTurn'
+      ? {
+          value: state.combat?.cardsPlayedThisTurn ?? 0,
+          offsetX: render.offset.x,
+          offsetY: render.offset.y,
+          fontSize: render.fontSize,
+          color: render.color,
+        }
+      : undefined
   return (
     <div className="relicBeltSlot" data-relic-belt-slot={slotIndex}>
       <RelicIcon
@@ -27,6 +39,7 @@ function RelicBeltSlot(
         tooltipEffect={relic ? describeRelicEffect(relic) : ''}
         artClassName={triggerFx.className}
         artKey={triggerFx.key}
+        counter={counter}
       />
     </div>
   )
@@ -54,6 +67,7 @@ export function RelicBelt(props: Readonly<{ state: GameState }>) {
             slotIndex={slotIndex}
             templateId={ri.templateId}
             relic={r}
+            state={state}
           />
         )
       })}

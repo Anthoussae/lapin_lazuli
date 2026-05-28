@@ -10,6 +10,7 @@ export function cardSocketFlipPayload(
   template: CardTemplate,
   inst: CardInstance,
   power: number,
+  firepower: number,
   firepowerMultiplier: number,
   shieldPower: number,
   socketedGemId: GemId | null,
@@ -22,7 +23,14 @@ export function cardSocketFlipPayload(
     name: formatCardInstanceDisplayName(template, preview),
     nameUpgraded: preview.upgrades > 0,
     inkLabel,
-    descriptionLines: cardDescriptionLinesForInstance(template, preview, power, firepowerMultiplier, shieldPower),
+    descriptionLines: cardDescriptionLinesForInstance(
+      template,
+      preview,
+      power,
+      firepower,
+      firepowerMultiplier,
+      shieldPower,
+    ),
     socketedGemId: preview.socketedGemId ?? null,
     foil: preview.foil === true,
   }
@@ -33,10 +41,19 @@ export function cardTravelPayloadForInstance(
   template: CardTemplate,
   inst: CardInstance,
   power: number,
+  firepower: number,
   firepowerMultiplier: number,
   shieldPower: number,
 ): CardTravelPayload {
-  return cardSocketFlipPayload(template, inst, power, firepowerMultiplier, shieldPower, inst.socketedGemId ?? null)
+  return cardSocketFlipPayload(
+    template,
+    inst,
+    power,
+    firepower,
+    firepowerMultiplier,
+    shieldPower,
+    inst.socketedGemId ?? null,
+  )
 }
 
 /** Card face data for the foil flip overlay (before / after foiling). */
@@ -44,10 +61,19 @@ export function cardFoilFlipPayload(
   template: CardTemplate,
   inst: CardInstance,
   power: number,
+  firepower: number,
   firepowerMultiplier: number,
   shieldPower: number,
   foil: boolean,
 ): CardTravelPayload {
   const preview: CardInstance = foil ? { ...inst, foil: true } : inst
-  return cardSocketFlipPayload(template, preview, power, firepowerMultiplier, shieldPower, preview.socketedGemId ?? null)
+  return cardSocketFlipPayload(
+    template,
+    preview,
+    power,
+    firepower,
+    firepowerMultiplier,
+    shieldPower,
+    preview.socketedGemId ?? null,
+  )
 }

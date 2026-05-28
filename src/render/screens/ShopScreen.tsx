@@ -148,8 +148,11 @@ export function ShopScreen(props: ScreenProps) {
                             t,
                             item.upgrades,
                             state.player.power,
+                            state.player.firepower,
                             state.player.firepowerMultiplier,
                             state.player.shieldPower,
+                            false,
+                            state.player.relics.some((r) => r.templateId === 'GREEN_HAT'),
                           )
                         : [],
                     },
@@ -161,8 +164,10 @@ export function ShopScreen(props: ScreenProps) {
                   template={t}
                   offerUpgradeApplications={item.upgrades}
                   power={state.player.power}
+                  firepower={state.player.firepower}
                   firepowerMultiplier={state.player.firepowerMultiplier}
                   shieldPower={state.player.shieldPower}
+                  hasGreenHat={state.player.relics.some((r) => r.templateId === 'GREEN_HAT')}
                   className={isChosen ? 'gameCard--traveling' : undefined}
                 />
                 <span className="shopCardOffer__price">{item.price}g</span>

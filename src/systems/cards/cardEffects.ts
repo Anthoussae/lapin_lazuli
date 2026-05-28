@@ -40,8 +40,7 @@ export function effectsResolvedOnCardPlay(effects: ReadonlyArray<Effect>): Reado
       fx.kind !== 'DESTINY' &&
       fx.kind !== 'CONSUME' &&
       fx.kind !== 'EXHAUST' &&
-      fx.kind !== 'UPGRADE_AFTER_CASTING' &&
-      fx.kind !== 'CONSUME_IF_IN_HAND_AT_TURN_END',
+      fx.kind !== 'UPGRADE_AFTER_CASTING',
   )
 }
 
@@ -60,8 +59,9 @@ export function cardInstanceRetains(inst: CardInstance): boolean {
   return cardTemplateById(inst.templateId)?.retain === true
 }
 
-export function cardInstanceConsumesIfInHandAtTurnEnd(inst: CardInstance): boolean {
-  return cardInstanceBaseEffects(inst).some((fx) => fx.kind === 'CONSUME_IF_IN_HAND_AT_TURN_END')
+export function cardInstanceExpiresAtTurnEnd(inst: CardInstance): boolean {
+  if (inst.grantedExpire) return true
+  return cardTemplateById(inst.templateId)?.expire === true
 }
 
 export function cardInstanceUpgradesAfterCasting(inst: CardInstance): boolean {

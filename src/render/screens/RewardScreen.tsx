@@ -114,8 +114,10 @@ export function RewardScreen(props: ScreenProps) {
           <CardOfferRow
             offers={state.cardReward?.kind === 'CARD' ? state.cardReward.offered : []}
             power={state.player.power}
+            firepower={state.player.firepower}
             firepowerMultiplier={state.player.firepowerMultiplier}
             shieldPower={state.player.shieldPower}
+            hasGreenHat={state.player.relics.some((r) => r.templateId === 'GREEN_HAT')}
             onPick={(cardId) => enqueue({ type: 'REWARD/PICK_CARD', cardId })}
           />
         ) : showCardOrRelicChoice && rewardKind === 'RELIC' && state.cardReward?.kind === 'RELIC' ? (

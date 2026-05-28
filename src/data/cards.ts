@@ -19,6 +19,8 @@ export type CardTemplate = Readonly<{
   exhaust?: boolean
   /** When true, this card is not discarded from hand at player turn end. */
   retain?: boolean
+  /** When true, this card is consumed if still in hand at player turn end. */
+  expire?: boolean
   tags: ReadonlyArray<string>
   effects: ReadonlyArray<Effect>
   /** When true, upgrade effects and hand selection for upgrades skip this card. */
@@ -37,7 +39,7 @@ export const Cards: Readonly<Record<CardId, CardTemplate>> = {
     name: 'Bunnymancy',
     starter: true,
     starterDeckNumber: 5,
-    poolFrequency: 5,
+    poolFrequency: 4,
     cost: 1,
     tags: ['addBunnies'],
     effects: [{ kind: 'ADD_BUNNIES', amount: 6, upgradeValue: 1 }],
@@ -71,7 +73,7 @@ export const Cards: Readonly<Record<CardId, CardTemplate>> = {
     id: 'PONDER',
     name: 'Ponder',
     starter: false,
-    poolFrequency: 4,
+    poolFrequency: 2,
     cost: 1,
     tags: ['drawcards'],
     effects: [{ kind: 'DRAW_CARDS', amount: 3, upgradeValue: 1 }],
@@ -104,7 +106,7 @@ export const Cards: Readonly<Record<CardId, CardTemplate>> = {
     id: 'INKSWELL_RITUAL',
     name: 'Inkswell Ritual',
     starter: false,
-    poolFrequency: 4,
+    poolFrequency: 2,
     cost: 1,
     exhaust: true,
     tags: ['generateInk'],
@@ -114,7 +116,7 @@ export const Cards: Readonly<Record<CardId, CardTemplate>> = {
     id: 'CLOUDBUNNY',
     name: 'Cloudbunny',
     starter: false,
-    poolFrequency: 4,
+    poolFrequency: 2,
     cost: 0,
     exhaust: false,
     tags: ['addBunnies'],
@@ -175,7 +177,7 @@ export const Cards: Readonly<Record<CardId, CardTemplate>> = {
     id: 'FORTRESS',
     name: 'Fortress',
     starter: false,
-    poolFrequency: 3,
+    poolFrequency: 2,
     cost: 0,
     tags: ['addShield', 'lockShield'],
     effects: [
@@ -258,8 +260,106 @@ export const Cards: Readonly<Record<CardId, CardTemplate>> = {
     cost: null,
     unupgradeable: true,
     unsocketable: true,
-    tags: ['burden', 'unplayable', 'consume'],
-    effects: [{ kind: 'CONSUME_IF_IN_HAND_AT_TURN_END', upgradeValue: 1 }],
+    expire: true,
+    tags: ['burden', 'unplayable'],
+    effects: [],
+  },
+  STONESKIN: {
+    id: 'STONESKIN',
+    name: 'Stoneskin',
+    starter: false,
+    poolFrequency: 1,
+    
+    cost: 1,
+    unsocketable: true,
+    tags: ['enchantment'],
+    effects: [{ kind: 'APPLY_ENCHANTMENT', enchantmentId: 'STONESKIN', target: 'self', amount: 2, upgradeValue: 1 }],
+  },
+  HARE_RAISING: {
+    id: 'HARE_RAISING',
+    name: 'Hare-raising',
+    starter: false,
+    poolFrequency: 1,
+    cost: 1,
+    unsocketable: true,
+    tags: ['enchantment'],
+    effects: [
+      { kind: 'APPLY_ENCHANTMENT', enchantmentId: 'HARE_RAISING', target: 'self', amount: 1, upgradeValue: 1 },
+    ],
+  },
+  WARM: {
+    id: 'WARM',
+    name: 'Warm',
+    starter: false,
+    poolFrequency: 1,
+    cost: 1,
+    unsocketable: true,
+    tags: ['enchantment', 'fire'],
+    effects: [{ kind: 'APPLY_ENCHANTMENT', enchantmentId: 'WARM', target: 'self', amount: 1, upgradeValue: 1 }],
+  },
+  POISON: {
+    id: 'POISON',
+    name: 'Poison',
+    starter: true,
+    starterDeckNumber: 1,
+    poolFrequency: 1,
+    cost: 1,
+    unsocketable: true,
+    tags: ['enchantment'],
+    effects: [{ kind: 'APPLY_ENCHANTMENT', enchantmentId: 'POISON', target: 'opponent', amount: 4, upgradeValue: 2 }],
+  },
+  CROWN_OF_FLAMES: {
+    id: 'CROWN_OF_FLAMES',
+    name: 'Crown of Flames',
+    starter: true,
+    starterDeckNumber: 1,
+    poolFrequency: 1,
+    cost: 1,
+    unsocketable: true,
+    tags: ['fire', 'enchantment'],
+    effects: [
+      { kind: 'APPLY_ENCHANTMENT', enchantmentId: 'FLAMEWREATH', target: 'self', amount: 6, upgradeValue: 3 },
+    ],
+  },
+  GUARDIAN_ANGEL: {
+    id: 'GUARDIAN_ANGEL',
+    name: 'Guardian Angel',
+    starter: false,
+    poolFrequency: 1,
+    cost: 1,
+    unsocketable: true,
+    tags: ['enchantment'],
+    effects: [
+      { kind: 'APPLY_ENCHANTMENT', enchantmentId: 'GUARDIAN_ANGEL', target: 'self', amount: 4, upgradeValue: 2 },
+    ],
+  },
+  CONFLAGRATION: {
+    id: 'CONFLAGRATION',
+    name: 'Conflagration',
+    starter: false,
+    poolFrequency: 1,
+    cost: 4,
+    tags: ['damage', 'fire'],
+    effects: [{ kind: 'DEAL_DAMAGE', amount: 50, upgradeValue: 12 }],
+  },
+  SMOG: {
+    id: 'SMOG',
+    name: 'Smog',
+    starter: true,
+    starterDeckNumber: 1,
+    poolFrequency: 1,
+    cost: 2,
+    tags: ['poison'],
+    effects: [{ kind: 'HP_LOSS', target: 'selectedEnemy', amount: 12, upgradeValue: 6 }],
+  },
+  DISPEL: {
+    id: 'DISPEL',
+    name: 'Dispel',
+    starter: false,
+    poolFrequency: 2,
+    cost: 1,
+    tags: ['dispel'],
+    effects: [{ kind: 'DISPEL', amount: 1 }],
   },
 }
 
@@ -273,6 +373,11 @@ export function cardTemplateById(templateId: CardId): CardTemplate | undefined {
 export function isPotionCardId(cardId: CardId | undefined): boolean {
   if (cardId == null) return false
   return cardTemplateById(cardId)?.potion === true
+}
+
+/** All potion templates (for random potion rolls). */
+export function allPotionCardIds(): CardId[] {
+  return (Object.keys(Cards) as CardId[]).filter((id) => Cards[id]?.potion === true)
 }
 
 export function isBurdenCardId(cardId: CardId | undefined): boolean {

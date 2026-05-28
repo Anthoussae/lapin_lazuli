@@ -11,13 +11,14 @@ export const FIRE_RELEASE_SPRITE_MAX = 50
 
 /** True when this card instance deals fire damage on play (template and/or socketed gem). */
 export function cardInstanceHasFireDamage(inst: CardInstance, tags: ReadonlyArray<string>): boolean {
-  return fireCardPlayDamage(inst, tags, 0) > 0
+  return fireCardPlayDamage(inst, tags, 0, 0) > 0
 }
 
 /** Resolved fire DEAL_DAMAGE total for one card play (upgrades, foil, then firepower). */
 export function fireCardPlayDamage(
   inst: CardInstance,
   tags: ReadonlyArray<string>,
+  firepower: number,
   firepowerMultiplier: number,
 ): number {
   const card = Cards[inst.templateId]
@@ -30,7 +31,7 @@ export function fireCardPlayDamage(
   let total = 0
   for (const fx of cardInstanceResolvedPlayEffects(inst)) {
     if (fx.kind !== 'DEAL_DAMAGE') continue
-    total += hasFireTags ? boostFireDealDamage(fx.amount, firepowerMultiplier) : fx.amount
+    total += hasFireTags ? boostFireDealDamage(fx.amount, firepower, firepowerMultiplier) : fx.amount
   }
   return total
 }

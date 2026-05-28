@@ -14,19 +14,24 @@ export function spawnEnemy(
   opts?: Readonly<{ fixedMaxHp?: number }>,
 ): { state: GameState; enemy: EnemyInstance } {
   const tmpl = Enemies[templateId]
+  const finalBoons = (() => {
+    const b = [...boons]
+    if (tmpl.forceBoon && !b.includes(tmpl.forceBoon)) b.push(tmpl.forceBoon)
+    return b
+  })()
   const base = mkEnemyInstance(id, templateId)
   let rng2 = state.rng
   let hp: number
   if (opts?.fixedMaxHp !== undefined) {
     hp = Math.max(1, opts.fixedMaxHp)
   } else {
-    const hpMult = enemyBoonHpMultiplierProduct(boons)
+    const hpMult = enemyBoonHpMultiplierProduct(finalBoons)
     const [r, rolledHp] = rollDice(state.rng, tmpl.hp)
     rng2 = r
     hp = Math.max(1, Math.ceil(rolledHp * hpMult))
   }
-  const strength = Math.max(0, (tmpl.strength ?? 0) + enemyBoonStrengthBonus(boons))
-  const enemy: EnemyInstance = { ...base, hp, maxHp: hp, shield: 0, lockedShield: 0, boons: [...boons], strength }
+  const strength = Math.max(0, (tmpl.strength ?? 0) + enemyBoonStrengthBonus(finalBoons))
+  const enemy: EnemyInstance = { ...base, hp, maxHp: hp, shield: 0, lockedShield: 0, boons: finalBoons, strength }
   return { state: { ...state, rng: rng2 }, enemy }
 }
 

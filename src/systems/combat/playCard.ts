@@ -2,7 +2,7 @@ import type { GameState } from '../../core/types/state'
 import type { CardInstanceId, EnemyInstanceId } from '../../core/types/ids'
 import type { GameEvent } from '../../reducers/events'
 import type { Effect } from '../../data/effects'
-import { Cards } from '../../data/cards'
+import { Cards, isPotionCardId } from '../../data/cards'
 import {
   cardInstanceConsumes,
   cardInstanceExhausts,
@@ -17,6 +17,7 @@ import { applyRelicEffect } from '../relics/applyRelicEffects'
 import { consumeCardFromDeck } from './zones'
 import { cardHasFireTag, cardInstanceInkCost } from '../cards/inkCost'
 import { consumeFreeFirstFireSpellIfFireCard } from '../relics/phoenixFeatherQuill'
+import { applyFourthSpellCastPerTurnRelicTriggers, applyPotionPlayedRelicTriggers } from '../relics/triggers'
 
 export function playCard(state: GameState, cardInstanceId: CardInstanceId): { state: GameState; events: GameEvent[] } {
   if (!state.combat) return { state, events: [] }
@@ -25,7 +26,7 @@ export function playCard(state: GameState, cardInstanceId: CardInstanceId): { st
   if (!state.player.deck.hand.includes(cardInstanceId)) return { state, events: [] }
   if (inst.exhausted) return { state, events: [] }
   const tmpl = Cards[inst.templateId]
-  const inkOpts = { freeFirstFireSpell: state.combat.freeFirstFireSpell }
+  const inkOpts = { freeFirstFireSpell: state.combat.freeFirstFireSpell, nextSpellCosts0: state.combat.nextSpellCosts0 }
   const cost = cardInstanceInkCost(inst, tmpl, inkOpts)
   if (cost === null || state.player.energy < cost) return { state, events: [] }
   const selectedEnemyId: EnemyInstanceId | null = state.combat.targeting.selectedEnemyId
@@ -90,15 +91,25 @@ export function playCard(state: GameState, cardInstanceId: CardInstanceId): { st
     }
   }
 
+  let potionRelicEvents: GameEvent[] = []
+  if (isPotionCardId(inst.templateId)) {
+    const potionRelics = applyPotionPlayedRelicTriggers(s0b)
+    s0b = potionRelics.state
+    potionRelicEvents = potionRelics.events
+  }
+
   let s1: GameState = {
     ...s0b,
     player: { ...s0b.player, energy: s0b.player.energy - cost },
+  }
+  if (s1.combat?.nextSpellCosts0) {
+    s1 = { ...s1, combat: { ...s1.combat, nextSpellCosts0: false } }
   }
   if (cardHasFireTag(tmpl.tags)) {
     s1 = consumeFreeFirstFireSpellIfFireCard(s1, tmpl)
   }
 
-  let events: GameEvent[] = [{ type: 'EVT/CARD_PLAYED', cardInstanceId }]
+  let events: GameEvent[] = [{ type: 'EVT/CARD_PLAYED', cardInstanceId }, ...potionRelicEvents]
   if (cost > 0) events.push({ type: 'EVT/ENERGY_SPENT', amount: cost })
 
   // Rule: cards resolve first, then go to discard.
@@ -115,6 +126,7 @@ export function playCard(state: GameState, cardInstanceId: CardInstanceId): { st
   }
 
   const consumes = cardInstanceConsumes(inst)
+  const phasesOut = scaled.some((fx) => fx.kind === 'APPLY_ENCHANTMENT')
   const sAfterDiscard: GameState = consumes
     ? consumeCardFromDeck(sAfterFx, cardInstanceId)
     : (() => {
@@ -126,22 +138,38 @@ export function playCard(state: GameState, cardInstanceId: CardInstanceId): { st
         const cardById2 = exhausts
           ? { ...sAfterFx.player.deck.cardById, [cardInstanceId]: maybeExhaustedInst }
           : sAfterFx.player.deck.cardById
+        const combat0 = sAfterFx.combat
         return {
           ...sAfterFx,
+          combat:
+            phasesOut && combat0
+              ? { ...combat0, phasedOut: [...combat0.phasedOut, cardInstanceId] }
+              : combat0,
           player: {
             ...sAfterFx.player,
             deck: {
               ...sAfterFx.player.deck,
               cardById: cardById2,
               hand: hand2,
-              discardPile: [...sAfterFx.player.deck.discardPile, cardInstanceId],
+              discardPile: phasesOut ? sAfterFx.player.deck.discardPile : [...sAfterFx.player.deck.discardPile, cardInstanceId],
             },
           },
         }
       })()
 
-  const s4 = setPhase(sAfterDiscard, 'COMBAT_PLAYER_READY')
+  const combatAfter = sAfterDiscard.combat
+  let sCounted: GameState = sAfterDiscard
+  if (combatAfter) {
+    sCounted = {
+      ...sAfterDiscard,
+      combat: { ...combatAfter, cardsPlayedThisTurn: combatAfter.cardsPlayedThisTurn + 1 },
+    }
+  }
 
-  return { state: s4, events }
+  const fourth = applyFourthSpellCastPerTurnRelicTriggers(sCounted)
+  const s4 = setPhase(fourth.state, 'COMBAT_PLAYER_READY')
+
+  const phaseEvents: GameEvent[] = phasesOut ? [{ type: 'EVT/CARD_PHASED_OUT', cardInstanceId }] : []
+  return { state: s4, events: events.concat(phaseEvents, fourth.events) }
 }
 

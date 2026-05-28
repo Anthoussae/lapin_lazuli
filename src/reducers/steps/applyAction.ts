@@ -12,7 +12,7 @@ import { completeMonsterDefeat } from '../../systems/combat/monsterDefeat'
 import { completePlayerDefeat } from '../../systems/combat/playerDefeat'
 import { selectTarget } from '../../systems/combat/targeting'
 import { rngFromSeed, rngInt } from '../../core/rng/rng'
-import { StarterRelicPool, isRelicOfferable } from '../../data/relics'
+import { Relics, StarterRelicPool, isRelicOfferable } from '../../data/relics'
 import type { PathCombatPreview, PathSelectionState } from '../../core/types/state'
 import type { CardId, CardInstanceId, PathId, RelicId } from '../../core/types/ids'
 import { mkCardInstance, mkRelicInstance } from '../../systems/factories'
@@ -43,7 +43,7 @@ import { isRewardLootFullyCollected } from '../../systems/rewards/rewardLoot'
 import { pickThreeShopRelics, populateShop } from '../../systems/shop/populateShop'
 import { assignShopPrices } from '../../systems/shop/assignPrice'
 import { applyCardPickupEffects } from '../../systems/cards/pickupEffects'
-import { applyRelicTriggers } from '../../systems/relics/triggers'
+import { applyLevelUpRelicTriggers, applyRelicTriggers } from '../../systems/relics/triggers'
 import { computeSleepHealAmount } from '../../systems/rest/sleepHeal'
 import { applyRandomStudyUpgrade, restChoiceMade } from '../../systems/rest/studyUpgrade'
 import { rollGemOffers } from '../../systems/gems/rollGems'
@@ -87,7 +87,7 @@ export function applyAction(state: GameState, action: GameAction): { state: Game
   }
 
   if (action.type === 'COMBAT/COMPLETE_BURDEN_ADD') {
-    return completeBurdenAdd(state)
+    return completeBurdenAdd(state, action.id)
   }
 
   if (isPlayerAction(action)) {
@@ -230,7 +230,7 @@ function pickRewardCard(state: GameState, cardId: CardId): { state: GameState; e
   // Add a new instance of the chosen card to the player's deck (out of combat).
   const serial = state.player.nextCardInstanceSerial
   const newId = `c${serial}` as CardInstanceId
-  const inst = mkCardInstance(newId, cardId, offer.upgrades)
+  const inst = mkCardInstance(newId, cardId, offer.upgrades, offer.foil === true)
   const cardById2 = { ...state.player.deck.cardById, [inst.id]: inst }
   const drawPile2 = [...state.player.deck.drawPile, inst.id]
 
@@ -260,7 +260,8 @@ function pickRewardCard(state: GameState, cardId: CardId): { state: GameState; e
 
   s2 = applyCardPickupEffects(s2, cardId)
 
-  return { state: setPhase(s2, 'PATH_SELECT'), events: [] }
+  const levelUp = applyLevelUpRelicTriggers(s2)
+  return { state: setPhase(levelUp.state, 'PATH_SELECT'), events: levelUp.events }
 }
 
 function pickRewardRelic(state: GameState, relicId: RelicId): { state: GameState; events: GameEvent[] } {
@@ -297,7 +298,8 @@ function pickRewardRelic(state: GameState, relicId: RelicId): { state: GameState
     activeRoomPathId: null,
   }
 
-  return { state: setPhase(s2, 'PATH_SELECT'), events: [] }
+  const levelUp = applyLevelUpRelicTriggers(s2)
+  return { state: setPhase(levelUp.state, 'PATH_SELECT'), events: levelUp.events }
 }
 
 function buyShopItem(state: GameState, slotIndex: number): { state: GameState; events: GameEvent[] } {
@@ -364,12 +366,22 @@ function startStarterRelicSelection(state: GameState): GameState {
   const owned = new Set(state.player.relics.map((r) => r.templateId))
   const pool = StarterRelicPool.filter((id) => isRelicOfferable(id, owned))
   const offered: RelicId[] = []
+  const forcedInPool = pool.filter((id) => Relics[id]?.forceStartOffer)
+  let remainingPool = [...pool]
 
   const picks = Math.min(3, pool.length)
-  for (let i = 0; i < picks; i++) {
-    const [r2, idx] = rngInt(rng, 0, pool.length)
+  if (forcedInPool.length > 0 && picks > 0) {
+    const [rForced, forcedIdx] = rngInt(rng, 0, forcedInPool.length)
+    rng = rForced
+    const forcedPick = forcedInPool[forcedIdx]!
+    offered.push(forcedPick)
+    remainingPool = remainingPool.filter((id) => id !== forcedPick)
+  }
+
+  for (let i = offered.length; i < picks; i++) {
+    const [r2, idx] = rngInt(rng, 0, remainingPool.length)
     rng = r2
-    const [picked] = pool.splice(idx, 1)
+    const [picked] = remainingPool.splice(idx, 1)
     if (picked) offered.push(picked)
   }
 
@@ -409,6 +421,7 @@ function startStarterRelicSelection(state: GameState): GameState {
     treasureRoom: null,
     gemstoneCavern: null,
     mysteryRoom: null,
+    ui: { ...state.ui, debug: { ...state.ui.debug, lastEvents: [] } },
   }
   return setPhase(s2, 'RELIC_SELECT_STARTER')
 }
@@ -516,7 +529,8 @@ function advanceToNextPathSelectionAfterNode(
     activeRoomPathId: null,
   }
 
-  return { state: setPhase(s2, 'PATH_SELECT'), events: [] }
+  const levelUp = applyLevelUpRelicTriggers(s2)
+  return { state: setPhase(levelUp.state, 'PATH_SELECT'), events: levelUp.events }
 }
 
 function continueAfterRest(state: GameState): { state: GameState; events: GameEvent[] } {

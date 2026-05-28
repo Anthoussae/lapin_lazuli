@@ -48,7 +48,7 @@ export const MysteryRooms: Readonly<Record<MysteryRoomId, MysteryRoomTemplate>> 
     id: 'PRINTER',
     kind: 'event',
     name: 'The Printer',
-    frequency: 200,
+    frequency: 1,
     minimumLevel: 0,
     cooldown: 3,
   },

@@ -12,6 +12,7 @@ function foilEffectUpgradeValues(fx: Effect): Effect {
 
 function foilEffectAmounts(fx: Effect): Effect {
   if (!('amount' in fx)) return fx
+  if (typeof fx.amount !== 'number') return fx
   return { ...fx, amount: foilCeil50(fx.amount) }
 }
 

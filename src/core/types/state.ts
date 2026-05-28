@@ -6,6 +6,7 @@ import type { InputState } from '../../input/types'
 import type { EnemyBoonId } from '../../data/enemyBoons'
 import type { MysteryRoomId } from '../../data/mysteryRooms'
 import type { EnemyIntentKind } from '../../data/enemyIntentKinds'
+import type { EnchantmentInstance } from './enchantments'
 
 export type Phase =
   | 'BOOT'
@@ -41,6 +42,10 @@ export type CardInstance = Readonly<{
   foil?: boolean
   /** Sticker modification (not yet implemented in gameplay). */
   sticker?: boolean
+  /** Instance gains Expire (e.g. Copper Alembics combat potion). */
+  grantedExpire?: boolean
+  /** Removed from the deck when combat ends; never kept in the run deck. */
+  combatEphemeral?: boolean
 }>
 
 export type RelicInstance = Readonly<{
@@ -97,7 +102,7 @@ export type CollectorState = Readonly<{
   /** True after the player chose bulk cards (mutually exclusive with {@link sold}). */
   bulkAccepted: boolean
   /** Rolled on accept; same shape as card reward offers. */
-  bulkCards: ReadonlyArray<Readonly<{ cardId: CardId; upgrades: number }>> | null
+  bulkCards: ReadonlyArray<Readonly<{ cardId: CardId; upgrades: number; foil?: boolean }>> | null
   /** Count of {@link bulkCards} instances added to the deck after travel FX. */
   bulkCardsAdded: number
 }>
@@ -129,7 +134,7 @@ export type PathSelectionState = Readonly<{
 export type CardRewardState = Readonly<
   | {
       kind: 'CARD'
-      offered: ReadonlyArray<Readonly<{ cardId: CardId; upgrades: number }>>
+      offered: ReadonlyArray<Readonly<{ cardId: CardId; upgrades: number; foil?: boolean }>>
       goldEarned: number
       /** Key drops use path rules + luck (non-combat rewards use 0). */
       keysEarned: number
@@ -223,6 +228,8 @@ export type PlayerState = Readonly<{
   power: number
   /** Bonus temporary shield from cards tagged addShield. */
   shieldPower: number
+  /** Flat bonus damage on cards tagged fire and damage. */
+  firepower: number
   /** Multiplier for damage on cards tagged fire and damage; 0 means no bonus. */
   firepowerMultiplier: number
   luck: number
@@ -244,11 +251,20 @@ export type PlayerState = Readonly<{
 
 /** Queued burden grant shown with card-to-deck FX before mutating the deck. */
 export type BurdenAddEntry = Readonly<{
+  /** Stable identity for animation keys while the queue shifts. */
+  id: string
   cardId: CardId
   upgrades: number
   zone: 'draw' | 'discard'
   /** Enemy applying the burden (combat FX origin); null uses the default preview slot. */
   sourceEnemyId: EnemyInstanceId | null
+}>
+
+/** Stat bonuses from relics or cards that apply only for the current combat. */
+export type CombatBonuses = Readonly<{
+  power: number
+  firepower: number
+  shieldPower: number
 }>
 
 export type HandSelectionState = Readonly<{
@@ -295,6 +311,8 @@ export type CombatState = Readonly<{
   pendingTurnStartDraw: boolean
   /** Burden cards waiting for add-to-deck/discard FX (applied front-to-back). */
   burdenAddQueue: ReadonlyArray<BurdenAddEntry>
+  /** Monotonic serial for burden add queue ids (`b1`, `b2`, …). */
+  nextBurdenAddSerial: number
   /** Opening hand draw deferred until {@link burdenAddQueue} is empty (Alchemist lead ingots, etc.). */
   pendingOpeningHandDraw: Readonly<{ bonusDraw: number }> | null
   /**
@@ -302,6 +320,28 @@ export type CombatState = Readonly<{
    * Set at combat start when the relic is owned; cleared when a fire-tagged card is played.
    */
   freeFirstFireSpell: boolean
+  /**
+   * Paintbrush: the fifth spell each player turn costs 0 ink.
+   * When true, all cards display as 0 ink (green) and the next successfully cast card costs 0.
+   */
+  nextSpellCosts0: boolean
+  /** Paintbrush: number of cards successfully cast this player turn (does not reset until turn end). */
+  cardsPlayedThisTurn: number
+  /** Paintbrush: gate to ensure the discount triggers only once per turn (on the 4th cast). */
+  paintbrushTriggeredThisTurn: boolean
+  /** Relic/card stat bonuses that expire when this combat ends. */
+  combatBonuses: CombatBonuses
+  /** True after the player takes unblocked HP damage this combat (first-hit relic triggers). */
+  playerTookUnblockedDamage: boolean
+  /**
+   * Cards that are temporarily removed from all zones until combat ends (enchantment cards).
+   * They phase out on play and phase back in at combat end without counting as deck add/remove.
+   */
+  phasedOut: ReadonlyArray<CardInstanceId>
+  /** Active combat-only enchantments; cleared when the fight ends. */
+  enchantments: ReadonlyArray<EnchantmentInstance>
+  /** Monotonic serial for new enchantment instances (`ench0`, `ench1`, …). */
+  nextEnchantmentInstanceSerial: number
 }>
 
 export type UiState = Readonly<{

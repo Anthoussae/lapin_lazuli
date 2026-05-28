@@ -16,6 +16,15 @@ import placeholderPotion from '../../assets/images/cardillustrations/placeholder
 import ponder from '../../assets/images/cardillustrations/ponder.png'
 import practice from '../../assets/images/cardillustrations/practice.png'
 import smoke from '../../assets/images/cardillustrations/smoke.png'
+import stoneskin from '../../assets/images/cardillustrations/stoneskin.png'
+import poison from '../../assets/images/cardillustrations/poison.png'
+import dispel from '../../assets/images/cardillustrations/dispel.png'
+import smog from '../../assets/images/cardillustrations/smog.png'
+import conflagration from '../../assets/images/cardillustrations/conflagration.png'
+import crownOfFlames from '../../assets/images/cardillustrations/crownOfFlames.png'
+import guardianAngel from '../../assets/images/cardillustrations/guardianAngel.png'
+import hareRaising from '../../assets/images/cardillustrations/hareRaising.png'
+import warm from '../../assets/images/cardillustrations/warm.png'
 import letheanWater from '../../assets/images/potions/letheanWater.png'
 import wiseBunny from '../../assets/images/cardillustrations/wiseBunny.png'
 import wisdomPotion from '../../assets/images/cardillustrations/wisdomPotion.png'
@@ -44,6 +53,15 @@ export const CARD_ILLUSTRATIONS_BY_ID: Readonly<Partial<Record<CardId, string>>>
   LEAD_INGOT: leadIngot,
   CLUTTER: clutter,
   SMOKE: smoke,
+  STONESKIN: stoneskin,
+  POISON: poison,
+  CROWN_OF_FLAMES: crownOfFlames,
+  CONFLAGRATION: conflagration,
+  GUARDIAN_ANGEL: guardianAngel,
+  HARE_RAISING: hareRaising,
+  WARM: warm,
+  SMOG: smog,
+  DISPEL: dispel,
 })
 
 export function cardIllustrationForId(cardId: CardId): string {

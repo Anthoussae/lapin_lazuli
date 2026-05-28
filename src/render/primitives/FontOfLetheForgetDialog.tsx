@@ -26,6 +26,7 @@ export function FontOfLetheForgetDialog(props: Readonly<{ state: ScreenProps['st
   const prevForgottenRef = useRef(false)
   const cards = deckCardsSorted(Object.values(state.player.deck.cardById))
   const power = state.player.power
+  const firepower = state.player.firepower
   const firepowerMultiplier = state.player.firepowerMultiplier
   const shieldPower = state.player.shieldPower
 
@@ -106,8 +107,10 @@ export function FontOfLetheForgetDialog(props: Readonly<{ state: ScreenProps['st
                   inst={inst}
                   template={t}
                   power={power}
+                  firepower={firepower}
                   firepowerMultiplier={firepowerMultiplier}
                   shieldPower={shieldPower}
+                  hasGreenHat={state.player.relics.some((r) => r.templateId === 'GREEN_HAT')}
                   selected={selected}
                   className="fontOfLetheForgetCard"
                   onClick={() => enqueue({ type: 'FONT_OF_LETHE/SELECT_CARD', cardInstanceId: inst.id })}

@@ -10,7 +10,7 @@ export type GameAction =
   | { type: 'COMBAT/COMPLETE_MONSTER_DEFEAT' }
   | { type: 'COMBAT/COMPLETE_PLAYER_DEFEAT' }
   | { type: 'COMBAT/COMPLETE_TURN_START_DRAW' }
-  | { type: 'COMBAT/COMPLETE_BURDEN_ADD' }
+  | { type: 'COMBAT/COMPLETE_BURDEN_ADD'; id?: string }
   | PlayerAction
 
 export type PlayerAction =

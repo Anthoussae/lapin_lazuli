@@ -129,6 +129,7 @@ export function rollPathCombatEncounter(
   }
 
   const tmpl = Enemies[enemyTemplateId]
+  if (tmpl.forceBoon && !boons.includes(tmpl.forceBoon)) boons.push(tmpl.forceBoon)
   const [r3, rolledHp] = rollDice(r, tmpl.hp)
   r = r3
   const hpMult = enemyBoonHpMultiplierProduct(boons)

@@ -13,9 +13,11 @@ type UseCombatHandDrawAnimationsArgs = Readonly<{
   discardPileIds: ReadonlyArray<CardInstanceId>
   cardById: GameState['player']['deck']['cardById']
   power: number
+  firepower: number
   firepowerMultiplier: number
   shieldPower: number
   freeFirstFireSpell: boolean
+  nextSpellCosts0: boolean
   enabled: boolean
   pendingTurnStartDraw: boolean
   burdenAddsBlocking: boolean
@@ -26,12 +28,14 @@ function cardTravelPayload(
   cardInstanceId: CardInstanceId,
   inst: CardInstance | undefined,
   power: number,
+  firepower: number,
   firepowerMultiplier: number,
   shieldPower: number,
   freeFirstFireSpell: boolean,
+  nextSpellCosts0: boolean,
 ) {
   const template = inst ? Cards[inst.templateId] : undefined
-  const inkOpts = { freeFirstFireSpell }
+  const inkOpts = { freeFirstFireSpell, nextSpellCosts0 }
   const ink = inst && template ? cardInstanceInkCost(inst, template, inkOpts) : null
   const inkModified = inst && template ? cardInstanceInkCostModified(inst, template, inkOpts) : false
   return {
@@ -45,7 +49,7 @@ function cardTravelPayload(
     inkModified,
     descriptionLines:
       inst && template
-        ? cardDescriptionLinesForInstance(template, inst, power, firepowerMultiplier, shieldPower)
+        ? cardDescriptionLinesForInstance(template, inst, power, firepower, firepowerMultiplier, shieldPower)
         : [],
     socketedGemId: inst?.socketedGemId ?? null,
     foil: inst?.foil === true,
@@ -90,9 +94,11 @@ export function useCombatHandDrawAnimations(args: UseCombatHandDrawAnimationsArg
     discardPileIds,
     cardById,
     power,
+    firepower,
     firepowerMultiplier,
     shieldPower,
     freeFirstFireSpell,
+    nextSpellCosts0,
     enabled,
     pendingTurnStartDraw,
     burdenAddsBlocking,
@@ -158,7 +164,16 @@ export function useCombatHandDrawAnimations(args: UseCombatHandDrawAnimationsArg
     travelCardFromDeck({
       cardKey: nextId,
       destEl,
-      card: cardTravelPayload(nextId, inst, power, firepowerMultiplier, shieldPower, freeFirstFireSpell),
+      card: cardTravelPayload(
+        nextId,
+        inst,
+        power,
+        firepower,
+        firepowerMultiplier,
+        shieldPower,
+        freeFirstFireSpell,
+        nextSpellCosts0,
+      ),
       onComplete: () => {
         drawQueueRef.current.shift()
         processingRef.current = false
@@ -170,9 +185,12 @@ export function useCombatHandDrawAnimations(args: UseCombatHandDrawAnimationsArg
     burdenAddsBlocking,
     cardById,
     enabled,
+    freeFirstFireSpell,
+    firepower,
     firepowerMultiplier,
     hasPendingConsumeWork,
     hasPendingDiscardWork,
+    nextSpellCosts0,
     power,
     shieldPower,
     travelCardFromDeck,
@@ -234,7 +252,16 @@ export function useCombatHandDrawAnimations(args: UseCombatHandDrawAnimationsArg
         cardKey: nextId,
         sourceEl: sourceEl ?? undefined,
         sourceRect: sourceEl ? undefined : sourceRect,
-        card: cardTravelPayload(nextId, inst, power, firepowerMultiplier, shieldPower, freeFirstFireSpell),
+        card: cardTravelPayload(
+          nextId,
+          inst,
+          power,
+          firepower,
+          firepowerMultiplier,
+          shieldPower,
+          freeFirstFireSpell,
+          nextSpellCosts0,
+        ),
         onComplete: () => {
           discardInFlightRef.current.delete(nextId)
           discardQueueRef.current = discardQueueRef.current.filter((id) => id !== nextId)
@@ -246,7 +273,18 @@ export function useCombatHandDrawAnimations(args: UseCombatHandDrawAnimationsArg
     }
 
     if (waitingForSlot) requestAnimationFrame(() => processPendingDiscards())
-  }, [cardById, clearDiscardSlotCache, enabled, firepowerMultiplier, power, shieldPower, travelCardToDiscard])
+  }, [
+    cardById,
+    clearDiscardSlotCache,
+    enabled,
+    firepower,
+    firepowerMultiplier,
+    freeFirstFireSpell,
+    nextSpellCosts0,
+    power,
+    shieldPower,
+    travelCardToDiscard,
+  ])
 
   const tryCompleteTurnStartDraw = useCallback(() => {
     if (!pendingTurnStartDraw) return

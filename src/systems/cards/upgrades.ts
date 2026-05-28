@@ -1,4 +1,6 @@
 import type { CardId, CardInstanceId } from '../../core/types/ids'
+import type { RngState } from '../../core/rng/rng'
+import { rngInt } from '../../core/rng/rng'
 import type { GameState } from '../../core/types/state'
 import { Cards } from '../../data/cards'
 import type { Effect } from '../../data/effects'
@@ -23,12 +25,14 @@ function scaleEffect(fx: Effect, upgrades: number): Effect {
   if (
     fx.kind === 'UPGRADE_SELECTED_CARD' ||
     fx.kind === 'CONSUME_SELECTED_CARD' ||
-    fx.kind === 'UPGRADE_SPECIFIC_CARD'
+    fx.kind === 'UPGRADE_SPECIFIC_CARD' ||
+    fx.kind === 'UPGRADE_RANDOM_DECK_CARDS'
   ) {
     return { ...fx, numberOfTargets: fx.numberOfTargets + per * upgrades }
   }
 
   if ('amount' in fx) {
+    if (typeof fx.amount !== 'number') return fx
     return { ...fx, amount: ceilScaledAmount(fx.amount, per, upgrades) }
   }
 
@@ -96,6 +100,47 @@ export function upgradeSelectedCards(
   for (const id of candidates.slice(0, numberOfTargets)) {
     s = upgradeCardInstance(s, id, upgradeAmount)
   }
+  return s
+}
+
+export function upgradeableDeckCardIds(state: GameState): ReadonlyArray<CardInstanceId> {
+  return Object.values(state.player.deck.cardById)
+    .filter((c) => isCardUpgradeable(c.templateId))
+    .map((c) => c.id)
+    .sort()
+}
+
+function pickRandomUpgradeableDeckCards(
+  rng: RngState,
+  candidates: ReadonlyArray<CardInstanceId>,
+  count: number,
+): readonly [RngState, CardInstanceId[]] {
+  const pool = [...candidates]
+  const picked: CardInstanceId[] = []
+  const n = Math.min(count, pool.length)
+  let r = rng
+  for (let i = 0; i < n; i++) {
+    const [r2, idx] = rngInt(r, 0, pool.length)
+    r = r2
+    const card = pool[idx]
+    if (!card) break
+    picked.push(card)
+    pool.splice(idx, 1)
+  }
+  return [r, picked]
+}
+
+/** Upgrade up to `numberOfTargets` distinct random upgradeable cards in the deck (fewer if the deck is smaller). */
+export function upgradeRandomDeckCards(
+  state: GameState,
+  numberOfTargets: number,
+  upgradeAmount: number,
+): GameState {
+  if (numberOfTargets <= 0 || upgradeAmount <= 0) return state
+  const candidates = upgradeableDeckCardIds(state)
+  const [r2, ids] = pickRandomUpgradeableDeckCards(state.rng, candidates, numberOfTargets)
+  let s: GameState = { ...state, rng: r2 }
+  for (const id of ids) s = upgradeCardInstance(s, id, upgradeAmount)
   return s
 }
 

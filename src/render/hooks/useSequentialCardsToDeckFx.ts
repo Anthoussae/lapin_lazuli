@@ -8,6 +8,7 @@ import { useCardTravel } from '../CardTravelContext'
 export type SequentialCardOffer = Readonly<{
   cardId: CardId
   upgrades: number
+  foil?: boolean
 }>
 
 type UseSequentialCardsToDeckFxArgs = Readonly<{
@@ -21,8 +22,10 @@ type UseSequentialCardsToDeckFxArgs = Readonly<{
   destination: 'deck' | 'discard'
   onApplied: (index: number) => void
   power: number
+  firepower: number
   firepowerMultiplier: number
   shieldPower: number
+  hasGreenHat?: boolean
 }>
 
 /** Collector-style preview hold, then flip + travel to deck or discard (one card at a time). */
@@ -36,8 +39,10 @@ export function useSequentialCardsToDeckFx(args: UseSequentialCardsToDeckFxArgs)
     destination,
     onApplied,
     power,
+    firepower,
     firepowerMultiplier,
     shieldPower,
+    hasGreenHat = false,
   } = args
 
   const { travelCardToDeck, travelCardToDiscard, travelingCardKey } = useCardTravel()
@@ -94,8 +99,18 @@ export function useSequentialCardsToDeckFx(args: UseSequentialCardsToDeckFxArgs)
         nameUpgraded: nextOffer.upgrades > 0,
         inkLabel: t?.cost !== null && t?.cost !== undefined ? String(t.cost) : null,
         descriptionLines: t
-          ? cardDescriptionLinesForOffer(t, nextOffer.upgrades, power, firepowerMultiplier, shieldPower)
+          ? cardDescriptionLinesForOffer(
+              t,
+              nextOffer.upgrades,
+              power,
+              firepower,
+              firepowerMultiplier,
+              shieldPower,
+              nextOffer.foil === true,
+              hasGreenHat,
+            )
           : [],
+        foil: nextOffer.foil === true,
       },
       onComplete: () => {
         travelStartedRef.current = null
@@ -110,6 +125,7 @@ export function useSequentialCardsToDeckFx(args: UseSequentialCardsToDeckFxArgs)
   }, [
     active,
     destination,
+    firepower,
     firepowerMultiplier,
     nextIndex,
     nextOffer,

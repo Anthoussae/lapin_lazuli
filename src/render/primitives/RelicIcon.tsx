@@ -5,12 +5,22 @@ import { RelicTooltip } from './RelicTooltip'
 
 export type RelicIconSize = 'default' | 'thumb'
 
+export type RelicCounterProps = Readonly<{
+  value: number | string
+  /** Position relative to the icon center (px). */
+  offsetX: number
+  offsetY: number
+  fontSize: number
+  color: string
+}>
+
 export type RelicIconProps = Readonly<{
   imageSrc?: string
   fallback: ReactNode
   alt?: string
   tooltipName?: string
   tooltipEffect?: string
+  counter?: RelicCounterProps
   onClick?: (e: MouseEvent<HTMLButtonElement>) => void
   disabled?: boolean
   selected?: boolean
@@ -30,6 +40,7 @@ export function RelicIcon(props: RelicIconProps) {
     alt = '',
     tooltipName,
     tooltipEffect = '',
+    counter,
     onClick,
     disabled,
     selected,
@@ -66,19 +77,37 @@ export function RelicIcon(props: RelicIconProps) {
 
   const imgClass = ['relicIcon__img', artClassName].filter(Boolean).join(' ')
 
-  const visual = showImage ? (
-    <img
-      key={artKey}
-      className={imgClass}
-      src={imageSrc}
-      alt={alt}
-      draggable={false}
-      onError={() => setImgFailed(true)}
-    />
-  ) : (
-    <span className="relicIcon__fallback" aria-hidden={alt !== ''}>
-      {fallback}
-    </span>
+  const visual = (
+    <>
+      {showImage ? (
+        <img
+          key={artKey}
+          className={imgClass}
+          src={imageSrc}
+          alt={alt}
+          draggable={false}
+          onError={() => setImgFailed(true)}
+        />
+      ) : (
+        <span className="relicIcon__fallback" aria-hidden={alt !== ''}>
+          {fallback}
+        </span>
+      )}
+      {counter ? (
+        <div
+          className="relicIcon__counter"
+          style={{
+            left: `calc(50% + ${counter.offsetX}px)`,
+            top: `calc(50% + ${counter.offsetY}px)`,
+            fontSize: `${counter.fontSize}px`,
+            color: counter.color,
+          }}
+          aria-label={`Counter ${String(counter.value)}`}
+        >
+          {counter.value}
+        </div>
+      ) : null}
+    </>
   )
 
   const tooltip =

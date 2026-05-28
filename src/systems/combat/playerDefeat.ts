@@ -3,17 +3,20 @@ import type { GameEvent } from '../../reducers/events'
 import { setPhase } from '../../reducers/reduceGame'
 import { shuffleDiscardIntoDrawIfNeeded, shuffleDrawPile } from './zones'
 import { clearActiveCombat } from './endCombat'
+import { purgeCombatEphemeralCards } from './purgeEphemeralCards'
 
-function shuffleAllZonesIntoDeck(state: GameState): GameState {
-  const deck0 = state.player.deck
-  const merged = [...deck0.drawPile, ...deck0.discardPile, ...deck0.hand]
+function shuffleAllZonesIntoDeck(state: GameState): { state: GameState; phasedIn: ReadonlyArray<string> } {
+  const purged = purgeCombatEphemeralCards(state)
+  const deck0 = purged.player.deck
+  const phasedOut = purged.combat?.phasedOut ?? []
+  const merged = [...deck0.drawPile, ...deck0.discardPile, ...deck0.hand, ...phasedOut]
   let s: GameState = {
-    ...state,
-    player: { ...state.player, deck: { ...deck0, drawPile: merged, discardPile: [], hand: [] } },
+    ...purged,
+    player: { ...purged.player, deck: { ...deck0, drawPile: merged, discardPile: [], hand: [] } },
   }
   s = shuffleDiscardIntoDrawIfNeeded(s)
   s = shuffleDrawPile(s)
-  return s
+  return { state: s, phasedIn: phasedOut }
 }
 
 /** Finishes player defeat FX and transitions to the defeat screen. */
@@ -29,7 +32,9 @@ export function completePlayerDefeat(state: GameState): { state: GameState; even
     return { ...s, player: { ...s.player, deck: { ...deck, cardById: nextById } } }
   }
 
-  const base = shuffleAllZonesIntoDeck(resetExhausted(state))
+  const shuffled = shuffleAllZonesIntoDeck(resetExhausted(state))
+  const base = shuffled.state
+  const phaseInEvents: GameEvent[] = shuffled.phasedIn.map((id) => ({ type: 'EVT/CARD_PHASED_IN', cardInstanceId: id as any }))
   const cleared = { ...base, player: { ...base.player, shield: 0, lockedShield: 0 } }
   const s2 = setPhase(
     {
@@ -41,6 +46,6 @@ export function completePlayerDefeat(state: GameState): { state: GameState; even
 
   return {
     state: clearActiveCombat(s2),
-    events: [{ type: 'EVT/COMBAT_ENDED', result: 'DEFEAT' }],
+    events: [...phaseInEvents, { type: 'EVT/COMBAT_ENDED', result: 'DEFEAT' }],
   }
 }

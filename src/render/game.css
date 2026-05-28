@@ -1364,6 +1364,7 @@
 .relicIcon {
   display: inline-block;
   box-sizing: border-box;
+  position: relative;
   width: var(--relic-icon-height);
   height: var(--relic-icon-height);
   line-height: 0;
@@ -1383,6 +1384,16 @@
   --relic-icon-shadow: drop-shadow(0 1px 0.5px rgba(42, 22, 58, 0.42))
     drop-shadow(0 3px 5px rgba(24, 10, 36, 0.28));
   filter: var(--relic-icon-shadow);
+}
+
+.relicIcon__counter {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  font-weight: 900;
+  line-height: 1;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.65);
+  pointer-events: none;
+  user-select: none;
 }
 
 button.relicIcon {
@@ -4351,6 +4362,11 @@ button.gemIcon {
   z-index: var(--combat-bunny-meter-placeholder-z);
 }
 
+.combatPlayerPlaceholder--hasEnchantments {
+  pointer-events: auto;
+  cursor: help;
+}
+
 .combatPlayerPlaceholder__art {
   display: block;
   width: 100%;
@@ -4388,11 +4404,57 @@ button.gemIcon {
   cursor: help;
 }
 
+.combatMonsterPlaceholder--hasEnchantments {
+  pointer-events: auto;
+  cursor: help;
+}
+
 .combatMonsterPlaceholder__art {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: contain;
+}
+
+.enchantmentGlowRings {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  user-select: none;
+  z-index: var(--enchantment-glow-z);
+}
+
+.enchantmentGlowRing {
+  --enchantment-ring-index: 0;
+  --enchantment-ring-color: rgba(255, 255, 255, 0.7);
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc((var(--enchantment-glow-base-radius) + (var(--enchantment-ring-index) * var(--enchantment-glow-radius-step))) * 2);
+  height: calc((var(--enchantment-glow-base-radius) + (var(--enchantment-ring-index) * var(--enchantment-glow-radius-step))) * 2);
+  transform: translate(-50%, -50%);
+  border-radius: 9999px;
+  opacity: var(--enchantment-glow-opacity);
+  filter: blur(var(--enchantment-glow-blur));
+  animation: enchantmentGlowPulse var(--duration-enchantment-glow-pulse) var(--ease-enchantment-glow-pulse) infinite;
+  /* Crisp visible circle. */
+  border: var(--enchantment-glow-stroke-width) solid
+    color-mix(in srgb, var(--enchantment-ring-color) calc(var(--enchantment-glow-stroke-opacity) * 100%), transparent);
+  box-shadow:
+    0 0 var(--enchantment-glow-spread-tight) color-mix(in srgb, var(--enchantment-ring-color) 85%, transparent),
+    0 0 var(--enchantment-glow-spread-wide) color-mix(in srgb, var(--enchantment-ring-color) 55%, transparent);
+}
+
+@keyframes enchantmentGlowPulse {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: var(--enchantment-glow-opacity);
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.06);
+    opacity: var(--enchantment-glow-opacity);
+  }
 }
 
 .combatMonsterIntent {

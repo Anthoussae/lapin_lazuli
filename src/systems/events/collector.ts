@@ -96,7 +96,7 @@ export function applyCollectorAddBulkCard(state: GameState, index: number): Game
 
   const serial = state.player.nextCardInstanceSerial
   const newId = `c${serial}` as CardInstanceId
-  const inst = mkCardInstance(newId, entry.cardId, entry.upgrades)
+  const inst = mkCardInstance(newId, entry.cardId, entry.upgrades, entry.foil === true)
   const cardById2 = { ...state.player.deck.cardById, [inst.id]: inst }
   const drawPile2 = [...state.player.deck.drawPile, inst.id]
 

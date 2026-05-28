@@ -27,6 +27,7 @@ export function PrinterFoilDialog(
   const canFoil = selectedId != null
   const cards = nonFoilDeckCardsSorted(Object.values(state.player.deck.cardById))
   const power = state.player.power
+  const firepower = state.player.firepower
   const firepowerMultiplier = state.player.firepowerMultiplier
   const shieldPower = state.player.shieldPower
   const { playCardSocketFlip, animatingCardInstanceId, isSocketFlipPlaying } = useCardSocketFlip()
@@ -57,8 +58,8 @@ export function PrinterFoilDialog(
     playCardSocketFlip({
       cardInstanceId: selectedId,
       sourceEl: slotEl,
-      cardBefore: cardFoilFlipPayload(template, inst, power, firepowerMultiplier, shieldPower, false),
-      cardAfter: cardFoilFlipPayload(template, inst, power, firepowerMultiplier, shieldPower, true),
+      cardBefore: cardFoilFlipPayload(template, inst, power, firepower, firepowerMultiplier, shieldPower, false),
+      cardAfter: cardFoilFlipPayload(template, inst, power, firepower, firepowerMultiplier, shieldPower, true),
       onComplete: () => enqueue({ type: 'PRINTER/FOIL' }),
     })
   }
@@ -110,8 +111,10 @@ export function PrinterFoilDialog(
                   inst={inst}
                   template={t}
                   power={power}
+                  firepower={firepower}
                   firepowerMultiplier={firepowerMultiplier}
                   shieldPower={shieldPower}
+                  hasGreenHat={state.player.relics.some((r) => r.templateId === 'GREEN_HAT')}
                   selected={selected}
                   className="printerFoilDialogCard"
                   onClick={

@@ -4,6 +4,8 @@ import type { CardInstance } from '../../core/types/state'
 export type InkCostOpts = Readonly<{
   /** Phoenix-feather Quill combat buff. */
   freeFirstFireSpell?: boolean
+  /** Paintbrush combat buff: next spell costs 0 (preview all cards as 0). */
+  nextSpellCosts0?: boolean
 }>
 
 export function cardTemplateHasNullInkCost(card: CardTemplate): boolean {
@@ -22,6 +24,7 @@ export function cardInstanceInkCost(
 ): number | null {
   if (cardTemplateHasNullInkCost(card)) return null
   const base = inst.costOverride ?? card.cost
+  if (opts?.nextSpellCosts0) return 0
   if (opts?.freeFirstFireSpell && cardHasFireTag(card.tags)) return 0
   return base
 }
@@ -35,6 +38,7 @@ export function cardInstanceInkCostModified(
   const effective = cardInstanceInkCost(inst, card, opts)
   const printed = inst.costOverride ?? card.cost
   if (effective === null || printed === null) return false
+  if (opts?.nextSpellCosts0 && effective === 0) return true
   return effective !== printed
 }
 

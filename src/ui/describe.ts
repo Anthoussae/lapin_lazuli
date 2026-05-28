@@ -33,6 +33,14 @@ export function formatBunnyMultiplier(amount: number): string {
   return `${Math.floor(x)}.5`
 }
 
+function greenHatPoisonResistCeil(n: number): number {
+  return Math.ceil(n * 0.5)
+}
+
+function greenHatPoisonBoostCeil(n: number): number {
+  return Math.ceil(n * 1.5)
+}
+
 export function describeEffect(fx: Effect): string {
   switch (fx.kind) {
     case 'DRAW_CARDS':
@@ -43,6 +51,11 @@ export function describeEffect(fx: Effect): string {
       return `multiply your bunnies by ${formatBunnyMultiplier(fx.amount)}`
     case 'HEAL':
       return `heal ${fx.amount} ${plural(fx.amount, 'hp')}`
+    case 'HP_LOSS': {
+      const t = fx.target ?? 'selectedEnemy'
+      if (t === 'player') return `lose ${fx.amount} ${plural(fx.amount, 'hp')}`
+      return `enemy loses ${fx.amount} ${plural(fx.amount, 'hp')}`
+    }
     case 'GAIN_SHIELD': {
       const t = fx.target ?? 'player'
       if (t === 'selectedEnemy') return `give the targeted enemy ${fx.amount} ${plural(fx.amount, 'shield')}`
@@ -62,28 +75,36 @@ export function describeEffect(fx: Effect): string {
       return 'exhaust'
     case 'UPGRADE_AFTER_CASTING':
       return 'upgrades after casting'
-    case 'CONSUME_IF_IN_HAND_AT_TURN_END':
-      return 'at end of turn, if this is still in your hand, consume it'
     case 'DEAL_DAMAGE':
       return `deal ${fx.amount} damage`
     case 'GAIN_MAX_HP':
       return `gain ${fx.amount} max hp`
     case 'GAIN_GOLD':
       return `gain ${fx.amount} gold`
+    case 'GAIN_INTEREST':
+      return `gain ${fx.percentAmount}% gold interest (rounded up)`
     case 'GAIN_KEYS':
       return `gain ${fx.amount} ${plural(fx.amount, 'key')}`
     case 'GAIN_POWER':
-      return `gain ${fx.amount} ${plural(fx.amount, 'power')}`
+      return fx.duration === 'combat'
+        ? `gain ${fx.amount} ${plural(fx.amount, 'power')} until end of combat`
+        : `gain ${fx.amount} ${plural(fx.amount, 'power')}`
     case 'GAIN_SHIELD_POWER':
-      return `gain ${fx.amount} shield power`
+      return fx.duration === 'combat'
+        ? `gain ${fx.amount} shield power until end of combat`
+        : `gain ${fx.amount} shield power`
+    case 'GAIN_FIREPOWER':
+      return fx.duration === 'combat' ? `gain ${fx.amount} fire power until end of combat` : `gain ${fx.amount} fire power`
     case 'GAIN_FIREPOWER_MULTIPLIER':
-      return `gain ${fx.amount} firepower`
+      return `gain ${fx.amount} firepower multiplier`
     case 'GAIN_LUCK':
       return `gain ${fx.amount} luck`
     case 'GAIN_INK':
       return `gain ${fx.amount} ink`
     case 'GAIN_MAX_INK':
       return `gain ${fx.amount} max ink`
+    case 'GAIN_HAND_SIZE':
+      return `gain ${fx.amount} hand size`
     case 'UPGRADE_SELECTED_CARD':
       return `upgrade ${fx.numberOfTargets} ${plural(fx.numberOfTargets, 'card')} in your hand`
     case 'CONSUME_SELECTED_CARD':
@@ -94,8 +115,27 @@ export function describeEffect(fx: Effect): string {
       if (fx.numberOfTargets === 1) return `upgrade your ${pretty}`
       return `upgrade ${fx.numberOfTargets} of your ${pretty}`
     }
+    case 'UPGRADE_RANDOM_DECK_CARDS':
+      return `upgrade ${fx.numberOfTargets} random ${plural(fx.numberOfTargets, 'card')} in your deck`
     case 'ACTIVATE_FREE_FIRST_FIRE_SPELL':
       return 'your first fire spell each combat costs 0 ink'
+    case 'NEXT_SPELL_COSTS_0':
+      return 'your next spell costs 0 ink'
+    case 'GAIN_ALL_POWERS_PER_OWNED_BURDEN':
+      return 'gain +1 bunny power, +1 shield power, and +1 fire power for each burden you own until end of combat'
+    case 'ADD_RANDOM_POTION_TO_HAND':
+      return 'add a random potion to your hand'
+    case 'APPLY_ENCHANTMENT': {
+      const amt = fx.amount ?? 0
+      if (fx.enchantmentId === 'STONESKIN') return `Enchantment. Gain +${amt} shield power`
+      if (fx.enchantmentId === 'HARE_RAISING') return `Enchantment. Gain +${amt} bunny power`
+      if (fx.enchantmentId === 'WARM') return `Enchantment. Gain +${amt} fire power`
+      if (fx.enchantmentId === 'POISON') return `enemy loses ${amt} hp each turn`
+      if (fx.enchantmentId === 'FLAMEWREATH') return `deal ${amt} damage when attacked`
+      return `apply ${fx.enchantmentId}`
+    }
+    case 'DISPEL':
+      return `dispel ${fx.amount}`
   }
 }
 
@@ -116,8 +156,13 @@ const RELIC_TRIGGER_LINE: Partial<Record<TriggerDef['on'], (eff: string) => stri
   onPickup: (eff) => capitalizeFirst(eff),
   combat_start: (eff) => `At combat start, ${eff}.`,
   turn_start: (eff) => `At turn start, ${eff}.`,
+  fourthSpellCastPerTurn: (eff) => `After you cast your fourth spell this turn, ${eff}.`,
   draw_starting_hand: (eff) => `When drawing your starting hand, ${eff}.`,
   onNonOpenerCardDraw: (eff) => `Whenever you draw a card other than into your opening hand, ${eff}.`,
+  onPlayerUnblockedDamage: (eff) => `The first time you take damage each combat, ${eff}.`,
+  onTotalAttackBlock: (eff) => `Whenever you completely block an enemy's attack, ${eff}.`,
+  potion_played: (eff) => `Whenever you use a potion, ${eff}.`,
+  combat_end: (eff) => `At the end of each combat, ${eff}.`,
   onRest: (eff) => `When you rest, ${eff}.`,
   onSleep: (eff) => `When you sleep, ${eff}.`,
 }
@@ -156,6 +201,7 @@ function describeEffectsOrConsumeFallback(
   card: CardTemplate,
   scaled: ReadonlyArray<Effect>,
   socketedGemId: GemId | null = null,
+  grantedExpire = false,
 ): string {
   const lines: string[] = []
   const unplayable = unplayableDescriptionLine(card)
@@ -163,7 +209,7 @@ function describeEffectsOrConsumeFallback(
   const visibleFx = scaled.filter((fx) => !isDescriptionKeywordEffect(fx))
   if (visibleFx.length) lines.push(...visibleFx.map((fx) => capitalizeCardDescriptionText(`${describeEffect(fx)}.`)))
   else if (card.tags.includes('consume')) lines.push('Consume.')
-  const keywordIds = cardKeywordIds(card, socketedGemId)
+  const keywordIds = cardKeywordIds(card, socketedGemId, grantedExpire)
   if (keywordIds.length) lines.push(capitalizeCardDescriptionText(formatKeywordLabelsLine(keywordIds)))
   return lines.join('\n')
 }
@@ -233,6 +279,25 @@ function txt(text: string): CardDescSegment {
   return { kind: 'text', text }
 }
 
+const EMBEDDED_ENCHANTMENT_POWER_IDS = new Set(['STONESKIN', 'HARE_RAISING', 'WARM'])
+
+function enchantmentPowerGainSegments(
+  enchantmentId: string,
+  baseAmt: number,
+  displayAmt: number,
+): CardDescSegment[] | null {
+  const suffix =
+    enchantmentId === 'STONESKIN'
+      ? ' shield power.'
+      : enchantmentId === 'HARE_RAISING'
+        ? ' bunny power.'
+        : enchantmentId === 'WARM'
+          ? ' fire power.'
+          : null
+  if (!suffix) return null
+  return [txt('Enchantment. Gain +'), amtSeg(baseAmt, displayAmt), txt(suffix)]
+}
+
 function capitalizeFirstSegment(segments: CardDescSegment[]): CardDescSegment[] {
   if (!segments.length || segments[0].kind !== 'text' || !segments[0].text.length) return segments
   const first = segments[0]
@@ -244,11 +309,13 @@ function effectDescriptionLine(
   baseFx: Effect,
   displayFx: Effect,
   power: number,
+  firepower: number,
   firepowerMultiplier: number,
   shieldPower: number,
+  hasGreenHat: boolean,
 ): CardDescLine {
   const segments = capitalizeFirstSegment(
-    buildEffectSegments(card, baseFx, displayFx, power, firepowerMultiplier, shieldPower),
+    buildEffectSegments(card, baseFx, displayFx, power, firepower, firepowerMultiplier, shieldPower, hasGreenHat),
   )
   return { kind: 'segments', segments }
 }
@@ -258,8 +325,10 @@ function buildEffectSegments(
   baseFx: Effect,
   displayFx: Effect,
   power: number,
+  firepower: number,
   firepowerMultiplier: number,
   shieldPower: number,
+  hasGreenHat: boolean,
 ): CardDescSegment[] {
   switch (displayFx.kind) {
     case 'DRAW_CARDS':
@@ -293,6 +362,24 @@ function buildEffectSegments(
         amtSeg(baseFx.kind === 'HEAL' ? baseFx.amount : displayFx.amount, displayFx.amount),
         txt(` ${plural(displayFx.amount, 'hp')}.`),
       ]
+    case 'HP_LOSS': {
+      let base = baseFx.kind === 'HP_LOSS' ? baseFx.amount : displayFx.amount
+      const t = displayFx.target ?? 'selectedEnemy'
+      let display = displayFx.amount
+      if (hasGreenHat && card.tags.includes('poison')) {
+        if (t === 'player') {
+          base = greenHatPoisonResistCeil(base)
+          display = greenHatPoisonResistCeil(display)
+        } else {
+          base = greenHatPoisonBoostCeil(base)
+          display = greenHatPoisonBoostCeil(display)
+        }
+      }
+      if (t === 'player') {
+        return [txt('lose '), amtSeg(base, display), txt(` ${plural(display, 'hp')}.`)]
+      }
+      return [txt('enemy loses '), amtSeg(base, display), txt(` ${plural(display, 'hp')}.`)]
+    }
     case 'GAIN_SHIELD': {
       const base = baseFx.kind === 'GAIN_SHIELD' ? baseFx.amount : displayFx.amount
       const t = displayFx.target ?? 'player'
@@ -325,7 +412,7 @@ function buildEffectSegments(
     case 'DEAL_DAMAGE': {
       const base = baseFx.kind === 'DEAL_DAMAGE' ? baseFx.amount : displayFx.amount
       const display = cardHasFireDamageTags(card.tags)
-        ? boostFireDealDamage(displayFx.amount, firepowerMultiplier)
+        ? boostFireDealDamage(displayFx.amount, firepower, firepowerMultiplier)
         : displayFx.amount
       return [txt('deal '), amtSeg(base, display), txt(' damage.')]
     }
@@ -353,6 +440,12 @@ function buildEffectSegments(
         amtSeg(baseFx.kind === 'GAIN_POWER' ? baseFx.amount : displayFx.amount, displayFx.amount),
         txt(` ${plural(displayFx.amount, 'power')}.`),
       ]
+    case 'GAIN_FIREPOWER':
+      return [
+        txt('gain '),
+        amtSeg(baseFx.kind === 'GAIN_FIREPOWER' ? baseFx.amount : displayFx.amount, displayFx.amount),
+        txt(` fire power.`),
+      ]
     case 'GAIN_FIREPOWER_MULTIPLIER':
       return [
         txt('gain '),
@@ -360,7 +453,7 @@ function buildEffectSegments(
           baseFx.kind === 'GAIN_FIREPOWER_MULTIPLIER' ? baseFx.amount : displayFx.amount,
           displayFx.amount,
         ),
-        txt(` firepower.`),
+        txt(` firepower multiplier.`),
       ]
     case 'GAIN_LUCK':
       return [
@@ -379,6 +472,12 @@ function buildEffectSegments(
         txt('gain '),
         amtSeg(baseFx.kind === 'GAIN_MAX_INK' ? baseFx.amount : displayFx.amount, displayFx.amount),
         txt(` max ink.`),
+      ]
+    case 'GAIN_HAND_SIZE':
+      return [
+        txt('gain '),
+        amtSeg(baseFx.kind === 'GAIN_HAND_SIZE' ? baseFx.amount : displayFx.amount, displayFx.amount),
+        txt(` hand size.`),
       ]
     case 'UPGRADE_SELECTED_CARD':
       return [
@@ -410,6 +509,32 @@ function buildEffectSegments(
         txt(` of your ${pretty}.`),
       ]
     }
+    case 'UPGRADE_RANDOM_DECK_CARDS': {
+      const baseTargets =
+        baseFx.kind === 'UPGRADE_RANDOM_DECK_CARDS' ? baseFx.numberOfTargets : displayFx.numberOfTargets
+      return [
+        txt('upgrade '),
+        amtSeg(baseTargets, displayFx.numberOfTargets),
+        txt(` random ${plural(displayFx.numberOfTargets, 'card')} in your deck.`),
+      ]
+    }
+    case 'APPLY_ENCHANTMENT': {
+      const base =
+        baseFx.kind === 'APPLY_ENCHANTMENT' ? (baseFx.amount ?? 0) : (displayFx.amount ?? 0)
+      const display = displayFx.amount ?? 0
+      const powerGain = enchantmentPowerGainSegments(displayFx.enchantmentId, base, display)
+      if (powerGain) return powerGain
+      if (displayFx.enchantmentId === 'FLAMEWREATH') {
+        const boosted = boostFireDealDamage(display, firepower, firepowerMultiplier)
+        return [txt('deal '), amtSeg(base, boosted), txt(' damage when attacked.')]
+      }
+      if (displayFx.enchantmentId === 'POISON') {
+        const baseAdj = hasGreenHat ? greenHatPoisonBoostCeil(base) : base
+        const displayAdj = hasGreenHat ? greenHatPoisonBoostCeil(display) : display
+        return [txt('enemy loses '), amtSeg(baseAdj, displayAdj), txt(` hp each turn.`)]
+      }
+      return [txt(`${describeEffect(displayFx)}.`)]
+    }
     default:
       return [txt(`${describeEffect(displayFx)}.`)]
   }
@@ -423,17 +548,22 @@ export function cardDescriptionLines(
   upgrades: number,
   power: number,
   socketedGemId: GemId | null = null,
+  firepower = 0,
   firepowerMultiplier = 0,
   shieldPower = 0,
   foil = false,
+  grantedExpire = false,
+  hasGreenHat = false,
 ): CardDescLine[] {
   const baseEffects = cardBaseEffects(card.id, socketedGemId)
   const lines: CardDescLine[] = []
   const unplayable = unplayableDescriptionLine(card)
   if (unplayable) lines.push(plainCardDescLine(unplayable))
   if (!baseEffects.length) {
+    const keywordIds = cardKeywordIds(card, socketedGemId, grantedExpire)
+    const keywordLines: CardDescLine[] = keywordIds.length ? [{ kind: 'keywords', ids: keywordIds }] : []
     if (!lines.length && card.tags.includes('consume')) return [plainCardDescLine('Consume.')]
-    return lines
+    return [...lines, ...keywordLines]
   }
   const baseScaled = applyCardInstanceEffectModifiers(baseEffects, 0, foil).filter(
     (fx) => !isDescriptionKeywordEffect(fx),
@@ -442,9 +572,23 @@ export function cardDescriptionLines(
     (fx) => !isDescriptionKeywordEffect(fx),
   )
   const effectLines: CardDescLine[] = scaled.map((fx, i) =>
-    effectDescriptionLine(card, baseScaled[i] ?? fx, fx, power, firepowerMultiplier, shieldPower),
+    effectDescriptionLine(
+      card,
+      baseScaled[i] ?? fx,
+      fx,
+      power,
+      firepower,
+      firepowerMultiplier,
+      shieldPower,
+      hasGreenHat,
+    ),
   )
-  const keywordIds = cardKeywordIds(card, socketedGemId)
+  const embedsEnchantmentInEffect = scaled.some(
+    (fx) => fx.kind === 'APPLY_ENCHANTMENT' && EMBEDDED_ENCHANTMENT_POWER_IDS.has(fx.enchantmentId),
+  )
+  const keywordIds = cardKeywordIds(card, socketedGemId, grantedExpire).filter(
+    (id) => !(id === 'enchantment' && embedsEnchantmentInEffect),
+  )
   const keywordLines: CardDescLine[] = keywordIds.length ? [{ kind: 'keywords', ids: keywordIds }] : []
   return [...lines, ...effectLines, ...keywordLines]
 }
@@ -477,17 +621,22 @@ export function cardDescriptionLinesForInstance(
   card: CardTemplate,
   inst: CardInstance,
   power: number,
+  firepower = 0,
   firepowerMultiplier = 0,
   shieldPower = 0,
+  hasGreenHat = false,
 ): CardDescLine[] {
   return cardDescriptionLines(
     card,
     inst.upgrades,
     power,
     inst.socketedGemId ?? null,
+    firepower,
     firepowerMultiplier,
     shieldPower,
     inst.foil === true,
+    inst.grantedExpire === true,
+    hasGreenHat,
   )
 }
 
@@ -495,9 +644,23 @@ export function cardDescriptionLinesForOffer(
   card: CardTemplate,
   upgradeApplications: number,
   power = 0,
+  firepower = 0,
   firepowerMultiplier = 0,
   shieldPower = 0,
+  foil = false,
+  hasGreenHat = false,
 ): CardDescLine[] {
-  return cardDescriptionLines(card, upgradeApplications, power, null, firepowerMultiplier, shieldPower)
+  return cardDescriptionLines(
+    card,
+    upgradeApplications,
+    power,
+    null,
+    firepower,
+    firepowerMultiplier,
+    shieldPower,
+    foil,
+    false,
+    hasGreenHat,
+  )
 }
 

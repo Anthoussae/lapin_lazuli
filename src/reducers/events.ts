@@ -3,6 +3,8 @@ import type { EnemyBoonId } from '../data/enemyBoons'
 
 export type GameEvent =
   | { type: 'EVT/CARD_PLAYED'; cardInstanceId: CardInstanceId }
+  | { type: 'EVT/CARD_PHASED_OUT'; cardInstanceId: CardInstanceId }
+  | { type: 'EVT/CARD_PHASED_IN'; cardInstanceId: CardInstanceId }
   | { type: 'EVT/ENERGY_SPENT'; amount: number }
   | { type: 'EVT/PLAYER_HIT'; amount: number }
   | { type: 'EVT/UNIT_DIED'; unit: 'PLAYER' | EnemyInstanceId }
@@ -16,6 +18,10 @@ export function eventToString(e: GameEvent): string {
   switch (e.type) {
     case 'EVT/CARD_PLAYED':
       return `CARD_PLAYED ${e.cardInstanceId}`
+    case 'EVT/CARD_PHASED_OUT':
+      return `CARD_PHASED_OUT ${e.cardInstanceId}`
+    case 'EVT/CARD_PHASED_IN':
+      return `CARD_PHASED_IN ${e.cardInstanceId}`
     case 'EVT/ENERGY_SPENT':
       return `ENERGY_SPENT ${e.amount}`
     case 'EVT/PLAYER_HIT':

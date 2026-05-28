@@ -2,6 +2,7 @@ import mapBackground from '../../assets/images/displayElements/mapBackground.png
 import openDoor from '../../assets/images/displayElements/openDoor.png'
 import deckInspectSprite from '../../assets/images/displayElements/deck.png'
 import discardInspectSprite from '../../assets/images/displayElements/discarded cards.png'
+import discardInspectSpriteFull from '../../assets/images/displayElements/discarded cards full.png'
 import coin1Sprite from '../../assets/images/displayElements/coin1.png'
 import coin2Sprite from '../../assets/images/displayElements/coin2.png'
 import goldBagSprite from '../../assets/images/displayElements/GoldBag.png'
@@ -57,6 +58,11 @@ export const INK_JAR_SPRITES: readonly [string, string, string, string, string] 
   inkJar3,
   inkJar4Plus,
 ]
+
+/** Discard pile inspect icon: empty bin vs cards visible in the bin. */
+export function discardInspectSpriteForCount(discardCount: number): string {
+  return discardCount > 0 ? discardInspectSpriteFull : discardInspectSprite
+}
 
 /** Picks jar art from current ink (0–3 map 1:1; 4+ uses the full jar). */
 export function inkJarSpriteForCount(ink: number): string {

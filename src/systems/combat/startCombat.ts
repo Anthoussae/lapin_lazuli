@@ -7,7 +7,7 @@ import { Relics } from '../../data/relics'
 import { applyRelicEffect } from '../relics/applyRelicEffects'
 import { applyTurnStartRelicTriggers } from '../relics/triggers'
 import { spawnEnemy } from './spawnEnemy'
-import type { EnemyId, PathId } from '../../core/types/ids'
+import type { EnemyId, EnemyInstanceId, PathId } from '../../core/types/ids'
 import type { EnemyBoonId } from '../../data/enemyBoons'
 import {
   combatAlchemistLeadIngotCount,
@@ -18,6 +18,12 @@ import { enqueueBurdenAdds } from './burdenAdd'
 import { applyDrainingAtPlayerTurnStart } from './drainingBoon'
 import { clearActiveCombat } from './endCombat'
 import { putDestinyCardsInOpeningHand } from './destiny'
+import { EMPTY_COMBAT_BONUSES } from './combatBonuses'
+import type { EnchantmentInstanceId } from '../../core/types/ids'
+import type { EnchantmentTargetRef } from '../../core/types/enchantments'
+import { Enemies } from '../../data/enemies'
+import { Enchantments } from '../../data/enchantments'
+import { applyStaticEnchantmentOnGain } from '../enchantments/staticEffects'
 
 export function startCombat(
   state: GameState,
@@ -51,8 +57,17 @@ export function startCombat(
     monsterDefeatPending: null,
     playerDefeatPending: false,
     freeFirstFireSpell: false,
+    nextSpellCosts0: false,
+    cardsPlayedThisTurn: 0,
+    paintbrushTriggeredThisTurn: false,
+    combatBonuses: EMPTY_COMBAT_BONUSES,
+    playerTookUnblockedDamage: false,
     burdenAddQueue: [],
+    nextBurdenAddSerial: 1,
     pendingOpeningHandDraw: null,
+    phasedOut: [],
+    enchantments: [],
+    nextEnchantmentInstanceSerial: 1,
   }
 
   const player0 = spawned.state.player
@@ -79,6 +94,7 @@ export function startCombat(
     },
   }
 
+  s = applyForcedEnemyTemplateEnchantment(s, e1.id, enemyTemplateId)
   s = setPhase(s, 'COMBAT_PLAYER_READY')
   // Deterministic: intent roll consumes RNG from state.
   s = rollEnemyIntent(s)
@@ -142,5 +158,43 @@ export function startCombat(
 
   const openingDraw = drawCards(s, combatRefreshDrawCount(s, bonusDraw), { openingHand: true })
   return { state: openingDraw.state, events }
+}
+
+function applyForcedEnemyTemplateEnchantment(
+  state: GameState,
+  enemyInstanceId: EnemyInstanceId,
+  templateId: EnemyId,
+): GameState {
+  const combat0 = state.combat
+  if (!combat0) return state
+  const tmpl = Enemies[templateId]
+  const enchId = tmpl.forceEnchantment
+  if (!enchId) return state
+  const enchTmpl = Enchantments[enchId]
+  if (!enchTmpl) return state
+
+  const target: EnchantmentTargetRef = { kind: 'ENEMY', enemyInstanceId }
+  const stackable = enchTmpl.stackable ?? false
+  if (!stackable) {
+    const already = combat0.enchantments.some((e) => e.templateId === enchId && e.target.kind === 'ENEMY' && e.target.enemyInstanceId === enemyInstanceId)
+    if (already) return state
+  }
+
+  const instId = (`ench${combat0.nextEnchantmentInstanceSerial}` as unknown) as EnchantmentInstanceId
+  const nextInst = {
+    id: instId,
+    templateId: enchId,
+    owner: { kind: 'ENEMY', enemyInstanceId } as const,
+    target,
+  }
+  const sNext: GameState = {
+    ...state,
+    combat: {
+      ...combat0,
+      enchantments: [...combat0.enchantments, nextInst],
+      nextEnchantmentInstanceSerial: combat0.nextEnchantmentInstanceSerial + 1,
+    },
+  }
+  return applyStaticEnchantmentOnGain(sNext, nextInst)
 }
 

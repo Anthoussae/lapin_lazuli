@@ -2,7 +2,7 @@ import type { CardInstanceId } from '../../core/types/ids'
 import type { RngState } from '../../core/rng/rng'
 import { rngInt } from '../../core/rng/rng'
 import type { GameState, RestOutcomeState } from '../../core/types/state'
-import { isCardUpgradeable, upgradeCardInstance } from '../cards/upgrades'
+import { upgradeCardInstance, upgradeableDeckCardIds } from '../cards/upgrades'
 
 export function describeStudyTooltip(): string {
   return 'Upgrade one random card.'
@@ -10,13 +10,6 @@ export function describeStudyTooltip(): string {
 
 export function restChoiceMade(rest: RestOutcomeState): boolean {
   return rest.slept || rest.studied
-}
-
-export function upgradeableDeckCardIds(state: GameState): ReadonlyArray<CardInstanceId> {
-  return Object.values(state.player.deck.cardById)
-    .filter((c) => isCardUpgradeable(c.templateId))
-    .map((c) => c.id)
-    .sort()
 }
 
 export function pickRandomUpgradeableDeckCard(

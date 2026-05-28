@@ -16,11 +16,12 @@ import { applyTurnStartRelicTriggers } from '../relics/triggers'
 import { Enemies } from '../../data/enemies'
 import { applyDrainingAtPlayerTurnStart } from './drainingBoon'
 import { damageEnemy } from './damageEnemy'
-import { cardInstanceConsumesIfInHandAtTurnEnd, cardInstanceRetains } from '../cards/cardEffects'
+import { cardInstanceExpiresAtTurnEnd, cardInstanceRetains } from '../cards/cardEffects'
 import { consumeCardFromDeck } from './zones'
 import { bunnyReleaseSpriteCount } from '../bunnies'
 import { bunnyReleaseTargetEnemyId } from './bunnyReleaseTarget'
 import { livingEnemyCount } from './livingEnemies'
+import { applyEnchantmentTurnStartForEnemy, applyEnchantmentTurnStartForPlayer } from '../enchantments/turnStart'
 
 export function endPlayerTurn(state: GameState): { state: GameState; events: GameEvent[] } {
   if (!state.combat) return { state, events: [] }
@@ -88,7 +89,7 @@ function finishPlayerTurnAfterBunnies(
     if (combat0) {
       const enemyId = combat0.bunnyReleaseTargetEnemyId ?? bunnyReleaseTargetEnemyId(combat0)
       if (enemyId) {
-        const out = damageEnemy(s, enemyId, bunnyDmg)
+        const out = damageEnemy(s, enemyId, bunnyDmg, { attacker: { kind: 'PLAYER' } })
         s = out.state
         events.push(...out.events)
       }
@@ -98,7 +99,7 @@ function finishPlayerTurnAfterBunnies(
 
   for (const cardInstanceId of [...s.player.deck.hand]) {
     const inst = s.player.deck.cardById[cardInstanceId]
-    if (!inst || !cardInstanceConsumesIfInHandAtTurnEnd(inst)) continue
+    if (!inst || !cardInstanceExpiresAtTurnEnd(inst)) continue
     s = consumeCardFromDeck(s, cardInstanceId)
   }
 
@@ -162,6 +163,10 @@ function enemyTakeTurn(state: GameState): { state: GameState; events: GameEvent[
   const aliveIds = [...state.combat.enemies.aliveIds]
 
   for (const enemyId of aliveIds) {
+    const ench = applyEnchantmentTurnStartForEnemy(s, enemyId)
+    s = ench.state
+    events.push(...ench.events)
+
     const combat0 = s.combat
     if (!combat0) break
     const enemy = combat0.enemies.enemyById[enemyId]
@@ -188,6 +193,7 @@ function enemyTakeTurn(state: GameState): { state: GameState; events: GameEvent[
 
     const resolved = resolveEnemyIntent(s, enemyId, intent)
     s = resolved.state
+    events.push(...resolved.events)
     if (intent.kind === 'ATTACK') {
       const str = Math.max(0, enemyNow.strength)
       events.push({ type: 'EVT/PLAYER_HIT', amount: intent.damage + str })
@@ -215,33 +221,44 @@ function beginPlayerTurn(state: GameState): { state: GameState; events: GameEven
   const combat0 = state.combat
   if (!combat0 || livingEnemyCount(combat0) === 0) return { state, events: [] }
 
-  // Turn 1 drain is applied in startCombat; later turns drain here.
-  let sDrain = state
-  const boonEvents: GameEvent[] = []
-  if (combat0.turn > 1) {
-    const drained = applyDrainingAtPlayerTurnStart(state)
-    sDrain = drained.state
-    boonEvents.push(...drained.events)
-  }
-  const turnStart = applyTurnStartRelicTriggers(sDrain)
-  sDrain = turnStart.state
-
   // Refill energy and advance combat turn (first round is turn 1 at combat start; increments after each enemy phase).
-  const nextCombat = { ...combat0, turn: combat0.turn + 1 }
+  const nextCombat = {
+    ...combat0,
+    turn: combat0.turn + 1,
+    nextSpellCosts0: false,
+    cardsPlayedThisTurn: 0,
+    paintbrushTriggeredThisTurn: false,
+  }
   let s: GameState = {
-    ...sDrain,
+    ...state,
     combat: nextCombat,
     player: {
-      ...sDrain.player,
+      ...state.player,
       shield: 0,
-      energy: combatEffectiveMaxEnergy({ ...sDrain, combat: nextCombat }),
+      energy: combatEffectiveMaxEnergy({ ...state, combat: nextCombat }),
     },
   }
+
+  // Turn-start effects should resolve after the temporary shield reset.
+  const ench = applyEnchantmentTurnStartForPlayer(s)
+  s = ench.state
+
+  // Turn 1 drain is applied in startCombat; later turns drain here.
+  const boonEvents: GameEvent[] = []
+  if (combat0.turn > 1) {
+    const drained = applyDrainingAtPlayerTurnStart(s)
+    s = drained.state
+    boonEvents.push(...drained.events)
+  }
+
+  const turnStart = applyTurnStartRelicTriggers(s)
+  s = turnStart.state
+
   // Roll intents for next enemy turn.
   s = rollEnemyIntent(s)
   // Draw starting hand for the turn (base hand size + combat modifiers).
   s = shuffleDiscardIntoDrawIfNeeded(s)
   const handDraw = drawCards(s, combatRefreshDrawCount(s, 0))
-  return { state: handDraw.state, events: [...boonEvents, ...turnStart.events, ...handDraw.events] }
+  return { state: handDraw.state, events: [...ench.events, ...boonEvents, ...turnStart.events, ...handDraw.events] }
 }
 

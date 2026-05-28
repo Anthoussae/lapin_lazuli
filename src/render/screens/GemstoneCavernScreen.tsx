@@ -56,13 +56,30 @@ export function GemstoneCavernScreen(props: ScreenProps) {
                 return
               }
               const power = state.player.power
+              const firepower = state.player.firepower
               const firepowerMultiplier = state.player.firepowerMultiplier
               const shieldPower = state.player.shieldPower
               playCardSocketFlip({
                 cardInstanceId: selectedId,
                 sourceEl: slotEl,
-                cardBefore: cardSocketFlipPayload(template, inst, power, firepowerMultiplier, shieldPower, null),
-                cardAfter: cardSocketFlipPayload(template, inst, power, firepowerMultiplier, shieldPower, gemId),
+                cardBefore: cardSocketFlipPayload(
+                  template,
+                  inst,
+                  power,
+                  firepower,
+                  firepowerMultiplier,
+                  shieldPower,
+                  null,
+                ),
+                cardAfter: cardSocketFlipPayload(
+                  template,
+                  inst,
+                  power,
+                  firepower,
+                  firepowerMultiplier,
+                  shieldPower,
+                  gemId,
+                ),
                 onComplete: () => enqueue({ type: 'GEMSTONE_CAVERN/CONFIRM_SOCKETING' }),
               })
             }}
@@ -89,8 +106,10 @@ export function GemstoneCavernScreen(props: ScreenProps) {
                     inst={inst}
                     template={t}
                     power={state.player.power}
+                    firepower={state.player.firepower}
                     firepowerMultiplier={state.player.firepowerMultiplier}
                     shieldPower={state.player.shieldPower}
+                    hasGreenHat={state.player.relics.some((r) => r.templateId === 'GREEN_HAT')}
                     selected={selected}
                     className="gemstoneSocketCard"
                     onClick={

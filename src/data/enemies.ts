@@ -2,6 +2,8 @@ import type { EnemyId } from '../core/types/ids'
 import type { EnemyIntentExtraEffect } from '../core/types/state'
 import type { DiceSpec } from '../core/rng/dice'
 import type { EnemyIntentKind } from './enemyIntentKinds'
+import type { EnchantmentId } from '../core/types/ids'
+import type { EnemyBoonId } from './enemyBoons'
 
 /** Scripted sequence (no weights); cycles in order each time intents are rolled. */
 export type ScriptedEnemyMove =
@@ -57,6 +59,10 @@ export type EnemyTemplate = Readonly<{
   boss?: boolean
   /** When true, clearing this enemy ends the run in GAME_WIN (see resolveEvents). */
   gameWinOnVictory?: boolean
+  /** Testing helper: when set, enemy always spawns with this enchantment. */
+  forceEnchantment?: EnchantmentId
+  /** Testing helper: when set, enemy always spawns with this boon. */
+  forceBoon?: EnemyBoonId
   hp: DiceSpec
   /** Added to attack damage when the enemy hits (per point). Defaults to 0. */
   strength?: number
@@ -73,6 +79,7 @@ export const Enemies: Readonly<Record<EnemyId, EnemyTemplate>> = {
     id: 'OKRA_JELLY',
     name: 'Okra Jelly',
     level: 0,
+    
     hp: { count: 3, sides: 6, plus: 5 },
     intentScript: [
       { kind: 'BUFF', intentKind: 'buffonly', intentName: 'Charge up', effects: [{ effect: 'strengthgain', value: 1 }] },

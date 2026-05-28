@@ -9,13 +9,14 @@ import {
   cardInstanceUpgradesAfterCasting,
 } from '../cards/cardEffects'
 import { upgradeCardInstance } from '../cards/upgrades'
-import { Cards } from '../../data/cards'
+import { Cards, isPotionCardId } from '../../data/cards'
 import { Relics } from '../../data/relics'
 import { applyRelicEffect } from '../relics/applyRelicEffects'
 import { applyEffects } from './resolveEffects'
 import { consumeCardFromDeck } from './zones'
 import { cardHasFireTag, cardInstanceInkCost } from '../cards/inkCost'
 import { consumeFreeFirstFireSpellIfFireCard } from '../relics/phoenixFeatherQuill'
+import { applyFourthSpellCastPerTurnRelicTriggers, applyPotionPlayedRelicTriggers } from '../relics/triggers'
 
 export function cancelHandSelection(state: GameState): { state: GameState; events: GameEvent[] } {
   const combat = state.combat
@@ -89,7 +90,7 @@ function resolveHandSelection(state: GameState, chosenIds: ReadonlyArray<CardIns
     return { state: setPhase({ ...state, combat: { ...combat, handSelection: null } }, 'COMBAT_PLAYER_READY'), events: [] }
   }
   const tmpl = Cards[inst.templateId]
-  const inkOpts = { freeFirstFireSpell: state.combat.freeFirstFireSpell }
+  const inkOpts = { freeFirstFireSpell: state.combat.freeFirstFireSpell, nextSpellCosts0: state.combat.nextSpellCosts0 }
   const cost = cardInstanceInkCost(inst, tmpl, inkOpts)
   if (cost === null || state.player.energy < cost) {
     // Energy changed while modal open; treat as cancel but keep pick closed.
@@ -106,8 +107,18 @@ function resolveHandSelection(state: GameState, chosenIds: ReadonlyArray<CardIns
     }
   }
 
+  let potionRelicEvents: GameEvent[] = []
+  if (isPotionCardId(inst.templateId)) {
+    const potionRelics = applyPotionPlayedRelicTriggers(s)
+    s = potionRelics.state
+    potionRelicEvents = potionRelics.events
+  }
+
   // Pay cost.
   s = { ...s, player: { ...s.player, energy: s.player.energy - cost } }
+  if (s.combat?.nextSpellCosts0) {
+    s = { ...s, combat: { ...s.combat, nextSpellCosts0: false } }
+  }
   if (cardHasFireTag(tmpl.tags)) {
     s = consumeFreeFirstFireSpellIfFireCard(s, tmpl)
   }
@@ -144,5 +155,16 @@ function resolveHandSelection(state: GameState, chosenIds: ReadonlyArray<CardIns
     s = upgradeCardInstance(s, playedId, 1)
   }
 
-  return { state: setPhase(s, 'COMBAT_PLAYER_READY'), events: [] }
+  const combatAfter = s.combat
+  if (combatAfter) {
+    s = {
+      ...s,
+      combat: { ...combatAfter, cardsPlayedThisTurn: combatAfter.cardsPlayedThisTurn + 1 },
+    }
+  }
+  const fourth = applyFourthSpellCastPerTurnRelicTriggers(s)
+  return {
+    state: setPhase(fourth.state, 'COMBAT_PLAYER_READY'),
+    events: [...potionRelicEvents, ...out.events, ...fourth.events],
+  }
 }

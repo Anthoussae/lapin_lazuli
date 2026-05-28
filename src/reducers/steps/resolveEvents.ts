@@ -5,6 +5,7 @@ import { shuffleDiscardIntoDrawIfNeeded, shuffleDrawPile } from '../../systems/c
 import { applyCombatVictory } from '../../systems/combat/combatVictory'
 import { livingEnemyCount } from '../../systems/combat/livingEnemies'
 import { clearActiveCombat } from '../../systems/combat/endCombat'
+import { purgeCombatEphemeralCards } from '../../systems/combat/purgeEphemeralCards'
 import { Relics } from '../../data/relics'
 
 export function resolveEventQueue(state: GameState, eventsIn: ReadonlyArray<GameEvent>): { state: GameState; events: GameEvent[] } {
@@ -43,11 +44,12 @@ export function resolveEventQueue(state: GameState, eventsIn: ReadonlyArray<Game
 function shuffleAllZonesIntoDeck(state: GameState): GameState {
   // End-of-combat cleanup: put everything back into the deck.
   // Includes: discard + hand (and any stray "last played" interactive card still in hand).
-  const deck0 = state.player.deck
+  const purged = purgeCombatEphemeralCards(state)
+  const deck0 = purged.player.deck
   const merged = [...deck0.drawPile, ...deck0.discardPile, ...deck0.hand]
   let s: GameState = {
-    ...state,
-    player: { ...state.player, deck: { ...deck0, drawPile: merged, discardPile: [], hand: [] } },
+    ...purged,
+    player: { ...purged.player, deck: { ...deck0, drawPile: merged, discardPile: [], hand: [] } },
   }
 
   // If draw pile is empty, this will shuffle discard -> draw (noop here, but keeps behavior consistent).

@@ -2,10 +2,11 @@ import { useCallback, useEffect, useRef, useState, type AnimationEvent } from 'r
 import type { GameState } from '../../core/types/state'
 import { Cards } from '../../data/cards'
 import { useCardTravelOptional } from '../CardTravelContext'
-import { deckInspectSprite, discardInspectSprite } from '../assets/displayImages'
+import { deckInspectSprite, discardInspectSpriteForCount } from '../assets/displayImages'
 import { useTriggerFxArtProps } from '../TriggerFxContext'
 import { useCardConsume } from '../CardConsumeContext'
 import { fontOfLetheForgetConsumeDelayMs } from '../fontOfLetheForgetFxConfig'
+import { effectiveFirepower, effectivePower, effectiveShieldPower } from '../../systems/combat/combatBonuses'
 import { GameCardView } from './GameCardView'
 import { InspectPileCardSlot } from './InspectPileCardSlot'
 import { InspectPileCloseButton } from './InspectPileCloseButton'
@@ -26,9 +27,10 @@ export function DeckInspect(props: Readonly<{ state: GameState; inCombat: boolea
   const pileOpen = deckOpen || discardOpen
   const [overlayMounted, setOverlayMounted] = useState(false)
   const [overlayExiting, setOverlayExiting] = useState(false)
-  const power = state.player.power
+  const power = inCombat ? effectivePower(state) : state.player.power
+  const firepower = inCombat ? effectiveFirepower(state) : state.player.firepower
   const firepowerMultiplier = state.player.firepowerMultiplier
-  const shieldPower = state.player.shieldPower
+  const shieldPower = inCombat ? effectiveShieldPower(state) : state.player.shieldPower
 
   useEffect(() => {
     if (pileOpen) {
@@ -96,7 +98,7 @@ export function DeckInspect(props: Readonly<{ state: GameState; inCombat: boolea
           className={discardOpen ? 'inspectDiscardBtn inspectDiscardBtn--panelOpen' : 'inspectDiscardBtn'}
           imageClassName="inspectDiscardBtn__img"
           imageRef={cardTravel?.discardInspectImageRef}
-          src={discardInspectSprite}
+          src={discardInspectSpriteForCount(discardPileCount)}
           alt="Inspect discard pile"
           hoverOverlay={discardPileCount}
           onClick={() => setDiscardOpen((v) => !v)}
@@ -147,8 +149,10 @@ export function DeckInspect(props: Readonly<{ state: GameState; inCombat: boolea
                           inst={inst}
                           template={t}
                           power={power}
+                          firepower={firepower}
                           firepowerMultiplier={firepowerMultiplier}
                           shieldPower={shieldPower}
+                          hasGreenHat={state.player.relics.some((r) => r.templateId === 'GREEN_HAT')}
                         />
                       </InspectPileCardSlot>
                     )
@@ -166,8 +170,10 @@ export function DeckInspect(props: Readonly<{ state: GameState; inCombat: boolea
                         inst={inst}
                         template={t}
                         power={power}
+                        firepower={firepower}
                         firepowerMultiplier={firepowerMultiplier}
                         shieldPower={shieldPower}
+                        hasGreenHat={state.player.relics.some((r) => r.templateId === 'GREEN_HAT')}
                       />
                     </InspectPileCardSlot>
                   )

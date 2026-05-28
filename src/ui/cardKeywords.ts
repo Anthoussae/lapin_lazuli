@@ -4,7 +4,7 @@ import type { Effect } from '../data/effects'
 import type { GemTemplate } from '../data/gems'
 import { cardBaseEffects } from '../systems/cards/cardEffects'
 
-export type CardKeywordId = 'exhaust' | 'retain' | 'destiny'
+export type CardKeywordId = 'exhaust' | 'retain' | 'expire' | 'destiny' | 'enchantment'
 
 export type CardKeywordDef = Readonly<{
   id: CardKeywordId
@@ -13,7 +13,7 @@ export type CardKeywordDef = Readonly<{
 }>
 
 /** Display order for keyword lines on cards. */
-export const CARD_KEYWORD_ORDER: ReadonlyArray<CardKeywordId> = ['exhaust', 'retain', 'destiny']
+export const CARD_KEYWORD_ORDER: ReadonlyArray<CardKeywordId> = ['enchantment', 'exhaust', 'retain', 'expire', 'destiny']
 
 /** Tooltip for foiled card instances (printer room). */
 export const FOIL_CARD_TOOLTIP: Readonly<{ label: string; tooltip: string }> = {
@@ -22,6 +22,11 @@ export const FOIL_CARD_TOOLTIP: Readonly<{ label: string; tooltip: string }> = {
 }
 
 export const CARD_KEYWORDS: Record<CardKeywordId, CardKeywordDef> = {
+  enchantment: {
+    id: 'enchantment',
+    label: 'Enchantment',
+    tooltip: 'Persists until the end of combat.',
+  },
   exhaust: {
     id: 'exhaust',
     label: 'Exhaust',
@@ -31,6 +36,11 @@ export const CARD_KEYWORDS: Record<CardKeywordId, CardKeywordDef> = {
     id: 'retain',
     label: 'Retain',
     tooltip: "This card is not discarded at turn's end.",
+  },
+  expire: {
+    id: 'expire',
+    label: 'Expire',
+    tooltip: 'If this card is in your hand at the end of your turn, it is consumed.',
   },
   destiny: {
     id: 'destiny',
@@ -54,12 +64,20 @@ export function keywordIdsFromEffects(effects: ReadonlyArray<Effect>): CardKeywo
   return CARD_KEYWORD_ORDER.filter((id) => found.has(id))
 }
 
-export function cardKeywordIds(card: CardTemplate, socketedGemId: GemId | null = null): CardKeywordId[] {
+export function cardKeywordIds(
+  card: CardTemplate,
+  socketedGemId: GemId | null = null,
+  grantedExpire = false,
+): CardKeywordId[] {
   const found = new Set<CardKeywordId>()
+  if (cardBaseEffects(card.id, socketedGemId).some((fx) => fx.kind === 'APPLY_ENCHANTMENT')) {
+    found.add('enchantment')
+  }
   if (card.exhaust || cardBaseEffects(card.id, socketedGemId).some((fx) => fx.kind === 'EXHAUST')) {
     found.add('exhaust')
   }
   if (card.retain) found.add('retain')
+  if (card.expire || grantedExpire) found.add('expire')
   if (cardBaseEffects(card.id, socketedGemId).some((fx) => fx.kind === 'DESTINY')) {
     found.add('destiny')
   }

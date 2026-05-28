@@ -93,6 +93,28 @@
   );
   --combat-player-placeholder-y: calc(var(--cauldron-offset-y) + 20px);
 
+  /*
+   * Enchantments (combat) — provisional target glow rings.
+   * Rings are drawn around the target image while enchantments are active.
+   */
+  --enchantment-glow-base-radius: 100px;
+  --enchantment-glow-radius-step: 25px;
+  /* Higher = more visible; applied to ring overlay. */
+  --enchantment-glow-opacity: 0.92;
+  /* Lower blur makes the circle edge readable. */
+  --enchantment-glow-blur: 6px;
+  /* Soft halo sizes. */
+  --enchantment-glow-spread-tight: 8px;
+  --enchantment-glow-spread-wide: 28px;
+  /* Crisp ring stroke (in addition to halos). */
+  --enchantment-glow-stroke-width: 6px;
+  --enchantment-glow-stroke-opacity: 0.55;
+  --enchantment-glow-stroke-opacity-peak: 0.82;
+  /* Layering: ensure rings render above the target sprite. */
+  --enchantment-glow-z: 4;
+  --duration-enchantment-glow-pulse: 2.4s;
+  --ease-enchantment-glow-pulse: ease-in-out;
+
   /* Combat monster placeholder — offset from arena center (mirrors player, right side). */
   --combat-monster-placeholder-size: 350px;
   --combat-monster-placeholder-x: calc(

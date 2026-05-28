@@ -57,6 +57,8 @@ export function TriggerFxProvider(
   const flashKeyRef = useRef(0)
   const clearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastEventsRef = useRef('')
+  /** Previous debug lastEvents snapshot — only lines newly added to the window fire FX. */
+  const prevEventLinesRef = useRef<ReadonlySet<string>>(new Set())
 
   const playFlashes = useCallback((nextFlashes: ReadonlyArray<{ anchor: TriggerFxAnchor; role: TriggerFxRole }>) => {
     if (!nextFlashes.length) return
@@ -89,7 +91,17 @@ export function TriggerFxProvider(
     if (eventsKey === lastEventsRef.current) return
     lastEventsRef.current = eventsKey
 
+    if (!lastEvents.length) {
+      prevEventLinesRef.current = new Set()
+      return
+    }
+
+    const batch: Array<{ anchor: TriggerFxAnchor; role: TriggerFxRole }> = []
+    const prevLines = prevEventLinesRef.current
+
     for (const line of lastEvents) {
+      if (prevLines.has(line)) continue
+
       const boonParsed = parseBoonTriggeredEvent(line)
       if (boonParsed && state.combat) {
         const plan = flashesForBoonTrigger(
@@ -98,15 +110,18 @@ export function TriggerFxProvider(
           boonParsed.boonId,
           boonParsed.triggerId,
         )
-        if (plan) playFlashes(plan)
+        if (plan) batch.push(...plan)
         continue
       }
 
       const parsed = parseRelicTriggeredEvent(line)
       if (!parsed) continue
       const plan = flashesForRelicTrigger(state.player.relics, parsed.relicId, parsed.triggerId)
-      if (plan) playFlashes(plan)
+      if (plan) batch.push(...plan)
     }
+
+    prevEventLinesRef.current = new Set(lastEvents)
+    if (batch.length) playFlashes(batch)
   }, [state.ui.debug.lastEvents, state.player.relics, state.combat, playFlashes])
 
   const value = useMemo<TriggerFxContextValue>(
