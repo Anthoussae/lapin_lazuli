@@ -11,12 +11,15 @@ export function appliedPrimaryAmount(inst: EnchantmentInstance): number {
   if (tmpl.ability.kind === 'STATIC') {
     const fx = tmpl.ability.effects[0]
     if (!fx) return 0
-    // For now, all static enchantments use a single primary amount.
+    if (fx.kind === 'REDUCE_INCOMING_DAMAGE' || fx.kind === 'INCREASE_INCOMING_DAMAGE_AND_HPLOSS') return fx.percent
+    if (fx.kind === 'DECREASE_OUTGOING_DAMAGE_AND_HPLOSS') return fx.percent
     return fx.amount ?? 0
   }
   if (tmpl.ability.kind === 'TRIGGERED') {
     const fx = tmpl.ability.effects[0]
     if (!fx) return 0
+    if (fx.kind === 'REDUCE_INCOMING_DAMAGE' || fx.kind === 'INCREASE_INCOMING_DAMAGE_AND_HPLOSS') return fx.percent
+    if (fx.kind === 'DECREASE_OUTGOING_DAMAGE_AND_HPLOSS') return fx.percent
     return fx.amount ?? 0
   }
   return 0
@@ -58,6 +61,49 @@ export function unwindAllCombatStaticEnchantments(state: GameState): GameState {
     s = applyStaticEnchantmentOnRemove(s, inst)
   }
   return s
+}
+
+/** Sum of shield-gain penalties from static enchantments on a target (each stack applies once). */
+export function shieldPowerPenaltyFromEnchantments(
+  state: GameState,
+  target: EnchantmentTargetRef,
+): number {
+  const combat = state.combat
+  if (!combat) return 0
+  let penalty = 0
+  for (const inst of combat.enchantments) {
+    if (inst.target.kind !== target.kind) continue
+    if (
+      target.kind === 'ENEMY' &&
+      (inst.target.kind !== 'ENEMY' || inst.target.enemyInstanceId !== target.enemyInstanceId)
+    ) {
+      continue
+    }
+    const tmpl = Enchantments[inst.templateId]
+    if (!tmpl || tmpl.ability.kind !== 'STATIC') continue
+    for (const fx of tmpl.ability.effects) {
+      if (fx.kind !== 'DECREASE_SHIELD_POWER') continue
+      penalty += appliedPrimaryAmount(inst)
+    }
+  }
+  return penalty
+}
+
+/** Sum of hand-draw penalties from static enchantments on the player (each stack applies once). */
+export function combatHandDrawPenaltyFromEnchantments(state: GameState): number {
+  const combat = state.combat
+  if (!combat) return 0
+  let penalty = 0
+  for (const inst of combat.enchantments) {
+    if (inst.target.kind !== 'PLAYER') continue
+    const tmpl = Enchantments[inst.templateId]
+    if (!tmpl || tmpl.ability.kind !== 'STATIC') continue
+    for (const fx of tmpl.ability.effects) {
+      if (fx.kind !== 'REDUCE_HAND_DRAW') continue
+      penalty += appliedPrimaryAmount(inst)
+    }
+  }
+  return penalty
 }
 
 function applyMaxHpDelta(state: GameState, target: EnchantmentTargetRef, delta: number): GameState {

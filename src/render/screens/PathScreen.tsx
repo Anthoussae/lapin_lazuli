@@ -19,6 +19,7 @@ import type { ScreenProps } from './types'
 
 function pathDoorCaption(pathId: PathId, combatPreview: PathCombatPreview | null): ReactNode {
   const p = Paths[pathId]
+  if (pathId === 'MINIBOSS') return p?.name ?? 'Miniboss'
   if (isCombatPath(pathId) && combatPreview) {
     return <PathCombatPreviewCaption preview={combatPreview} />
   }
@@ -38,6 +39,7 @@ function PathCombatPreviewCaption(props: Readonly<{ preview: PathCombatPreview }
   return (
     <EnemyBoonHoverHost
       boonIds={preview.boons}
+      enemyLevel={level}
       className={
         preview.boons.length
           ? 'pathCombatPreview pathCombatPreview--hasBoons'

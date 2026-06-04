@@ -1,8 +1,12 @@
-import type { GameState } from '../../core/types/state'
-import type { RelicId } from '../../core/types/ids'
+import type { CardInstance, GameState } from '../../core/types/state'
+import type { PathId, RelicId } from '../../core/types/ids'
 import type { GameEvent } from '../../reducers/events'
+import { Cards } from '../../data/cards'
 import { Relics } from '../../data/relics'
-import { applyRelicEffect } from './applyRelicEffects'
+import { isCombatPath } from '../paths/rollPathCombat'
+import { applyRelicEffect, type RelicEffectContext } from './applyRelicEffects'
+
+const BACKPACK_COUNTER_KEY = 'backpackTurnCounter' as const
 
 export type RelicTriggerKind =
   | 'onPickup'
@@ -11,10 +15,13 @@ export type RelicTriggerKind =
   | 'combat_start'
   | 'turn_start'
   | 'fourthSpellCastPerTurn'
+  | 'castSpellWithCostAboveAmount'
+  | 'onCastNamedCard'
   | 'card_played'
   | 'potion_played'
   | 'turn_end'
   | 'enemy_attack'
+  | 'onReceivingAttack'
   | 'onPlayerUnblockedDamage'
   | 'onTotalAttackBlock'
   | 'enemy_defeated'
@@ -23,6 +30,9 @@ export type RelicTriggerKind =
   | 'onRest'
   | 'onSleep'
   | 'onLevelUp'
+  | 'onAddCardToDeck'
+  | 'onAddCardOfType'
+  | 'onChoosingPath'
 
 export function applyRelicTriggers(state: GameState, relicId: RelicId, on: RelicTriggerKind): GameState {
   const tmpl = Relics[relicId]
@@ -42,6 +52,52 @@ export function applyNonOpenerCardDrawRelicTriggers(state: GameState): { state: 
     for (const trig of tmpl.triggers) {
       if (trig.on !== 'onNonOpenerCardDraw') continue
       s = applyRelicEffect(s, trig.effect)
+      events.push({ type: 'EVT/RELIC_TRIGGERED', relicId: rInst.templateId, trigger: trig.id })
+    }
+  }
+  return { state: s, events }
+}
+
+/** Intentional map combat-door selection (excludes combat entered via mystery rooms). */
+export function applyChoosingPathRelicTriggers(
+  state: GameState,
+  pathId: PathId,
+): { state: GameState; events: GameEvent[] } {
+  let s = state
+  const events: GameEvent[] = []
+  for (const rInst of s.player.relics) {
+    const tmpl = Relics[rInst.templateId]
+    for (const trig of tmpl.triggers) {
+      if (trig.on !== 'onChoosingPath') continue
+      if (trig.choosingPathType === 'combat' && !isCombatPath(pathId)) continue
+      s = applyRelicEffect(s, trig.effect)
+      events.push({ type: 'EVT/RELIC_TRIGGERED', relicId: rInst.templateId, trigger: trig.id })
+    }
+  }
+  return { state: s, events }
+}
+
+export function applyAddCardToDeckRelicTriggers(
+  state: GameState,
+  addedCard: CardInstance,
+): { state: GameState; events: GameEvent[] } {
+  let s = state
+  const events: GameEvent[] = []
+  const cardTemplate = Cards[addedCard.templateId]
+  const addCardCtx: RelicEffectContext = { addedCardInstanceId: addedCard.id }
+
+  for (const rInst of s.player.relics) {
+    const tmpl = Relics[rInst.templateId]
+    for (const trig of tmpl.triggers) {
+      if (trig.on === 'onAddCardToDeck') {
+        s = applyRelicEffect(s, trig.effect)
+        events.push({ type: 'EVT/RELIC_TRIGGERED', relicId: rInst.templateId, trigger: trig.id })
+        continue
+      }
+      if (trig.on !== 'onAddCardOfType') continue
+      const tag = trig.cardTag
+      if (!tag || !cardTemplate?.tags.includes(tag)) continue
+      s = applyRelicEffect(s, trig.effect, addCardCtx)
       events.push({ type: 'EVT/RELIC_TRIGGERED', relicId: rInst.templateId, trigger: trig.id })
     }
   }
@@ -94,6 +150,37 @@ export function applyTurnStartRelicTriggers(state: GameState): { state: GameStat
   let s = state
   const events: GameEvent[] = []
   for (const rInst of s.player.relics) {
+    if (rInst.templateId === 'BACKPACK') {
+      const backpackTmpl = Relics[rInst.templateId]
+      const every = backpackTmpl.counterEveryTurns ?? 3
+      const nextCount = (rInst.counters[BACKPACK_COUNTER_KEY] ?? 0) + 1
+      const fire = every > 0 && nextCount >= every
+      const deckSize = Object.keys(s.player.deck.cardById).length
+      const appliedCount = fire ? 0 : nextCount
+
+      const nextRelics = s.player.relics.map((ri) =>
+        ri.id === rInst.id
+          ? { ...ri, counters: { ...ri.counters, [BACKPACK_COUNTER_KEY]: appliedCount } }
+          : ri,
+      )
+      s = { ...s, player: { ...s.player, relics: nextRelics } }
+
+      events.push({
+        type: 'EVT/RELIC_TRIGGERED',
+        relicId: rInst.templateId,
+        trigger: 'BACKPACK_TURN_TICK',
+      })
+
+      if (fire && deckSize > 0) {
+        s = { ...s, player: { ...s.player, shield: s.player.shield + deckSize } }
+        events.push({
+          type: 'EVT/RELIC_TRIGGERED',
+          relicId: rInst.templateId,
+          trigger: 'BACKPACK_SHIELD',
+        })
+      }
+    }
+
     const tmpl = Relics[rInst.templateId]
     for (const trig of tmpl.triggers) {
       if (trig.on !== 'turn_start') continue
@@ -108,6 +195,21 @@ export function applyTurnStartRelicTriggers(state: GameState): { state: GameStat
  * Paintbrush: the fifth spell cast each turn costs 0 ink.
  * Triggered by the 4th successful spell cast in a player turn; gated to fire once per turn.
  */
+/** Fires when the player successfully plays a card (including after hand-selection modals). */
+export function applyCardPlayedRelicTriggers(state: GameState): { state: GameState; events: GameEvent[] } {
+  let s = state
+  const events: GameEvent[] = []
+  for (const rInst of s.player.relics) {
+    const tmpl = Relics[rInst.templateId]
+    for (const trig of tmpl.triggers) {
+      if (trig.on !== 'card_played') continue
+      s = applyRelicEffect(s, trig.effect)
+      events.push({ type: 'EVT/RELIC_TRIGGERED', relicId: rInst.templateId, trigger: trig.id })
+    }
+  }
+  return { state: s, events }
+}
+
 /** Fires when the player casts a card with the potion template flag. */
 export function applyPotionPlayedRelicTriggers(state: GameState): { state: GameState; events: GameEvent[] } {
   let s = state
@@ -116,6 +218,28 @@ export function applyPotionPlayedRelicTriggers(state: GameState): { state: GameS
     const tmpl = Relics[rInst.templateId]
     for (const trig of tmpl.triggers) {
       if (trig.on !== 'potion_played') continue
+      s = applyRelicEffect(s, trig.effect)
+      events.push({ type: 'EVT/RELIC_TRIGGERED', relicId: rInst.templateId, trigger: trig.id })
+    }
+  }
+  return { state: s, events }
+}
+
+/** Fires when the player casts a spell whose printed ink cost is at least the trigger threshold. */
+export function applyCastSpellWithCostAboveAmountRelicTriggers(
+  state: GameState,
+  spellInkCost: number | null,
+): { state: GameState; events: GameEvent[] } {
+  if (spellInkCost === null) return { state, events: [] }
+
+  let s = state
+  const events: GameEvent[] = []
+  for (const rInst of s.player.relics) {
+    const tmpl = Relics[rInst.templateId]
+    for (const trig of tmpl.triggers) {
+      if (trig.on !== 'castSpellWithCostAboveAmount') continue
+      const threshold = trig.amount ?? 0
+      if (spellInkCost < threshold) continue
       s = applyRelicEffect(s, trig.effect)
       events.push({ type: 'EVT/RELIC_TRIGGERED', relicId: rInst.templateId, trigger: trig.id })
     }
@@ -168,6 +292,21 @@ export function applyTotalAttackBlockRelicTriggers(
     for (const trig of tmpl.triggers) {
       if (trig.on !== 'onTotalAttackBlock') continue
       s = applyRelicEffect(s, trig.effect)
+      events.push({ type: 'EVT/RELIC_TRIGGERED', relicId: rInst.templateId, trigger: trig.id })
+    }
+  }
+  return { state: s, events }
+}
+
+/** Fires when the player successfully dodges an enemy attack (for trigger FX). */
+export function applyPlayerDodgeRelicTriggers(state: GameState): { state: GameState; events: GameEvent[] } {
+  let s = state
+  const events: GameEvent[] = []
+  for (const rInst of s.player.relics) {
+    const tmpl = Relics[rInst.templateId]
+    for (const trig of tmpl.triggers) {
+      if (trig.on !== 'onReceivingAttack') continue
+      if (trig.effect.kind !== 'DODGE') continue
       events.push({ type: 'EVT/RELIC_TRIGGERED', relicId: rInst.templateId, trigger: trig.id })
     }
   }

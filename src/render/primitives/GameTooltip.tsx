@@ -1,12 +1,15 @@
 import { useLayoutEffect, useRef, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
+import type { CardDescSegment } from '../../ui/describe'
 import { gameTooltipEdgePaddingPx, gameTooltipStackGapPx } from '../gameTooltipConfig'
 import { clampElementToGameWindow } from '../gameWindowBounds'
+import { CardDescSegments } from './CardDesc'
 
 export type GameTooltipEntry = Readonly<{
   key: string
   label: string
   text?: string
+  textSegments?: ReadonlyArray<CardDescSegment>
 }>
 
 export type GameTooltipAnchor = 'topLeft' | 'topCenter'
@@ -56,7 +59,13 @@ export function GameTooltipStack(props: GameTooltipStackProps) {
           role="tooltip"
         >
           <span className="gameTooltip__label">{entry.label}</span>
-          {entry.text ? <span className="gameTooltip__text">{entry.text}</span> : null}
+          {entry.textSegments ? (
+            <span className="gameTooltip__text">
+              <CardDescSegments segments={entry.textSegments} />
+            </span>
+          ) : entry.text ? (
+            <span className="gameTooltip__text">{entry.text}</span>
+          ) : null}
         </div>
       ))}
     </div>,

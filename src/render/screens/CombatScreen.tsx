@@ -7,12 +7,17 @@ import { Enemies } from '../../data/enemies'
 import { EnemyBoons } from '../../data/enemyBoons'
 import { combatEffectiveMaxEnergy } from '../../systems/combat/zones'
 import { cardInstanceOpensHandSelection } from '../../systems/cards/cardEffects'
-import { cardInstanceIsPlayable, handHasPlayableCard } from '../../systems/cards/inkCost'
+import { cardInstanceIsPlayable, cardInstanceLooksExhausted, handHasPlayableCard } from '../../systems/cards/inkCost'
 import { useCastBurst } from '../CastBurstContext'
 import { useCardConsume } from '../CardConsumeContext'
 import { cardInstanceConsumes } from '../../systems/cards/cardEffects'
 import { useBunnyRelease } from '../BunnyReleaseContext'
 import { useTriggerFxArtProps } from '../TriggerFxContext'
+import { useCriticalFxAnchors, useCriticalFxShakeClass } from '../CriticalFxContext'
+import { useDodgeFxAnchors, useDodgeFxWiggleClass } from '../DodgeFxContext'
+import { usePlayerHitFxClass } from '../PlayerHitFxContext'
+import { usePoisonCardHitFxAnchors } from '../PoisonCardHitFxContext'
+import { useFireDamageHitFxAnchors } from '../FireDamageHitFxContext'
 import { useFireRelease } from '../FireReleaseContext'
 import { cardInstanceHasFireDamage, fireCardPlayDamage } from '../../systems/cards/fireRelease'
 import { combatHandFanContainerStyle } from '../combatHandFanLayout'
@@ -32,17 +37,20 @@ import { TickingNumber } from '../primitives/TickingNumber'
 import { relicTooltipViewportPosition } from '../relicTooltipPosition'
 import { GameTooltipStack } from '../primitives/GameTooltip'
 import { bunnyReleaseTotalMs } from '../bunnyReleaseConfig'
+import { lethalHpDrainBeforeKnockoutMs } from '../lethalHpDrainConfig'
 import { monsterDefeatTotalMs } from '../monsterDefeatConfig'
-import { previewEnemyAfterBunnyDamage } from '../../systems/combat/bunnyReleaseTarget'
+import type { EnemyInstanceId } from '../../core/types/ids'
+import { previewEnemyAfterBunnyRelease } from '../../systems/combat/bunnyReleaseTarget'
 import { canTakeCombatPlayerInput } from '../../systems/combat/combatInput'
 import { hasPendingBurdenAdds } from '../../systems/combat/burdenAdd'
-import { effectiveFirepower, effectivePower, effectiveShieldPower } from '../../systems/combat/combatBonuses'
+import { powerDisplayContextFromState } from '../../systems/combat/powerDisplay'
 import { BurdenAddFx } from '../primitives/BurdenAddFx'
 import { CombatTargetHoverHost } from '../primitives/CombatTargetHoverHost'
 import {
-  EnchantmentGlowRings,
+  EnchantmentVisuals,
   enchantmentStacksForTarget,
   enchantmentTooltipEntries,
+  hasFireCrownEnchantmentOverlay,
 } from '../primitives/EnchantmentGlowRings'
 
 type CombatScreenProps = Readonly<{
@@ -83,16 +91,15 @@ export function CombatScreen(props: CombatScreenProps) {
   const combat = state.combat
   if (!combat) return null
 
-  const power = effectivePower(state)
-  const firepower = effectiveFirepower(state)
-  const shieldPower = effectiveShieldPower(state)
+  const powerDisplay = powerDisplayContextFromState(state)
 
   const handSelection = combat.handSelection
   const handSelectionModalOpen = state.phase === 'COMBAT_SELECT_HAND_CARD' && !!handSelection
-  const handSelectionVerb = handSelection?.kind === 'CONSUME_SELECTED_CARD' ? 'Consume' : 'Upgrade'
+  const handSelectionIsConsume = handSelection?.kind === 'CONSUME_SELECTED_CARD'
+  const handSelectionVerb = handSelectionIsConsume ? 'Consume' : 'Upgrade'
   const handSelectionMaxPicks = handSelection ? Math.min(handSelection.numberOfTargets, handSelection.eligibleIds.length) : 0
   const handSelectionChosenCount = handSelection?.chosenIds.length ?? 0
-  const handSelectionCanSubmit = !!handSelection && handSelectionChosenCount > 0
+  const handSelectionCanSubmit = !!handSelection && (handSelectionIsConsume || handSelectionChosenCount > 0)
   const handVisible = state.phase !== 'COMBAT_SELECT_HAND_CARD'
   const bunnyReleaseAnimating = combat.bunnyReleasePending
   const bunnyReleaseTickMs = bunnyReleaseTotalMs()
@@ -106,6 +113,21 @@ export function CombatScreen(props: CombatScreenProps) {
   } = useFireRelease()
   const selectedEnemyId = combat.targeting.selectedEnemyId
   const { cauldronRef, registerLeapTarget } = useBunnyRelease()
+  const { registerCauldronAnchor, registerPlayerAnchor, registerEnemyAnchor } = useCriticalFxAnchors()
+  const { registerPlayerAnchor: registerDodgePlayerAnchor } = useDodgeFxAnchors()
+  const {
+    registerPlayerAnchor: registerPoisonCardHitPlayerAnchor,
+    registerEnemyAnchor: registerPoisonCardHitEnemyAnchor,
+  } = usePoisonCardHitFxAnchors()
+  const {
+    registerPlayerAnchor: registerFireDamageHitPlayerAnchor,
+    registerEnemyAnchor: registerFireDamageHitEnemyAnchor,
+  } = useFireDamageHitFxAnchors()
+  const cauldronCritShake = useCriticalFxShakeClass('bunnies')
+  const playerCritShake = useCriticalFxShakeClass('shield')
+  const playerDodgeWiggle = useDodgeFxWiggleClass()
+  const playerHitFx = usePlayerHitFxClass()
+  const enemyCritShake = useCriticalFxShakeClass('attack')
   const cauldronFx = useTriggerFxArtProps({ kind: 'cauldron' })
   const pendingCastSlotRef = useRef<HTMLElement | null>(null)
   const handSelectionSlotRefs = useRef(new Map<string, HTMLElement>())
@@ -113,10 +135,8 @@ export function CombatScreen(props: CombatScreenProps) {
     handIds: state.player.deck.hand,
     discardPileIds: state.player.deck.discardPile,
     cardById: state.player.deck.cardById,
-    power,
-    firepower,
-    firepowerMultiplier: state.player.firepowerMultiplier,
-    shieldPower,
+    powerDisplay,
+    gameLevel: state.level,
     freeFirstFireSpell: combat.freeFirstFireSpell,
     nextSpellCosts0: combat.nextSpellCosts0,
     enabled: handVisible,
@@ -144,30 +164,51 @@ export function CombatScreen(props: CombatScreenProps) {
   const endTurnNudgeGlow = canEndTurn && handVisible && !handHasPlayable
   const monsterDefeatPendingId = combat.monsterDefeatPending
   const playerDefeatPending = combat.playerDefeatPending
+  const lethalHpDrainMs = lethalHpDrainBeforeKnockoutMs()
+  const [monsterKnockoutId, setMonsterKnockoutId] = useState<EnemyInstanceId | null>(null)
+  const [playerKnockoutPlaying, setPlayerKnockoutPlaying] = useState(false)
   const playerEnchantmentStacks = enchantmentStacksForTarget(
     combat.enchantments.filter((e) => e.target.kind === 'PLAYER'),
-    firepower,
-    state.player.firepowerMultiplier,
-    state.player.relics.some((r) => r.templateId === 'GREEN_HAT'),
+    powerDisplay,
   )
 
   useEffect(() => {
+    if (!monsterDefeatPendingId) {
+      setMonsterKnockoutId(null)
+      return
+    }
+    setMonsterKnockoutId(null)
+    const id = window.setTimeout(() => setMonsterKnockoutId(monsterDefeatPendingId), lethalHpDrainMs)
+    return () => window.clearTimeout(id)
+  }, [monsterDefeatPendingId, lethalHpDrainMs])
+
+  useEffect(() => {
     if (!monsterDefeatPendingId) return
-    const holdMs = monsterDefeatTotalMs()
+    const holdMs = lethalHpDrainMs + monsterDefeatTotalMs()
     const id = window.setTimeout(() => {
       dispatch({ type: 'COMBAT/COMPLETE_MONSTER_DEFEAT' })
     }, holdMs)
     return () => window.clearTimeout(id)
-  }, [monsterDefeatPendingId, dispatch])
+  }, [monsterDefeatPendingId, lethalHpDrainMs, dispatch])
+
+  useEffect(() => {
+    if (!playerDefeatPending) {
+      setPlayerKnockoutPlaying(false)
+      return
+    }
+    setPlayerKnockoutPlaying(false)
+    const id = window.setTimeout(() => setPlayerKnockoutPlaying(true), lethalHpDrainMs)
+    return () => window.clearTimeout(id)
+  }, [playerDefeatPending, lethalHpDrainMs])
 
   useEffect(() => {
     if (!playerDefeatPending) return
-    const holdMs = monsterDefeatTotalMs()
+    const holdMs = lethalHpDrainMs + monsterDefeatTotalMs()
     const id = window.setTimeout(() => {
       dispatch({ type: 'COMBAT/COMPLETE_PLAYER_DEFEAT' })
     }, holdMs)
     return () => window.clearTimeout(id)
-  }, [playerDefeatPending, dispatch])
+  }, [playerDefeatPending, lethalHpDrainMs, dispatch])
 
   useEffect(() => {
     if (!handSelectionModalOpen) return
@@ -229,10 +270,22 @@ export function CombatScreen(props: CombatScreenProps) {
           <div className="handSelectionPanel">
             <InspectPileCloseButton active={handSelectionModalOpen} onClose={cancelHandSelection} />
             <div className="handSelectionTitle">
-              {handSelectionVerb} {handSelection.numberOfTargets > 1 ? 'up to ' : ''}
+              {handSelectionVerb}{' '}
+              {handSelectionIsConsume || handSelection.numberOfTargets > 1 ? 'up to ' : ''}
               {handSelection.numberOfTargets} card(s)
             </div>
-            {handSelectionMaxPicks - handSelectionChosenCount > 0 ? (
+            {handSelectionIsConsume ? (
+              handSelectionMaxPicks <= 0 ? (
+                <div className="handSelectionSub">No other cards to consume. Submit to cast.</div>
+              ) : handSelectionChosenCount > 0 && handSelectionMaxPicks - handSelectionChosenCount <= 0 ? (
+                <div className="handSelectionSub">Submit to confirm.</div>
+              ) : (
+                <div className="handSelectionSub">
+                  Choose {handSelection.numberOfTargets > 1 ? 'up to ' : ''}
+                  {handSelectionMaxPicks - handSelectionChosenCount} card(s), or submit without consuming any.
+                </div>
+              )
+            ) : handSelectionMaxPicks - handSelectionChosenCount > 0 ? (
               <div className="handSelectionSub">
                 Choose {handSelection.numberOfTargets > 1 ? 'up to ' : ''}
                 {handSelectionMaxPicks - handSelectionChosenCount} more
@@ -269,7 +322,7 @@ export function CombatScreen(props: CombatScreenProps) {
                 return (
                   <div
                     key={`pick-${idx}-${cid}`}
-                    className="handSelectionCardSlot"
+                    className="handSelectionCardSlot gameCardHoverHost"
                     ref={(el) => {
                       if (el) handSelectionSlotRefs.current.set(cid, el)
                       else handSelectionSlotRefs.current.delete(cid)
@@ -279,11 +332,8 @@ export function CombatScreen(props: CombatScreenProps) {
                       cardInstanceId={cid}
                       inst={inst}
                       template={t}
-                      power={power}
-                      firepower={firepower}
-                      firepowerMultiplier={state.player.firepowerMultiplier}
-                      shieldPower={shieldPower}
-                  hasGreenHat={state.player.relics.some((r) => r.templateId === 'GREEN_HAT')}
+                      powerDisplay={powerDisplay}
+                      gameLevel={state.level}
                       disabled={!chosen && picksLeft <= 0}
                       selected={chosen}
                       className="handSelectionCard"
@@ -301,29 +351,73 @@ export function CombatScreen(props: CombatScreenProps) {
       )}
 
       <div className="bunnyMeter">
-        <BarHud state={state} inCombat className="combatPlayerBarHud" />
-        <CombatTargetHoverHost enchantmentEntries={enchantmentTooltipEntries(playerEnchantmentStacks)}>
+        <BarHud
+          state={state}
+          inCombat
+          className="combatPlayerBarHud"
+          hpTickDurationMs={playerDefeatPending ? lethalHpDrainMs : undefined}
+        />
+        <CombatTargetHoverHost
+          enchantmentEntries={enchantmentTooltipEntries(playerEnchantmentStacks)}
+          className={[
+            'combatPlayerPlaceholder',
+            playerEnchantmentStacks.length ? 'combatPlayerPlaceholder--hasEnchantments' : null,
+            hasFireCrownEnchantmentOverlay(playerEnchantmentStacks)
+              ? 'combatPlayerPlaceholder--fireCrownAboveBar'
+              : null,
+            playerKnockoutPlaying ? 'combatPlayerPlaceholder--defeating' : null,
+          ]
+            .filter(Boolean)
+            .join(' ')}
+        >
           <div
-            className={[
-              'combatPlayerPlaceholder',
-              playerEnchantmentStacks.length ? 'combatPlayerPlaceholder--hasEnchantments' : null,
-              playerDefeatPending ? 'combatPlayerPlaceholder--defeating' : null,
-            ]
-              .filter(Boolean)
-              .join(' ')}
-            ref={playerPlaceholderRef}
+            ref={(el) => {
+              playerPlaceholderRef.current = el
+              registerPlayerAnchor(el)
+              registerDodgePlayerAnchor(el)
+              registerPoisonCardHitPlayerAnchor(el)
+              registerFireDamageHitPlayerAnchor(el)
+            }}
+            className="combatPlaceholderAnchor"
             role="img"
             aria-label="Player"
           >
-            {playerDefeatPending ? <MonsterDefeatPoof /> : null}
-            <EnchantmentGlowRings stacks={playerEnchantmentStacks} />
-            <img className="combatPlayerPlaceholder__art" src={playerPlaceholderSprite} alt="" draggable={false} />
+            {playerKnockoutPlaying ? <MonsterDefeatPoof /> : null}
+            <img
+              key={`${playerCritShake.key}-${playerDodgeWiggle.key}-${playerHitFx.key}`}
+              className={[
+                'combatPlayerPlaceholder__art',
+                playerCritShake.className,
+                playerDodgeWiggle.className,
+                playerHitFx.className,
+              ]
+                .filter(Boolean)
+                .join(' ')}
+              src={playerPlaceholderSprite}
+              alt=""
+              draggable={false}
+            />
+            <EnchantmentVisuals
+              stacks={playerEnchantmentStacks}
+              anchorRef={playerPlaceholderRef}
+              spriteTriggerTarget={{ kind: 'player' }}
+            />
           </div>
         </CombatTargetHoverHost>
-        <div className="bunnyMeterCauldron" ref={cauldronRef} role="status" aria-label={`Bunnies ${state.player.bunnies}`}>
+        <div
+          className="bunnyMeterCauldron"
+          ref={(el) => {
+            cauldronRef.current = el
+            registerCauldronAnchor(el)
+          }}
+          role="status"
+          aria-label={`Bunnies ${state.player.bunnies}`}
+        >
           <img
-            key={cauldronFx.key}
-            className={['bunnyMeterCauldron__art', cauldronFx.className].filter(Boolean).join(' ')}
+            key={`${cauldronFx.key}-${cauldronCritShake.key}`}
+            className={['bunnyMeterCauldron__art', cauldronFx.className, cauldronCritShake.className]
+              .filter(Boolean)
+              .join(' ')}
             src={cauldronSprite}
             alt=""
             draggable={false}
@@ -380,17 +474,15 @@ export function CombatScreen(props: CombatScreenProps) {
               const hidden = isHandCardHidden(cid)
               return {
                 key: `hand-${idx}-${cid}`,
-                exhausted: inst?.exhausted,
+                exhausted: inst ? cardInstanceLooksExhausted(inst) : false,
                 node: (
                   <GameCardView
                     cardInstanceId={cid}
                     inst={inst}
                     template={t}
-                    power={power}
-                    firepower={firepower}
-                    firepowerMultiplier={state.player.firepowerMultiplier}
-                    shieldPower={shieldPower}
-                    hasGreenHat={state.player.relics.some((r) => r.templateId === 'GREEN_HAT')}
+                    handCardTriggerFx
+                    powerDisplay={powerDisplay}
+                    gameLevel={state.level}
                     freeFirstFireSpell={combat.freeFirstFireSpell}
                       nextSpellCosts0={combat.nextSpellCosts0}
                     disabled={!canPlay}
@@ -405,7 +497,12 @@ export function CombatScreen(props: CombatScreenProps) {
                       }
                       if (t && cardInstanceHasFireDamage(inst, t.tags)) {
                         playFireRelease(
-                          fireCardPlayDamage(inst, t.tags, firepower, state.player.firepowerMultiplier),
+                          fireCardPlayDamage(
+                            inst,
+                            t.tags,
+                            powerDisplay.firepower,
+                            powerDisplay.firepowerMultiplier,
+                          ),
                         )
                       }
                       enqueue({ type: 'COMBAT/PLAY_CARD', cardInstanceId: cid })
@@ -426,41 +523,55 @@ export function CombatScreen(props: CombatScreenProps) {
           .filter((s) => !!s)
           .join(' ')
         const bunnyReleaseTarget = bunnyReleaseAnimating && combat.bunnyReleaseTargetEnemyId === id
-        const bunnyDmg = bunnyReleaseTarget ? Math.max(0, state.player.bunnies) : 0
+        const rawBunnyDmg = bunnyReleaseTarget ? Math.max(0, state.player.bunnies) : 0
         const afterBunnies = bunnyReleaseTarget
-          ? previewEnemyAfterBunnyDamage(e.shield, e.lockedShield, e.hp, bunnyDmg)
+          ? previewEnemyAfterBunnyRelease(state, id, e.shield, e.lockedShield, e.hp, rawBunnyDmg)
           : null
         const displayHp = afterBunnies?.hp ?? e.hp
         const displayShield = afterBunnies?.shield ?? e.shield
         const displayLockedShield = afterBunnies?.lockedShield ?? e.lockedShield
         const displayName = tmpl?.name ?? e.templateId
         const displayTitle = `${boonPrefix ? `${boonPrefix} ` : ''}${displayName}`
-        const defeating = monsterDefeatPendingId === id
+        const knockoutPlaying = monsterKnockoutId === id
+        const hpDrainPending = monsterDefeatPendingId === id && !knockoutPlaying
         const enemyEnchantmentStacks = enchantmentStacksForTarget(
           combat.enchantments.filter((ench) => ench.target.kind === 'ENEMY' && ench.target.enemyInstanceId === id),
-          0,
-          0,
-          state.player.relics.some((r) => r.templateId === 'GREEN_HAT'),
+          powerDisplay,
         )
         return (
           <Fragment key={id}>
             <CombatMonsterPlaceholder
               name={displayTitle}
-              spriteName={displayName}
+              sprite={tmpl?.sprite}
+              color={tmpl?.color}
               enemyInstanceId={id}
               boonIds={e.boons ?? []}
+              enemyLevel={tmpl?.level ?? 0}
+              strength={e.strength}
               enchantmentStacks={enemyEnchantmentStacks}
-              defeating={defeating}
+              defeating={knockoutPlaying}
+              registerCriticalAnchor={selectedEnemyId === id ? registerEnemyAnchor : undefined}
+              registerPoisonCardHitAnchor={(el) => registerPoisonCardHitEnemyAnchor(id, el)}
+              registerFireDamageHitAnchor={(el) => registerFireDamageHitEnemyAnchor(id, el)}
+              criticalShake={selectedEnemyId === id ? enemyCritShake : undefined}
             />
-            {!defeating ? (
+            {!knockoutPlaying ? (
               <>
-                <CombatEnemyIntentDisplay intent={e.intent} strength={e.strength} />
+                {monsterDefeatPendingId !== id ? (
+                  <CombatEnemyIntentDisplay
+                    state={state}
+                    enemyInstanceId={id}
+                    intent={e.intent}
+                    strength={e.strength}
+                  />
+                ) : null}
                 <CombatEnemyBarHud
+                  enemyInstanceId={id}
                   hp={displayHp}
                   maxHp={e.maxHp}
                   shield={displayShield}
                   lockedShield={displayLockedShield}
-                  durationMs={bunnyReleaseTickMs}
+                  durationMs={hpDrainPending ? lethalHpDrainMs : bunnyReleaseTickMs}
                   leapTargetRef={
                     bunnyReleaseTarget
                       ? (el) => registerLeapTarget(id, el)

@@ -1,10 +1,18 @@
+import type { EnchantmentTargetRef } from '../../core/types/enchantments'
 import type { GameState } from '../../core/types/state'
+import type { CardInstanceId } from '../../core/types/ids'
 import type { Effect } from '../../data/effects'
-import { normalizeBunnies } from '../bunnies'
-import { addRandomPotionToHand } from '../cards/potions'
-import { upgradeRandomDeckCards, upgradeSpecificCards } from '../cards/upgrades'
+import { Enchantments } from '../../data/enchantments'
 import { isBurdenCardId } from '../../data/cards'
+import { multiplyBunnies, normalizeBunnies } from '../bunnies'
+import { addRandomPotionToHand } from '../cards/potions'
+import { upgradeCardInstance, upgradeRandomDeckCards, upgradeSpecificCards } from '../cards/upgrades'
 import { addCombatFirepower, addCombatPower, addCombatShieldPower } from '../combat/combatBonuses'
+import { resolveShieldGainAmount } from '../cards/shieldPower'
+import { shieldPowerPenaltyFromEnchantments } from '../enchantments/staticEffects'
+import { ANTI_MAGIC_SHELL_ENCHANTMENT_ID } from '../enchantments/antiMagicShell'
+import { BUBBLE_ENCHANTMENT_ID } from '../enchantments/bubble'
+import { grantEnchantmentStacks } from '../enchantments/grantEnchantmentStacks'
 
 function ownedBurdenCount(state: GameState): number {
   const deck = state.player.deck
@@ -17,21 +25,56 @@ function ownedBurdenCount(state: GameState): number {
   return inPiles + queued
 }
 
-export function applyRelicEffect(state: GameState, fx: Effect): GameState {
+export type RelicEffectContext = Readonly<{
+  addedCardInstanceId?: CardInstanceId
+}>
+
+export function applyRelicEffect(state: GameState, fx: Effect, ctx?: RelicEffectContext): GameState {
   if (fx.kind === 'HEAL') {
     const nextHp = Math.min(state.player.maxHp, state.player.hp + fx.amount)
     return { ...state, player: { ...state.player, hp: nextHp } }
   }
+  if (fx.kind === 'MODIFY_GAME_LEVEL') {
+    const min = fx.min ?? 0
+    const next = Math.max(min, state.level + fx.amount)
+    if (next === state.level) return state
+    return {
+      ...state,
+      level: next,
+      runStats: { ...state.runStats, maxLevelReached: Math.max(state.runStats.maxLevelReached, next) },
+    }
+  }
   if (fx.kind === 'GAIN_SHIELD') {
     const target = fx.target ?? 'player'
     if (target !== 'player') return state
-    return { ...state, player: { ...state.player, shield: state.player.shield + fx.amount } }
+    const amount = resolveShieldGainAmount(
+      fx.amount,
+      0,
+      shieldPowerPenaltyFromEnchantments(state, { kind: 'PLAYER' }),
+      false,
+    )
+    if (amount <= 0) return state
+    return { ...state, player: { ...state.player, shield: state.player.shield + amount } }
   }
   if (fx.kind === 'GAIN_SHIELD_EQUAL_TO_LEVEL') {
-    return { ...state, player: { ...state.player, shield: state.player.shield + state.level } }
+    const amount = resolveShieldGainAmount(
+      state.level,
+      0,
+      shieldPowerPenaltyFromEnchantments(state, { kind: 'PLAYER' }),
+      false,
+    )
+    if (amount <= 0) return state
+    return { ...state, player: { ...state.player, shield: state.player.shield + amount } }
   }
   if (fx.kind === 'GAIN_LOCKED_SHIELD') {
-    return { ...state, player: { ...state.player, lockedShield: state.player.lockedShield + fx.amount } }
+    const amount = resolveShieldGainAmount(
+      fx.amount,
+      0,
+      shieldPowerPenaltyFromEnchantments(state, { kind: 'PLAYER' }),
+      false,
+    )
+    if (amount <= 0) return state
+    return { ...state, player: { ...state.player, lockedShield: state.player.lockedShield + amount } }
   }
   if (fx.kind === 'GAIN_MAX_HP') {
     const nextMax = state.player.maxHp + fx.amount
@@ -40,11 +83,20 @@ export function applyRelicEffect(state: GameState, fx: Effect): GameState {
     return { ...state, player: { ...state.player, maxHp: nextMax, hp: nextHp } }
   }
   if (fx.kind === 'GAIN_GOLD') {
-    return { ...state, player: { ...state.player, gold: state.player.gold + fx.amount } }
+    const gained = Math.max(0, fx.amount)
+    return {
+      ...state,
+      player: { ...state.player, gold: state.player.gold + fx.amount },
+      runStats: { ...state.runStats, totalGoldObtained: state.runStats.totalGoldObtained + gained },
+    }
   }
   if (fx.kind === 'GAIN_INTEREST') {
     const interest = Math.ceil((state.player.gold * fx.percentAmount) / 100)
-    return { ...state, player: { ...state.player, gold: state.player.gold + interest } }
+    return {
+      ...state,
+      player: { ...state.player, gold: state.player.gold + interest },
+      runStats: { ...state.runStats, totalGoldObtained: state.runStats.totalGoldObtained + Math.max(0, interest) },
+    }
   }
   if (fx.kind === 'GAIN_KEYS') {
     return { ...state, player: { ...state.player, keys: state.player.keys + fx.amount } }
@@ -99,7 +151,7 @@ export function applyRelicEffect(state: GameState, fx: Effect): GameState {
   if (fx.kind === 'MULTIPLY_BUNNIES') {
     return {
       ...state,
-      player: { ...state.player, bunnies: normalizeBunnies(state.player.bunnies * fx.amount) },
+      player: { ...state.player, bunnies: multiplyBunnies(state.player.bunnies, fx.amount) },
     }
   }
   if (fx.kind === 'UPGRADE_SPECIFIC_CARD') {
@@ -107,6 +159,11 @@ export function applyRelicEffect(state: GameState, fx: Effect): GameState {
   }
   if (fx.kind === 'UPGRADE_RANDOM_DECK_CARDS') {
     return upgradeRandomDeckCards(state, fx.numberOfTargets, fx.upgradeAmount)
+  }
+  if (fx.kind === 'UPGRADE_ADDED_CARD') {
+    const id = ctx?.addedCardInstanceId
+    if (!id) return state
+    return upgradeCardInstance(state, id, fx.upgradeAmount)
   }
   if (fx.kind === 'ACTIVATE_FREE_FIRST_FIRE_SPELL') {
     if (!state.combat) return state
@@ -118,6 +175,32 @@ export function applyRelicEffect(state: GameState, fx: Effect): GameState {
   }
   if (fx.kind === 'ADD_RANDOM_POTION_TO_HAND') {
     return addRandomPotionToHand(state)
+  }
+  if (fx.kind === 'APPLY_ENCHANTMENT') {
+    const combat0 = state.combat
+    if (!combat0) return state
+    const tmpl = Enchantments[fx.enchantmentId]
+    if (!tmpl) return state
+
+    const target: EnchantmentTargetRef | null =
+      fx.target === 'global'
+        ? { kind: 'GLOBAL' }
+        : fx.target === 'self'
+          ? { kind: 'PLAYER' }
+          : null
+    if (!target) return state
+
+    const usesAmountAsStacks =
+      fx.enchantmentId === BUBBLE_ENCHANTMENT_ID || fx.enchantmentId === ANTI_MAGIC_SHELL_ENCHANTMENT_ID
+    const stacksToAdd = usesAmountAsStacks ? Math.max(1, fx.amount ?? 1) : 1
+
+    return grantEnchantmentStacks(state, {
+      templateId: fx.enchantmentId,
+      owner: { kind: 'PLAYER' },
+      target,
+      stacks: stacksToAdd,
+      amountOverride: usesAmountAsStacks ? undefined : fx.amount,
+    })
   }
 
   return state

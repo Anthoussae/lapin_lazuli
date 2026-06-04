@@ -8,7 +8,7 @@ export function InspectPileCardSlot(
   return (
     <div
       className={[
-        'inspectDeckCardSlot',
+        'inspectDeckCardSlot gameCardHoverHost',
         collectorOffered ? 'inspectDeckCardSlot--collectorOffered' : null,
       ]
         .filter(Boolean)

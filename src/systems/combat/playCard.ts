@@ -8,23 +8,29 @@ import {
   cardInstanceExhausts,
   cardInstanceResolvedPlayEffects,
   cardInstanceUpgradesAfterCasting,
+  cardPlayPhasesOut,
 } from '../cards/cardEffects'
-import { isCardUpgradeable, upgradeCardInstance } from '../cards/upgrades'
+import { isCardInstanceUpgradeable, upgradeCardInstance } from '../cards/upgrades'
 import { applyEffects } from './resolveEffects'
 import { setPhase } from '../../reducers/reduceGame'
-import { Relics } from '../../data/relics'
-import { applyRelicEffect } from '../relics/applyRelicEffects'
 import { consumeCardFromDeck } from './zones'
-import { cardHasFireTag, cardInstanceInkCost } from '../cards/inkCost'
+import { cardHasFireTag, cardInstanceInkCost, cardInstanceLooksExhausted } from '../cards/inkCost'
+import { applyCriticalRollToCardEffects } from '../cards/critical'
+import { cardPlayEffectsWithRelicCritical } from '../relics/onCastNamedCardCritical'
 import { consumeFreeFirstFireSpellIfFireCard } from '../relics/phoenixFeatherQuill'
-import { applyFourthSpellCastPerTurnRelicTriggers, applyPotionPlayedRelicTriggers } from '../relics/triggers'
+import {
+  applyCardPlayedRelicTriggers,
+  applyCastSpellWithCostAboveAmountRelicTriggers,
+  applyFourthSpellCastPerTurnRelicTriggers,
+  applyPotionPlayedRelicTriggers,
+} from '../relics/triggers'
 
 export function playCard(state: GameState, cardInstanceId: CardInstanceId): { state: GameState; events: GameEvent[] } {
   if (!state.combat) return { state, events: [] }
   const inst = state.player.deck.cardById[cardInstanceId]
   if (!inst) return { state, events: [] }
   if (!state.player.deck.hand.includes(cardInstanceId)) return { state, events: [] }
-  if (inst.exhausted) return { state, events: [] }
+  if (cardInstanceLooksExhausted(inst)) return { state, events: [] }
   const tmpl = Cards[inst.templateId]
   const inkOpts = { freeFirstFireSpell: state.combat.freeFirstFireSpell, nextSpellCosts0: state.combat.nextSpellCosts0 }
   const cost = cardInstanceInkCost(inst, tmpl, inkOpts)
@@ -51,12 +57,12 @@ export function playCard(state: GameState, cardInstanceId: CardInstanceId): { st
       if (seenEligible.has(id)) continue
       const candidate = state.player.deck.cardById[id]
       if (!candidate) continue
-      if (handSelectionEffect.kind === 'UPGRADE_SELECTED_CARD' && !isCardUpgradeable(candidate.templateId)) continue
+      if (handSelectionEffect.kind === 'UPGRADE_SELECTED_CARD' && !isCardInstanceUpgradeable(candidate)) continue
       seenEligible.add(id)
       eligibleIds.push(id)
     }
     const maxPicks = Math.min(handSelectionEffect.numberOfTargets, eligibleIds.length)
-    if (maxPicks <= 0) return { state, events: [] }
+    if (maxPicks <= 0 && handSelectionEffect.kind !== 'CONSUME_SELECTED_CARD') return { state, events: [] }
 
     const combat0 = state.combat
     if (!combat0) return { state, events: [] }
@@ -81,22 +87,20 @@ export function playCard(state: GameState, cardInstanceId: CardInstanceId): { st
 
   const s0: GameState = setPhase(state, 'COMBAT_RESOLVING')
 
-  // Relic triggers for "card played" (if any).
-  let s0b: GameState = s0
-  for (const rInst of s0b.player.relics) {
-    const rTmpl = Relics[rInst.templateId]
-    for (const trig of rTmpl.triggers) {
-      if (trig.on !== 'card_played') continue
-      s0b = applyRelicEffect(s0b, trig.effect)
-    }
-  }
+  const cardPlayedRelics = applyCardPlayedRelicTriggers(s0)
+  let s0b: GameState = cardPlayedRelics.state
 
-  let potionRelicEvents: GameEvent[] = []
+  let potionRelicEvents: GameEvent[] = [...cardPlayedRelics.events]
   if (isPotionCardId(inst.templateId)) {
     const potionRelics = applyPotionPlayedRelicTriggers(s0b)
     s0b = potionRelics.state
     potionRelicEvents = potionRelics.events
   }
+
+  const printedInkCost = inst.costOverride ?? tmpl.cost
+  const inkCostRelics = applyCastSpellWithCostAboveAmountRelicTriggers(s0b, printedInkCost)
+  s0b = inkCostRelics.state
+  const inkCostRelicEvents = inkCostRelics.events
 
   let s1: GameState = {
     ...s0b,
@@ -109,16 +113,18 @@ export function playCard(state: GameState, cardInstanceId: CardInstanceId): { st
     s1 = consumeFreeFirstFireSpellIfFireCard(s1, tmpl)
   }
 
-  let events: GameEvent[] = [{ type: 'EVT/CARD_PLAYED', cardInstanceId }, ...potionRelicEvents]
+  let events: GameEvent[] = [{ type: 'EVT/CARD_PLAYED', cardInstanceId }, ...potionRelicEvents, ...inkCostRelicEvents]
   if (cost > 0) events.push({ type: 'EVT/ENERGY_SPENT', amount: cost })
 
-  // Rule: cards resolve first, then go to discard.
-  const outFx = applyEffects(s1, scaled, { selectedEnemyId, playedCardInstanceId: cardInstanceId }, {
+  // Rule: cards resolve first, then go to discard. Critical roll precedes other card effects.
+  const effectsForCast = cardPlayEffectsWithRelicCritical(s1, tmpl, scaled)
+  const critRoll = applyCriticalRollToCardEffects(s1, effectsForCast, tmpl.tags)
+  const outFx = applyEffects(critRoll.state, critRoll.effects, { selectedEnemyId, playedCardInstanceId: cardInstanceId }, {
     powerBoostsCardAddBunnies: true,
     shieldPowerBoostsCardGainShield: true,
     firepowerBoostsCardDealDamage: true,
   })
-  events = events.concat(outFx.events)
+  events = events.concat(critRoll.events, outFx.events)
 
   let sAfterFx = outFx.state
   if (cardInstanceUpgradesAfterCasting(inst)) {
@@ -126,7 +132,7 @@ export function playCard(state: GameState, cardInstanceId: CardInstanceId): { st
   }
 
   const consumes = cardInstanceConsumes(inst)
-  const phasesOut = scaled.some((fx) => fx.kind === 'APPLY_ENCHANTMENT')
+  const phasesOut = cardPlayPhasesOut(inst, scaled)
   const sAfterDiscard: GameState = consumes
     ? consumeCardFromDeck(sAfterFx, cardInstanceId)
     : (() => {

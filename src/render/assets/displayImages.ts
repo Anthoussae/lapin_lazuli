@@ -28,6 +28,8 @@ import tinyBunny from '../../assets/images/displayElements/tinyBunny.png'
 import tinypoof from '../../assets/images/displayElements/tinypoof.png'
 import poof from '../../assets/images/displayElements/poof.png'
 import bigPoof from '../../assets/images/displayElements/bigPoof.png'
+import burdenAddEffect from '../../assets/images/displayElements/burdenAddEffect.png'
+import fireDamageEffect from '../../assets/images/displayElements/fireDamageEffect.png'
 import castStar from '../../assets/images/displayElements/castStar.png'
 import spark1Sprite from '../../assets/images/displayElements/spark1.png'
 import spark2Sprite from '../../assets/images/displayElements/spark2.png'
@@ -110,6 +112,8 @@ export {
   shieldSprite,
   brokenShieldSprite,
   lockedShieldSprite,
+  burdenAddEffect as burdenAddEffectSprite,
+  fireDamageEffect as fireDamageEffectSprite,
 }
 
 export const GOLD_COIN_SPRITES: readonly [string, string] = [coin1Sprite, coin2Sprite]

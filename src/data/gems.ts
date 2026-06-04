@@ -16,12 +16,12 @@ export const Gems: Readonly<Record<GemId, GemTemplate>> = {
   LAPIS_LAZULI: {
     id: 'LAPIS_LAZULI',
     name: 'Lapis Lazuli',
-    effects: [{ kind: 'ADD_BUNNIES', amount: 3, upgradeValue: 1 }],
+    effects: [{ kind: 'ADD_BUNNIES', amount: 2, upgradeValue: 2 }],
   },
   EMERALD: {
     id: 'EMERALD',
     name: 'Emerald',
-    effects: [{ kind: 'GAIN_SHIELD', amount: 4, upgradeValue: 1 }],
+    effects: [{ kind: 'GAIN_SHIELD', amount: 2, upgradeValue: 2 }],
   },
   MALACHITE: {
     id: 'MALACHITE',
@@ -31,26 +31,26 @@ export const Gems: Readonly<Record<GemId, GemTemplate>> = {
   RUBY: {
     id: 'RUBY',
     name: 'Ruby',
-    effects: [{ kind: 'DEAL_DAMAGE', amount: 5, upgradeValue: 1 }],
+    effects: [{ kind: 'DEAL_DAMAGE', amount: 5, upgradeValue: 3 }],
   },
   SAPPHIRE: {
     id: 'SAPPHIRE',
     name: 'Sapphire',
     effects: [
-      { kind: 'DRAW_CARDS', amount: 1, upgradeValue: 1 },
+      { kind: 'DRAW_CARDS', amount: 1, upgradeValue: 0.5 },
       { kind: 'EXHAUST', upgradeValue: 1 },
     ],
   },
   AMETHYST: {
     id: 'AMETHYST',
     name: 'Amethyst',
-    effects: [{ kind: 'MULTIPLY_BUNNIES', amount: 1.5, upgradeValue: 1 }],
+    effects: [{ kind: 'MULTIPLY_BUNNIES', amount: 1.5, upgradeValue: 0.25 }],
   },
   TOPAZ: {
     id: 'TOPAZ',
     name: 'Topaz',
     requiresTargetWithoutDestiny: true,
-    effects: [{ kind: 'DESTINY', upgradeValue: 1 }],
+    effects: [{ kind: 'DESTINY' }],
   },
   // COAL: {
   //   id: 'COAL',
@@ -60,9 +60,19 @@ export const Gems: Readonly<Record<GemId, GemTemplate>> = {
   DIAMOND: {
     id: 'DIAMOND',
     name: 'Diamond',
+    effects: [{ kind: 'DISPEL', amount: 1, upgradeValue: 1 }],
+  },
+  GARNET_SHARD: {
+    id: 'GARNET_SHARD',
+    name: 'Garnet Shard',
     effects: [
-      { kind: 'UPGRADE_AFTER_CASTING', upgradeValue: 1 },
-      { kind: 'EXHAUST', upgradeValue: 1 },
+      {
+        kind: 'CRITICAL',
+        chancePercent: 20,
+        chanceUpgradeValue: 5,
+        multiplierPercent: 150,
+        multiplierUpgradeValue: 25,
+      },
     ],
   },
 }

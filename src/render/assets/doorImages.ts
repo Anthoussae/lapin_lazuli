@@ -2,6 +2,7 @@ import openDoor from '../../assets/images/displayElements/openDoor.png'
 import openBossDoor from '../../assets/images/displayElements/openBossDoor.png'
 import { pathDoorLockSprite } from './displayImages'
 import bossDoor from '../../assets/images/doors/bossDoor.png'
+import enchantedDoor from '../../assets/images/doors/enchantedDoor.png'
 import cardDoor from '../../assets/images/doors/cardDoor.png'
 import fallbackDoor from '../../assets/images/doors/fallbackDoor.png'
 import gemDoor from '../../assets/images/doors/gemDoor.png'
@@ -15,6 +16,7 @@ export {
   openDoor,
   openBossDoor,
   bossDoor,
+  enchantedDoor,
   cardDoor,
   fallbackDoor,
   gemDoor,
@@ -30,6 +32,7 @@ export const PATH_DOOR_PRELOAD_URLS: readonly string[] = [
   openBossDoor,
   pathDoorLockSprite,
   bossDoor,
+  enchantedDoor,
   cardDoor,
   fallbackDoor,
   gemDoor,

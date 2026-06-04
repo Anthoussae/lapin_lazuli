@@ -33,8 +33,9 @@
 
   /* Monster shield HUD icons (combat) — regular shield + locked shield. */
   --monster-shield-icon-size: 82px;
-  --monster-shield-icon-offset-x: 0px;
-  --monster-shield-icon-offset-y: -10px;
+  /* Solo temporary shield (e.g. Guardian Angel) — same anchor as solo locked shield. */
+  --monster-shield-icon-offset-x: -40px;
+  --monster-shield-icon-offset-y: -3px;
   --font-monster-shield-value-size: 28px;
   --monster-shield-value-offset-x: -4px;
   --monster-shield-value-offset-y: 0px;
@@ -42,10 +43,10 @@
   --monster-locked-shield-icon-size: 82px;
   --monster-locked-shield-icon-offset-x: -40px;
   --monster-locked-shield-icon-offset-y: -3px;
-  /* Monster — both shield types visible (regular outside, locked inside). */
-  --monster-dual-shield-icon-offset-x: 0px;
-  --monster-dual-shield-icon-offset-y: -10px;
-  --monster-dual-locked-shield-icon-offset-x: -20px;
+  /* Monster — both visible: regular inside (toward bar), locked outside (further left). */
+  --monster-dual-shield-icon-offset-x: -40px;
+  --monster-dual-shield-icon-offset-y: -3px;
+  --monster-dual-locked-shield-icon-offset-x: -90px;
   --monster-dual-locked-shield-icon-offset-y: -3px;
   --font-monster-locked-shield-value-size: 28px;
   --monster-locked-shield-value-offset-x: -4px;
@@ -78,6 +79,15 @@
 
   --duration-button-hover: 400ms;
   --duration-ticking-number: 400ms;
+  /* Lethal HP loss: bar drains to 0 before knockout / defeat placeholder FX. */
+  --duration-lethal-hp-drain-before-knockout: var(--duration-ticking-number);
+  --ease-bar-display-hp-tick: ease-out;
+  /* HP bar fill turns toxic green while ticking down from poison HP loss. */
+  --bar-display-poison-fill: #3dcc3d;
+  --duration-poison-hp-bar-tint: var(--duration-ticking-number);
+  /* HP bar fill turns orange while ticking down from fire damage HP loss. */
+  --bar-display-fire-fill: #ff8c00;
+  --duration-fire-hp-bar-tint: 800ms;
   --ink-jar-size: 216px;
   --font-ink-jar-label-size: 48px;
   --ink-jar-label-nudge-x: -6px;
@@ -115,6 +125,110 @@
   --duration-enchantment-glow-pulse: 2.4s;
   --ease-enchantment-glow-pulse: ease-in-out;
 
+  /* Bubble enchantment — idle overlay at placeholder center. */
+  --enchantment-bubble-size: 370px;
+  --enchantment-bubble-offset-x: 0px;
+  --enchantment-bubble-offset-y: 0px;
+  --enchantment-bubble-opacity: 0.65;
+  /* Above combat placeholder art (see --combat-placeholder-art-z). */
+  --enchantment-bubble-z: 8;
+  --combat-placeholder-art-z: 1;
+  /* Bubble pop FX (replaces idle sprite when a stack is consumed). */
+  --enchantment-bubble-pop-size: 370px;
+  --enchantment-bubble-pop-offset-x: 0px;
+  --enchantment-bubble-pop-offset-y: 0px;
+  --enchantment-bubble-pop-opacity-start: 1;
+  --enchantment-bubble-pop-opacity-end: 0.3;
+  --duration-enchantment-bubble-pop-fade: 1000ms;
+  --ease-enchantment-bubble-pop-fade: ease-out;
+  /* Stage-layer bubble pop (above combat UI; see .bubblePopFxLayer). */
+  --bubble-pop-fx-z: 10003;
+
+  /* Anti-Magic Shell enchantment — idle overlay at placeholder center. */
+  --enchantment-anti-magic-shell-size: 370px;
+  --enchantment-anti-magic-shell-offset-x: 0px;
+  --enchantment-anti-magic-shell-offset-y: 0px;
+  --enchantment-anti-magic-shell-opacity: 0.75;
+  --enchantment-anti-magic-shell-z: 8;
+  /* Anti-Magic Shell pop FX (replaces idle sprite when a stack is removed/consumed). */
+  --enchantment-anti-magic-shell-pop-size: 370px;
+  --enchantment-anti-magic-shell-pop-offset-x: 0px;
+  --enchantment-anti-magic-shell-pop-offset-y: 0px;
+  --enchantment-anti-magic-shell-pop-opacity-start: 1;
+  --enchantment-anti-magic-shell-pop-opacity-end: 0.3;
+  --duration-enchantment-anti-magic-shell-pop-fade: 1000ms;
+  --ease-enchantment-anti-magic-shell-pop-fade: ease-out;
+  /* Stage-layer Anti-Magic Shell pop (above combat UI; see .antiMagicShellPopFxLayer). */
+  --anti-magic-shell-pop-fx-z: 10003;
+
+  /* Poison enchantment — idle overlay centered on placeholder art. */
+  --enchantment-poison-size: 320px;
+  --enchantment-poison-offset-x: 0px;
+  --enchantment-poison-offset-y: 0px;
+  --enchantment-poison-opacity: 1;
+  /* Above combat placeholder art (see --combat-placeholder-art-z). */
+  --enchantment-poison-z: 8;
+  /* Poison stack removed (fade uses same sprite; no separate pop asset). */
+  --enchantment-poison-pop-size: 320px;
+  --enchantment-poison-pop-offset-x: 0px;
+  --enchantment-poison-pop-offset-y: 0px;
+  --enchantment-poison-pop-opacity-start: 1;
+  --enchantment-poison-pop-opacity-end: 0;
+  --duration-enchantment-poison-pop-fade: 600ms;
+  --ease-enchantment-poison-pop-fade: ease-out;
+  /* Poison sprite pulse when turn-start HP loss applies (brightness filter). */
+  --enchantment-poison-trigger-darken-percent: 50;
+  --enchantment-poison-trigger-brightness-min: calc(
+    1 - (var(--enchantment-poison-trigger-darken-percent) * 0.01)
+  );
+  --duration-enchantment-poison-trigger-darken: 300ms;
+  --duration-enchantment-poison-trigger-restore: 300ms;
+  --ease-enchantment-poison-trigger-darken: ease-in;
+  --ease-enchantment-poison-trigger-restore: ease-out;
+
+  /* Flamewreath / Crown of Flames — fire crown above placeholder art (tune placement here). */
+  --enchantment-fire-crown-size: 280px;
+  --enchantment-fire-crown-offset-x: 0px;
+  --enchantment-fire-crown-offset-y: -120px;
+  --enchantment-fire-crown-opacity: 0.51;
+  --enchantment-fire-crown-z: 8;
+  /* Placeholder stacking vs combat HP bar (--combat-bunny-meter-bar-z / --combat-monster-bar-z). */
+  --enchantment-fire-crown-above-bar-z: 2;
+  --enchantment-fire-crown-pop-size: 280px;
+  --enchantment-fire-crown-pop-offset-x: 0px;
+  --enchantment-fire-crown-pop-offset-y: -120px;
+  --enchantment-fire-crown-pop-opacity-start: 1;
+  --enchantment-fire-crown-pop-opacity-end: 0;
+  --duration-enchantment-fire-crown-pop-fade: 600ms;
+  --ease-enchantment-fire-crown-pop-fade: ease-out;
+
+  /* Poison card HP_LOSS — brief sprite on target (played card, not enchantment tick). */
+  --poison-card-hit-size: var(--enchantment-poison-size);
+  --poison-card-hit-offset-x: var(--enchantment-poison-offset-x);
+  --poison-card-hit-offset-y: var(--enchantment-poison-offset-y);
+  --poison-card-hit-opacity-start: 1;
+  --poison-card-hit-darken-percent: 50;
+  --poison-card-hit-brightness-min: calc(1 - (var(--poison-card-hit-darken-percent) * 0.01));
+  --duration-poison-card-hit-darken: 300ms;
+  --duration-poison-card-hit-restore: 300ms;
+  --duration-poison-card-hit-fade: 300ms;
+  --ease-poison-card-hit-darken: ease-in;
+  --ease-poison-card-hit-restore: ease-out;
+  --ease-poison-card-hit-fade: ease-out;
+  --poison-card-hit-fx-z: 10003;
+
+  /* Fire damage hit — brief overlay on target when fire damage is received. */
+  --fire-damage-hit-size: 280px;
+  --fire-damage-hit-offset-x: 0px;
+  --fire-damage-hit-offset-y: -20px;
+  --fire-damage-hit-opacity-min: 0.3;
+  --fire-damage-hit-opacity-max: 1;
+  --duration-fire-damage-hit-intensify: 200ms;
+  --duration-fire-damage-hit-fade: 200ms;
+  --ease-fire-damage-hit-intensify: ease-in;
+  --ease-fire-damage-hit-fade: ease-out;
+  --fire-damage-hit-fx-z: 10003;
+
   /* Combat monster placeholder — offset from arena center (mirrors player, right side). */
   --combat-monster-placeholder-size: 350px;
   --combat-monster-placeholder-x: calc(
@@ -129,6 +243,7 @@
   --combat-monster-name-y-offset: -90px;
   --combat-monster-name-max-width: 320px;
   --combat-monster-name-font-size: 28px;
+  --combat-monster-name-font-size-small: 22px;
   --font-combat-monster-name-weight: 700;
   --combat-monster-name-letter-spacing: 0.02em;
   --color-combat-monster-name: var(--color-hud-text);
@@ -565,8 +680,10 @@
   /* Font of Lethe — forget-card dialog. */
   --font-of-lethe-forget-overlay-z: 60;
   --font-of-lethe-forget-overlay-bg: rgba(0, 0, 0, 0.62);
-  --font-of-lethe-forget-panel-width: min(860px, calc(100% - 40px));
-  --font-of-lethe-forget-panel-height: min(520px, calc(100% - 40px));
+  --font-of-lethe-forget-panel-x: 50%;
+  --font-of-lethe-forget-panel-y: 50%;
+  --font-of-lethe-forget-panel-width: 860px;
+  --font-of-lethe-forget-panel-height: 520px;
   --font-of-lethe-forget-panel-border-radius: 14px;
   --font-of-lethe-forget-panel-padding: 18px;
   --font-of-lethe-forget-panel-gap: 12px;
@@ -606,6 +723,22 @@
   --relic-thumb-fallback-font-size: 22px;
   --relic-icon-hover-duration: 0.5s;
   --relic-icon-fallback-color: #e6f0ff;
+  /*
+   * Relic art scale/offset inside the icon frame (applied on .relicIcon__img).
+   * Hat PNGs leave empty space below the brim — bump size and nudge Y to center them.
+   */
+  --relic-icon-art-size-modifier: 1;
+  --relic-icon-art-x: 0px;
+  --relic-icon-art-y: 0px;
+  --relic-red-hat-size-modifier: 1.2;
+  --relic-red-hat-art-x: 0px;
+  --relic-red-hat-art-y: 4px;
+  --relic-green-hat-size-modifier: 1.2;
+  --relic-green-hat-art-x: 0px;
+  --relic-green-hat-art-y: 4px;
+  --relic-purple-hat-size-modifier: 1.2;
+  --relic-purple-hat-art-x: 0px;
+  --relic-purple-hat-art-y: 4px;
   --relic-tooltip-gap: 4px;
   --relic-tooltip-nudge-x: -8px;
   --relic-tooltip-nudge-y: -10px;
@@ -655,6 +788,17 @@
   --rest-study-btn-border-color: rgb(22, 73, 3);
   --rest-study-btn-color: var(--color-button-text);
   --rest-study-btn-hover-bg: rgba(15, 176, 60, 0.614);
+  /* Rest screen — Study reveal animation (upgraded card flash). */
+  --rest-study-reveal-z-index: 50;
+  --rest-study-reveal-fade-in-ms: 250ms;
+  --rest-study-reveal-fade-out-ms: 2000ms;
+  --rest-study-reveal-scale: 1.1;
+  --rest-study-reveal-cast-burst-scale: 1.15;
+  --rest-study-reveal-glow-color: rgba(255, 224, 140, 0.78);
+  --rest-study-reveal-glow-size: 26px;
+  --rest-study-reveal-glow-spread: 10px;
+  --rest-study-reveal-glow-fade-out-ms: 1600ms;
+  --rest-study-reveal-max-width: min(100px, 82vw);
 
   /* Gem offer icons (Jewellers). */
   --gem-icon-size: calc(72px * 1.7);
@@ -687,6 +831,8 @@
   --shop-relic-opacity: 1;
   /** Greyscale filter for shelf items the player cannot afford (cards, relics, keys). */
   --shop-item-disabled-filter: grayscale(1);
+  --shop-price-color: #fbbf24;
+  --shop-price-color-unaffordable: var(--shop-unaffordable-reject-color);
   --duration-shop-unaffordable-reject: 450ms;
   --shop-unaffordable-reject-color: #ef4444;
   --shop-hud-gold-reject-glow: 0 0 12px color-mix(in srgb, var(--shop-unaffordable-reject-color) 80%, transparent);
@@ -765,6 +911,8 @@
   --game-card-h: 196px;
   --game-card-hover-scale: 1.3;
   --game-card-hover-duration: 0.3s;
+  /* Hovered card hosts (and combat hand while a card is hovered) — above fan overlap, deck inspect, HUD. */
+  --game-card-hover-z-index: 10;
 
   /* Foiled cards — pastel rainbow sheen on the front face. */
   --card-foil-sheen-angle: 125deg;
@@ -782,7 +930,7 @@
   );
 
   /* Card illustration — centered in .gameCard__art; override per card via layout map. */
-  --card-illustration-size-modifier: 2;
+  --card-illustration-size-modifier: 1.3;
   --card-illustration-default-w: 52%;
   --card-illustration-default-h: 88%;
   --card-illustration-default-x: 0;
@@ -842,20 +990,40 @@
   --pull-from-deck-dest-scale: 1;
   --pull-from-deck-dest-rotate: 0deg;
 
-  /* Card typography: name (header), ink (top-right), text (description). */
+  /*
+   * Card typography — base sizes here; per-card modifiers on .gameCard (cardTypography.css / cardTypographyLayout.tsx).
+   */
+  --font-card-base-size: 16px;
+  --font-card-name-size-ratio: 1;
+  --font-card-text-size-ratio: 1.142857; /* 16/14 */
+  --font-card-ink-size-ratio: 1.357143; /* 19/14 */
+  --font-card-tags-size-ratio: 1.142857;
   --font-card: var(--font-main);
   --color-card-ink: #3d2914;
   --color-card-ink-modified: var(--color-card-text-amt-up);
-  --font-card-ink-size: 19px;
+  --font-card-ink-size: calc(var(--font-card-base-size) * var(--font-card-ink-size-ratio));
   --font-card-ink-weight: bold;
   --font-card-ink-line-height: 1;
   --color-card-name: #3d2914;
   --color-card-name-upgraded: #166534;
-  --font-card-name-size: 14px;
+  --font-card-name-size: calc(var(--font-card-base-size) * var(--font-card-name-size-ratio));
   --font-card-name-weight: 800;
   --font-card-name-line-height: 1.1;
+  --card-name-single-line-max-symbols: 11;
+  --card-name-max-lines: 2;
+  --card-name-padding-inline-default: 22%;
+  --card-name-padding-inline-with-ink: 6%;
+  --card-ink-berth-gap: 4px;
+  --card-header-min-height: 12%;
+  --card-overlay-padding-top: 12%;
+  --card-overlay-padding-inline: 10%;
+  --card-overlay-padding-bottom: 11%;
+  --card-art-inset-top: 22%;
+  --card-art-inset-bottom: 38%;
+  --card-desc-max-height-default: 34%;
+  --card-desc-line-gap: 2px;
   --color-card-text: #3d2914;
-  --font-card-text-size: 16px;
+  --font-card-text-size: calc(var(--font-card-base-size) * var(--font-card-text-size-ratio));
   --font-card-text-weight: 800;
   --font-card-text-line-height: 1.2;
   --color-card-text-amt-up: #166534;
@@ -864,16 +1032,24 @@
   --color-card-text-bunny-down: var(--color-card-text-amt-down);
   --color-card-exhausted-shade: rgba(26, 58, 107, 0.38);
   --card-exhausted-brightness: 0.75;
+  --font-card-disabled-stamp: var(--font-ui);
+  --color-card-disabled-stamp: #dc2626;
+  --font-card-disabled-stamp-size: 22px;
+  --font-card-disabled-stamp-weight: 900;
+  --card-disabled-stamp-angle: -32deg;
+  --card-disabled-stamp-offset-x: 0px;
+  --card-disabled-stamp-offset-y: 8px;
+  --card-disabled-stamp-letter-spacing: 0.08em;
 
   /* Shared game tooltip styling (keyword, relic, gem, enemy boon). */
   --color-game-tooltip-border: #2b3a56;
   --color-game-tooltip-bg: rgba(10, 14, 20, 0.92);
   --color-game-tooltip-label: #ffd48a;
   --color-game-tooltip-text: #c8d8f0;
-  --font-game-tooltip-label-size: 15px;
+  --font-game-tooltip-label-size: 16px;
   --font-game-tooltip-label-weight: 800;
   --font-game-tooltip-label-line-height: 1.25;
-  --font-game-tooltip-text-size: 13px;
+  --font-game-tooltip-text-size: 15px;
   --font-game-tooltip-text-line-height: 1.35;
   --game-tooltip-padding-y: 8px;
   --game-tooltip-padding-x: 10px;
@@ -889,7 +1065,7 @@
 
   --font-card-text-emphasis-weight: 900;
   --color-card-tags: var(--color-card-text);
-  --font-card-tags-size: 16px;
+  --font-card-tags-size: calc(var(--font-card-base-size) * var(--font-card-tags-size-ratio));
   --card-font-scale-name-default: 1;
   --card-font-scale-ink-default: 1;
   --card-font-scale-text-default: 1;
@@ -1221,6 +1397,82 @@
   --trigger-fx-glow-tight: 6px;
   --trigger-fx-glow-wide: 14px;
 
+  /* Critical hit FX (see criticalFxConfig.ts, game.css). */
+  --duration-critical-fx-fade: 250ms;
+  --duration-critical-fx-shake: 250ms;
+  --ease-critical-fx: ease-out;
+  --critical-fx-font-size: 48px;
+  --critical-fx-drift-y: -48px;
+  --critical-fx-offset-x: 0px;
+  --critical-fx-offset-y: -24px;
+  --critical-fx-shake-x: 3px;
+  --critical-fx-shake-y: 2px;
+  --critical-fx-glow-spread: 12px;
+  --critical-fx-attack-color: #ef4444;
+  --critical-fx-bunnies-color: #c084fc;
+  --critical-fx-shield-color: #60a5fa;
+  --critical-fx-attack-glow: rgba(239, 68, 68, 0.65);
+  --critical-fx-bunnies-glow: rgba(192, 132, 252, 0.65);
+  --critical-fx-shield-glow: rgba(96, 165, 250, 0.65);
+  --critical-fx-z: 10004;
+
+  /* Player dodge FX (see dodgeFxConfig.ts, DodgeFxContext.tsx). */
+  --duration-dodge-fx-fade: 500ms;
+  --duration-dodge-fx-wiggle: 500ms;
+  --ease-dodge-fx: ease-out;
+  --dodge-fx-font-size: 40px;
+  --dodge-fx-drift-y: -56px;
+  --dodge-fx-offset-x: 0px;
+  --dodge-fx-offset-y: -32px;
+  --dodge-fx-wiggle-x: 8px;
+  --dodge-fx-text-color: #4ade80;
+  --dodge-fx-text-glow: rgba(74, 222, 128, 0.55);
+  --dodge-fx-z: 10005;
+
+  /* Player unblocked damage hit FX (see playerHitFxConfig.ts, PlayerHitFxContext.tsx). */
+  --duration-player-hit-fx-shake: 280ms;
+  --duration-player-hit-fx-glow: 400ms;
+  --ease-player-hit-fx: ease-out;
+  --player-hit-fx-shake-x: 4px;
+  --player-hit-fx-shake-y: 3px;
+  --player-hit-fx-glow-tight: 8px;
+  --player-hit-fx-glow-wide: 18px;
+  --color-player-hit-fx-glow: #ef4444;
+  --color-player-hit-fx-glow-soft: rgba(239, 68, 68, 0.55);
+
+  /*
+   * Combat burden add — two phases (see burdenAddFxConfig.ts):
+   * 1. burdenAppearance — card preview on screen
+   * 2. addBurdenToDeck — flip + travel into deck/discard
+   */
+  --duration-burden-appearance: 700ms;
+  --duration-burden-add-to-deck-flip: 450ms;
+  --duration-burden-add-to-deck-travel: 500ms;
+  --duration-burden-add-to-deck-flip-buffer: 40ms;
+  --duration-burden-add-to-deck-finish-buffer: 120ms;
+  --ease-burden-add-to-deck-travel: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-burden-add-to-deck-flip: ease-in-out;
+  /* Spawn layout — center anchor + randomized scatter for 2nd+ simultaneous burdens. */
+  --burden-add-spawn-x: 50%;
+  --burden-add-spawn-y: 50%;
+  --burden-add-card-scale: 1;
+  --burden-add-card-z-index: 52;
+  --duration-burden-add-stagger: 150ms;
+  --burden-add-spawn-offset-min: 50px;
+  --burden-add-spawn-offset-max: 100px;
+  /* Phase 1 — purple glow burst behind the appearing burden card. */
+  --burden-add-effect-size: 220px;
+  --burden-add-effect-opacity-start: 0.8;
+  --burden-add-effect-opacity-end: 0;
+  --duration-burden-add-effect-fade: 700ms;
+  --ease-burden-add-effect-fade: ease-out;
+  --burden-add-effect-blend-mode: screen;
+  /* Phase 1 — burden card ease fade-in (not a pop). */
+  --duration-burden-add-card-fade-in: 280ms;
+  --ease-burden-add-card-fade-in: ease-out;
+  --burden-add-card-fade-in-opacity-start: 0;
+  --burden-add-card-fade-in-opacity-end: 1;
+
   /*
    * Monster defeat — fall + red glow + poof before reward transition.
    */
@@ -1240,6 +1492,23 @@
   --monster-defeat-poof-height: 88px;
   --monster-defeat-poof-start-opacity: 0.92;
   --monster-defeat-fx-z: 3;
+
+  /*
+   * Defeat screen — layout tokens (CenteredPanel title/text/button).
+   */
+  --defeat-title-x: 0px;
+  --defeat-title-y: 0px;
+  --defeat-title-font-size: 44px;
+  --defeat-title-color: var(--color-hud-text);
+
+  --defeat-text-x: 0px;
+  --defeat-text-y: 0px;
+  --defeat-text-font-size: 16px;
+  --defeat-text-color: var(--color-hud-text);
+  --defeat-text-opacity: 0.9;
+
+  --defeat-button-x: 0px;
+  --defeat-button-y: 0px;
 
   /*
    * Leaping bunnies — one per cauldron tick during release (spawn scatter + bounce arcs).

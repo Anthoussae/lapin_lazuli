@@ -1,6 +1,6 @@
 import type { DiceSpec } from '../rng/dice'
 import type { RngState } from '../rng/rng'
-import type { CardId, CardInstanceId, EnemyId, EnemyInstanceId, GemId, PathId, RelicId } from './ids'
+import type { CardId, CardInstanceId, EnemyId, EnemyInstanceId, EnemyIntentId, EnchantmentId, GemId, PathId, RelicId } from './ids'
 import type { AnimState } from '../../animation/types'
 import type { InputState } from '../../input/types'
 import type { EnemyBoonId } from '../../data/enemyBoons'
@@ -34,10 +34,14 @@ export type CardInstance = Readonly<{
   templateId: CardId
   upgrades: number
   exhausted: boolean
+  /** Combat-only: Disabling boon — cannot be cast until combat ends. */
+  disabled: boolean
   costOverride: number | null
   socketedGemId: GemId | null
   /** When true, this instance cannot receive a gem (templates or prior socketing). */
   unsocketable: boolean
+  /** When true, this instance cannot be upgraded by any effects. */
+  unupgradable?: boolean
   /** Foil: +50% (rounded up) to effect amounts after upgrades and to upgradeValues before upgrades. */
   foil?: boolean
   /** Sticker modification (not yet implemented in gameplay). */
@@ -167,6 +171,16 @@ export type DefeatState = Readonly<{
   level: number
 }>
 
+export type RunStats = Readonly<{
+  maxLevelReached: number
+  totalGoldObtained: number
+  relicsObtained: number
+  cardsObtained: number
+  gemsObtained: number
+  enemiesDefeated: number
+  totalCardUpgrades: number
+}>
+
 export type EnemyInstance = Readonly<{
   id: EnemyInstanceId
   templateId: EnemyId
@@ -177,24 +191,38 @@ export type EnemyInstance = Readonly<{
   /** Absorbs damage after temporary shield; persists for the rest of combat. */
   lockedShield: number
   boons: ReadonlyArray<EnemyBoonId>
-  /** Each point adds 1 to damage when this enemy performs an ATTACK. */
+  /** Each point adds 1 to attack bonusDamage (scaled by intent level instances). */
   strength: number
   intent: EnemyIntent | null
-  /** Next step index for enemies that use `intentScript` (cycles each intent roll). */
-  scriptIntentIndex: number
+  /** Catalog intent id chosen on the previous roll (`null` before the first roll). */
+  lastChosenIntentId: EnemyIntentId | null
+  /** Intent ids that were chosen from pool entries with `neverRepeat: true`. */
+  usedNeverRepeatIntentIds: ReadonlyArray<EnemyIntentId>
   powers: Readonly<Record<string, number>>
 }>
 
 /** Extra outcomes on an enemy intent (e.g. gain strength after charging or on hit). */
 export type EnemyIntentExtraEffect = Readonly<
-  | { effect: 'strengthgain'; value: number }
+  | { effect: 'strengthgain'; amount: number; /** Exempt from intent level scaling when true. */ nonScaling?: true }
   | { effect: 'playerTurnStartBunnyDrain'; amount: number }
   | { effect: 'enemyLockedShieldGain'; amount: number }
   | { effect: 'enemyLockedShieldGain'; roll: DiceSpec }
+  | { effect: 'enemyShieldGain'; amount: number }
   /** On attack hit, restore the attacker's HP by unshielded damage dealt to the player. */
   | { effect: 'vampiric' }
   /** Create card instances and shuffle them into the player's draw pile. */
-  | { effect: 'shuffleBurdenIntoDeck'; cardId: CardId; count: number }
+  | { effect: 'shuffleBurdenIntoDeck'; cardId: CardId; count: number; /** Exempt from intent level scaling when true. */ nonScaling?: true }
+  /** Grant enchantment stacks on the player (scaled by intent level instances). */
+  | {
+      effect: 'applyEnchantment'
+      enchantmentId: EnchantmentId
+      /** Stacks per scaled instance (default 1). */
+      stacks?: number
+      /** Overrides template effect amounts on each granted instance (e.g. POISON HP_LOSS 5 → 1). */
+      setEnchantmentEffectsAmounts?: number
+      /** Exempt from intent level scaling when true. */
+      nonScaling?: true
+    }
 >
 
 export type EnemyIntentEffects = ReadonlyArray<EnemyIntentExtraEffect>
@@ -349,6 +377,8 @@ export type UiState = Readonly<{
   input: InputState
   debug: Readonly<{
     lastEvents: ReadonlyArray<string>
+    /** Increments each action that emits debug events; FX listeners key off this, not line text. */
+    eventBatchId: number
   }>
 }>
 
@@ -370,6 +400,7 @@ export type GameState = Readonly<{
   seed: number
   rng: RngState
   level: number
+  runStats: RunStats
   phase: Phase
   phasePrev: Phase | null
   assets: Readonly<{

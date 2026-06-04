@@ -22,6 +22,12 @@ import { CastBurstProvider } from './CastBurstContext'
 import { CardConsumeProvider } from './CardConsumeContext'
 import { CardSocketFlipProvider } from './CardSocketFlipContext'
 import { BunnyReleaseProvider } from './BunnyReleaseContext'
+import { BubblePopFxProvider } from './BubblePopFxContext'
+import { PoisonCardHitFxProvider } from './PoisonCardHitFxContext'
+import { PoisonHpBarTintProvider } from './PoisonHpBarTintContext'
+import { FireDamageHitFxProvider } from './FireDamageHitFxContext'
+import { FireHpBarTintProvider } from './FireHpBarTintContext'
+import { AntiMagicShellPopFxProvider } from './AntiMagicShellPopFxContext'
 import { FireReleaseProvider } from './FireReleaseContext'
 import { CardTravelProvider } from './CardTravelContext'
 import { GoldTravelProvider } from './GoldTravelContext'
@@ -29,7 +35,11 @@ import { ShopUnaffordableRejectProvider } from './ShopUnaffordableRejectContext'
 import { KeyTravelProvider } from './KeyTravelContext'
 import { RelicTravelProvider } from './RelicTravelContext'
 import { IrisTransitionProvider } from './IrisTransitionContext'
+import { EnchantmentSpriteTriggerFxProvider } from './EnchantmentSpriteTriggerFxContext'
 import { TriggerFxProvider } from './TriggerFxContext'
+import { CriticalFxProvider } from './CriticalFxContext'
+import { DodgeFxProvider } from './DodgeFxContext'
+import { PlayerHitFxProvider } from './PlayerHitFxContext'
 import './game.css'
 
 export function GameView(props: Readonly<{ state: GameState; dispatch: (a: GameAction) => void }>) {
@@ -49,7 +59,17 @@ export function GameView(props: Readonly<{ state: GameState; dispatch: (a: GameA
 
   return (
     <RelicTravelProvider>
+      <BubblePopFxProvider>
+      <PoisonCardHitFxProvider state={state}>
+      <PoisonHpBarTintProvider state={state}>
+      <FireDamageHitFxProvider state={state}>
+      <FireHpBarTintProvider state={state}>
+      <AntiMagicShellPopFxProvider>
+      <EnchantmentSpriteTriggerFxProvider state={state}>
       <TriggerFxProvider state={state}>
+      <CriticalFxProvider state={state}>
+      <PlayerHitFxProvider state={state}>
+      <DodgeFxProvider state={state}>
       <IrisTransitionProvider>
       <BunnyReleaseProvider
         bunnyReleasePending={!!state.combat?.bunnyReleasePending}
@@ -112,7 +132,17 @@ export function GameView(props: Readonly<{ state: GameState; dispatch: (a: GameA
       </FireReleaseProvider>
       </BunnyReleaseProvider>
       </IrisTransitionProvider>
+      </DodgeFxProvider>
+      </PlayerHitFxProvider>
+      </CriticalFxProvider>
       </TriggerFxProvider>
+      </EnchantmentSpriteTriggerFxProvider>
+      </AntiMagicShellPopFxProvider>
+      </FireHpBarTintProvider>
+      </FireDamageHitFxProvider>
+      </PoisonHpBarTintProvider>
+      </PoisonCardHitFxProvider>
+      </BubblePopFxProvider>
     </RelicTravelProvider>
   )
 }

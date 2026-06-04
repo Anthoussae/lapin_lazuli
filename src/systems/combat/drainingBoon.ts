@@ -1,6 +1,7 @@
 import type { GameState } from '../../core/types/state'
 import type { GameEvent } from '../../reducers/events'
-import { EnemyBoons } from '../../data/enemyBoons'
+import { Enemies } from '../../data/enemies'
+import { EnemyBoons, enemyBoonEffectInstances } from '../../data/enemyBoons'
 
 /** Bunnies lost at the start of each player turn from Draining (sum over alive enemies). */
 export function combatPlayerTurnStartBunnyDrainFromAlive(state: GameState): number {
@@ -10,7 +11,11 @@ export function combatPlayerTurnStartBunnyDrainFromAlive(state: GameState): numb
   for (const id of c.enemies.aliveIds) {
     const e = c.enemies.enemyById[id]
     if (!e || e.hp <= 0) continue
-    for (const b of e.boons) total += EnemyBoons[b]?.playerTurnStartBunnyDrain ?? 0
+    const level = Enemies[e.templateId]?.level ?? 0
+    for (const b of e.boons) {
+      const per = EnemyBoons[b]?.playerTurnStartBunnyDrain ?? 0
+      if (per) total += per * enemyBoonEffectInstances(b, level)
+    }
   }
   return total
 }

@@ -1,5 +1,7 @@
+import type { GameEvent } from '../../reducers/events'
 import type { CardInstanceId } from '../../core/types/ids'
 import type { CardInstance, GameState } from '../../core/types/state'
+import { addCardInstanceToDeck } from '../cards/addCardToDeck'
 import { applyCardPickupEffects } from '../cards/pickupEffects'
 
 function printerActive(state: GameState): boolean {
@@ -86,6 +88,7 @@ function cloneCardInstanceFrom(source: CardInstance, newId: CardInstanceId): Car
     templateId: source.templateId,
     upgrades: source.upgrades,
     exhausted: false,
+    disabled: false,
     costOverride: source.costOverride,
     socketedGemId: source.socketedGemId,
     unsocketable: source.unsocketable,
@@ -94,28 +97,28 @@ function cloneCardInstanceFrom(source: CardInstance, newId: CardInstanceId): Car
   }
 }
 
-export function duplicatePrinterCard(state: GameState): GameState {
-  if (!printerActive(state)) return state
+export function duplicatePrinterCard(
+  state: GameState,
+): Readonly<{ state: GameState; events: GameEvent[] }> {
+  if (!printerActive(state)) return { state, events: [] }
   const printer = state.mysteryRoom?.printer
   const selected = printer?.duplicateSelectedCardInstanceId
-  if (!printer || !printerChoiceOpen(printer) || !selected) return state
+  if (!printer || !printerChoiceOpen(printer) || !selected) return { state, events: [] }
 
   const source = state.player.deck.cardById[selected]
-  if (!source) return state
+  if (!source) return { state, events: [] }
 
   const serial = state.player.nextCardInstanceSerial
   const newId = `c${serial}` as CardInstanceId
   const inst = cloneCardInstanceFrom(source, newId)
-  const cardById2 = { ...state.player.deck.cardById, [inst.id]: inst }
-  const drawPile2 = [...state.player.deck.drawPile, inst.id]
+  const added = addCardInstanceToDeck(
+    { ...state, player: { ...state.player, nextCardInstanceSerial: serial + 1 } },
+    inst,
+  )
 
   let s: GameState = {
-    ...state,
-    player: {
-      ...state.player,
-      nextCardInstanceSerial: serial + 1,
-      deck: { ...state.player.deck, cardById: cardById2, drawPile: drawPile2 },
-    },
+    ...added.state,
+    runStats: { ...added.state.runStats, cardsObtained: added.state.runStats.cardsObtained + 1 },
     mysteryRoom: {
       ...state.mysteryRoom!,
       printer: {
@@ -126,7 +129,7 @@ export function duplicatePrinterCard(state: GameState): GameState {
     },
   }
   s = applyCardPickupEffects(s, source.templateId)
-  return s
+  return { state: s, events: added.events }
 }
 
 export function printerCanProceed(state: GameState): boolean {

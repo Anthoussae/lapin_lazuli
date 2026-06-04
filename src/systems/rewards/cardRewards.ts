@@ -26,6 +26,8 @@ export function populateCardReward(args: Readonly<{
   baseRewardLevel: number
   luck: number
   count?: number
+  /** When true, offered cards are always base (0 upgrades, no foil). */
+  baseCardsOnly?: boolean
 }>): { rng: RngState; offered: ReadonlyArray<CardRewardOffer>; rewardLevel: number } {
   const count = Math.max(0, args.count ?? 3)
   const rewardLevel = Math.max(0, (args.baseRewardLevel | 0) + (args.luck | 0))
@@ -64,6 +66,9 @@ export function populateCardReward(args: Readonly<{
 
   // Upgrade curve: each 10 reward levels guarantees +1 upgrade, with fractional chance for the next.
   const offered = picked.map((cardId) => {
+    if (args.baseCardsOnly) {
+      return { cardId, upgrades: 0 }
+    }
     const guaranteed = Math.floor(rewardLevel / 10)
     const frac = (rewardLevel % 10) / 10
     const [r2, u] = rngNext(rng)

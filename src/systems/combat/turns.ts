@@ -10,6 +10,7 @@ import {
 } from './zones'
 import { rollEnemyIntent } from './intents'
 import { resolveEnemyIntent } from './intentResolution'
+import { enemyAttackStrengthDamageBonus } from './intentEffects'
 import { Relics } from '../../data/relics'
 import { applyRelicEffect } from '../relics/applyRelicEffects'
 import { applyTurnStartRelicTriggers } from '../relics/triggers'
@@ -21,7 +22,11 @@ import { consumeCardFromDeck } from './zones'
 import { bunnyReleaseSpriteCount } from '../bunnies'
 import { bunnyReleaseTargetEnemyId } from './bunnyReleaseTarget'
 import { livingEnemyCount } from './livingEnemies'
-import { applyEnchantmentTurnStartForEnemy, applyEnchantmentTurnStartForPlayer } from '../enchantments/turnStart'
+import {
+  applyEnchantmentTurnStartForEnemy,
+  applyEnchantmentTurnStartForPlayer,
+  drainEnemyTemporaryShieldAtTurnStart,
+} from '../enchantments/turnStart'
 
 export function endPlayerTurn(state: GameState): { state: GameState; events: GameEvent[] } {
   if (!state.combat) return { state, events: [] }
@@ -89,7 +94,11 @@ function finishPlayerTurnAfterBunnies(
     if (combat0) {
       const enemyId = combat0.bunnyReleaseTargetEnemyId ?? bunnyReleaseTargetEnemyId(combat0)
       if (enemyId) {
-        const out = damageEnemy(s, enemyId, bunnyDmg, { attacker: { kind: 'PLAYER' } })
+        const out = damageEnemy(s, enemyId, bunnyDmg, {
+          attacker: { kind: 'PLAYER' },
+          cause: 'BUNNY_RELEASE',
+          enemyMayDodge: true,
+        })
         s = out.state
         events.push(...out.events)
       }
@@ -163,6 +172,7 @@ function enemyTakeTurn(state: GameState): { state: GameState; events: GameEvent[
   const aliveIds = [...state.combat.enemies.aliveIds]
 
   for (const enemyId of aliveIds) {
+    s = drainEnemyTemporaryShieldAtTurnStart(s, enemyId)
     const ench = applyEnchantmentTurnStartForEnemy(s, enemyId)
     s = ench.state
     events.push(...ench.events)
@@ -195,8 +205,8 @@ function enemyTakeTurn(state: GameState): { state: GameState; events: GameEvent[
     s = resolved.state
     events.push(...resolved.events)
     if (intent.kind === 'ATTACK') {
-      const str = Math.max(0, enemyNow.strength)
-      events.push({ type: 'EVT/PLAYER_HIT', amount: intent.damage + str })
+      const strBonus = enemyAttackStrengthDamageBonus(enemyNow.strength)
+      events.push({ type: 'EVT/PLAYER_HIT', amount: intent.damage + strBonus })
     }
     if (resolved.playerDied) {
       const name = Enemies[enemyNow.templateId]?.name ?? enemyNow.templateId

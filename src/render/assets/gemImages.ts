@@ -8,6 +8,7 @@ import malachite from '../../assets/images/gems/malachite.png'
 import roundRuby from '../../assets/images/gems/roundRuby.png'
 import sapphire from '../../assets/images/gems/sapphire.png'
 import topaz from '../../assets/images/gems/topaz.png'
+import garnetShard from '../../assets/images/gems/garnetShard.png'
 
 export const gemImageMap: Partial<Record<GemId, string>> = {
   LAPIS_LAZULI: lapisLazuli,
@@ -19,6 +20,7 @@ export const gemImageMap: Partial<Record<GemId, string>> = {
   TOPAZ: topaz,
   COAL: coal,
   DIAMOND: diamond,
+  GARNET_SHARD: garnetShard,
 }
 
 export const GEM_PRELOAD_URLS: readonly string[] = Object.values(gemImageMap).filter(

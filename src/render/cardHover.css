@@ -1,0 +1,78 @@
+/*
+ * Card hover enlarge — legibility first: scale up and escape overflow clipping on ancestors.
+ * Host wrappers use .gameCardHoverHost (see InspectPileCardSlot, cardOfferSlot, etc.).
+ * Stacking on hover uses --game-card-hover-z-index (tokens.css).
+ */
+
+/* --- Host stacking --- */
+.gameCardHoverHost,
+.inspectDeckCardSlot,
+.cardOfferSlot,
+.shopShelfSlot,
+.handFan__slot,
+.handSelectionCardSlot,
+.printerFoilDialogCardSlot,
+.printerDuplicateDialogCardSlot,
+.fontOfLetheForgetCardSlot,
+.gemstoneSocketCardSlot {
+  position: relative;
+  z-index: 0;
+}
+
+.gameCardHoverHost:hover,
+.gameCardHoverHost:focus-within,
+.inspectDeckCardSlot:hover,
+.cardOfferSlot:has(.cardOfferBtn:hover:not(:disabled)),
+.cardOfferSlot:has(.shopCardOffer:hover:not(:disabled):not(.shopCardOffer--unaffordable)),
+.shopShelfSlot:hover,
+.shopShelfSlot:has(.shopCardOffer:hover:not(:disabled):not(.shopCardOffer--unaffordable)),
+.shopShelfSlot:has(.shopKeyOffer:hover:not(:disabled):not(.shopKeyOffer--unaffordable)),
+.shopShelfSlot:has(.relicIcon--clickable:hover:not(:disabled)):not(.shopShelfSlot--unaffordable),
+.handFan__slot:hover,
+.handFan__slot:focus-within,
+.handSelectionCardSlot:hover,
+.gemstoneSocketCardSlot:hover {
+  z-index: var(--game-card-hover-z-index);
+}
+
+/*
+ * Do not set overflow: visible on panel/list/dialog ancestors — nested rims (e.g. deck
+ * inspect outer panel + inner list) will paint on top of each other. Legibility comes
+ * from z-index on the hovered host, overflow: visible on the card, and list padding.
+ */
+.gameCardHoverHost:hover,
+.gameCardHoverHost:focus-within,
+.inspectDeckCardSlot__card {
+  overflow: visible;
+}
+
+/* --- Card scale + overflow (painted above hosts) --- */
+.inspectDeckCardSlot .gameCard,
+.gameCardHoverHost .gameCard,
+.cardOfferSlot .gameCard,
+.handFan__slot .gameCard,
+.handSelectionCardSlot .gameCard,
+.printerFoilDialogCardSlot .gameCard,
+.printerDuplicateDialogCardSlot .gameCard,
+.fontOfLetheForgetCardSlot .gameCard,
+.gemstoneSocketCardSlot .gameCard,
+.handSelectionHand > .gameCard,
+.gemstoneSocketCardList > .gemstoneSocketCard.gameCard {
+  transform-origin: center center;
+  transition: transform var(--game-card-hover-duration) ease;
+}
+
+.inspectDeckCardSlot:hover .gameCard:not(.gameCard--traveling):not(.gameCard--rejected),
+.inspectDeckCardSlot:focus-within .gameCard:not(.gameCard--traveling):not(.gameCard--rejected),
+.gameCardHoverHost:hover .gameCard:not(.gameCard--traveling):not(.gameCard--rejected),
+.gameCardHoverHost:focus-within .gameCard:not(.gameCard--traveling):not(.gameCard--rejected),
+.cardOfferBtn:hover:not(:disabled) .gameCard:not(.gameCard--traveling):not(.gameCard--rejected),
+.shopCardOffer:hover:not(:disabled):not(.shopCardOffer--unaffordable)
+  .gameCard:not(.gameCard--traveling):not(.gameCard--rejected),
+.handFan__slot:hover .gameCard:not(.gameCard--traveling):not(.gameCard--rejected),
+.handFan__slot:focus-within .gameCard:not(.gameCard--traveling):not(.gameCard--rejected),
+.handSelectionCardSlot:hover .gameCard:not(.gameCard--disabled):not(.gameCard--traveling):not(.gameCard--rejected),
+.gemstoneSocketCardList > .gemstoneSocketCard.gameCard:hover:not(.gameCard--disabled) {
+  overflow: visible;
+  transform: scale(var(--game-card-hover-scale));
+}

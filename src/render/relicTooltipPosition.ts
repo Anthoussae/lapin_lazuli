@@ -1,3 +1,5 @@
+import { hoverTooltipAnchorRect } from './hoverTooltipAnchorRect'
+
 /** Read a px-valued custom property from :root (e.g. `-8px` → -8). */
 export function readRootPxVar(name: string): number {
   const raw = getComputedStyle(document.documentElement).getPropertyValue(name).trim()
@@ -19,7 +21,7 @@ export function readRootNumber(name: string, fallback = 0): number {
   return Number.isFinite(n) ? n : fallback
 }
 
-/** Viewport coordinates for a relic tooltip anchored below the icon center. */
+/** Viewport coordinates for a relic-styled tooltip (no hover-scale adjustment). */
 export function relicTooltipViewportPosition(rect: DOMRect): { x: number; y: number } {
   const nudgeX = readRootPxVar('--relic-tooltip-nudge-x')
   const nudgeY = readRootPxVar('--relic-tooltip-nudge-y')
@@ -27,12 +29,22 @@ export function relicTooltipViewportPosition(rect: DOMRect): { x: number; y: num
   return iconTooltipViewportPosition(rect, { gap, nudgeX, nudgeY })
 }
 
-/** Viewport coordinates for a gem tooltip anchored below the icon center. */
-export function gemTooltipViewportPosition(rect: DOMRect): { x: number; y: number } {
+/** Relic icon tooltip — anchored as if the icon is at full hover scale. */
+export function relicIconTooltipViewportPosition(element: HTMLElement): { x: number; y: number } {
+  const rect = element.getBoundingClientRect()
+  const hoverScale = readRootNumber('--relic-icon-hover-scale', 1)
+  const anchor = hoverTooltipAnchorRect(element, rect, hoverScale)
+  return relicTooltipViewportPosition(anchor)
+}
+
+/** Gem icon tooltip — anchored as if the scaled visual is at full hover scale. */
+export function gemIconTooltipViewportPosition(element: HTMLElement): { x: number; y: number } {
   const nudgeX = readRootPxVar('--gem-tooltip-nudge-x')
   const nudgeY = readRootPxVar('--gem-tooltip-nudge-y')
   const gap = readRootPxVar('--gem-tooltip-gap') || 4
-  return iconTooltipViewportPosition(rect, { gap, nudgeX, nudgeY })
+  const hoverScale = readRootNumber('--gem-icon-hover-scale', 1)
+  const anchor = hoverTooltipAnchorRect(element, element.getBoundingClientRect(), hoverScale)
+  return iconTooltipViewportPosition(anchor, { gap, nudgeX, nudgeY })
 }
 
 function iconTooltipViewportPosition(

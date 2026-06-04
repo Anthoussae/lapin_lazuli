@@ -4,6 +4,7 @@ import { Cards } from '../../data/cards'
 import { Gems } from '../../data/gems'
 import { socketableDeckCards } from '../../systems/gems/socketing'
 import { useCardSocketFlip } from '../CardSocketFlipContext'
+import { powerDisplayContextFromPlayer } from '../../systems/combat/powerDisplay'
 import { cardSocketFlipPayload } from '../cardSocketFlipPayload'
 import { GameCardView } from '../primitives/GameCardView'
 import { CenteredPanel } from '../primitives/CenteredPanel'
@@ -14,6 +15,7 @@ import type { ScreenProps } from './types'
 export function GemstoneCavernScreen(props: ScreenProps) {
   const { state, enqueue } = props
   const cavern = state.gemstoneCavern
+  const powerDisplay = powerDisplayContextFromPlayer(state.player)
   const { playCardSocketFlip, animatingCardInstanceId, isSocketFlipPlaying } = useCardSocketFlip()
   const cardSlotRefs = useRef(new Map<string, HTMLDivElement>())
 
@@ -55,31 +57,12 @@ export function GemstoneCavernScreen(props: ScreenProps) {
                 enqueue({ type: 'GEMSTONE_CAVERN/CONFIRM_SOCKETING' })
                 return
               }
-              const power = state.player.power
-              const firepower = state.player.firepower
-              const firepowerMultiplier = state.player.firepowerMultiplier
-              const shieldPower = state.player.shieldPower
+              const power = powerDisplay
               playCardSocketFlip({
                 cardInstanceId: selectedId,
                 sourceEl: slotEl,
-                cardBefore: cardSocketFlipPayload(
-                  template,
-                  inst,
-                  power,
-                  firepower,
-                  firepowerMultiplier,
-                  shieldPower,
-                  null,
-                ),
-                cardAfter: cardSocketFlipPayload(
-                  template,
-                  inst,
-                  power,
-                  firepower,
-                  firepowerMultiplier,
-                  shieldPower,
-                  gemId,
-                ),
+                cardBefore: cardSocketFlipPayload(template, inst, power, null, state.level),
+                cardAfter: cardSocketFlipPayload(template, inst, power, gemId, state.level),
                 onComplete: () => enqueue({ type: 'GEMSTONE_CAVERN/CONFIRM_SOCKETING' }),
               })
             }}
@@ -100,16 +83,17 @@ export function GemstoneCavernScreen(props: ScreenProps) {
                     if (el) cardSlotRefs.current.set(inst.id, el)
                     else cardSlotRefs.current.delete(inst.id)
                   }}
-                  className={animating ? 'gemstoneSocketCardSlot gemstoneSocketCardSlot--animating' : 'gemstoneSocketCardSlot'}
+                  className={
+                    animating
+                      ? 'gemstoneSocketCardSlot gameCardHoverHost gemstoneSocketCardSlot--animating'
+                      : 'gemstoneSocketCardSlot gameCardHoverHost'
+                  }
                 >
                   <GameCardView
                     inst={inst}
                     template={t}
-                    power={state.player.power}
-                    firepower={state.player.firepower}
-                    firepowerMultiplier={state.player.firepowerMultiplier}
-                    shieldPower={state.player.shieldPower}
-                    hasGreenHat={state.player.relics.some((r) => r.templateId === 'GREEN_HAT')}
+                    powerDisplay={powerDisplay}
+                    gameLevel={state.level}
                     selected={selected}
                     className="gemstoneSocketCard"
                     onClick={

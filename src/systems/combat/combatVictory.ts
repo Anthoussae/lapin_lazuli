@@ -32,7 +32,9 @@ function shuffleAllZonesIntoDeck(state: GameState): { state: GameState; phasedIn
 
 function resetExhausted(state: GameState): GameState {
   const deck = state.player.deck
-  const nextById = Object.fromEntries(Object.entries(deck.cardById).map(([id, c]) => [id, { ...c, exhausted: false }]))
+  const nextById = Object.fromEntries(
+    Object.entries(deck.cardById).map(([id, c]) => [id, { ...c, exhausted: false, disabled: false }]),
+  )
   return { ...state, player: { ...state.player, deck: { ...deck, cardById: nextById } } }
 }
 
@@ -42,6 +44,20 @@ function combatKeyChance(pathId: PathId | null, luck: number): number {
   if (!curve) return 0
   const pct = curve.basePct + luck * curve.perLuck
   return Math.min(1, Math.max(0, pct / 100))
+}
+
+/** Flat gold added on top of dice + luck by combat path tier. */
+function victoryGoldFlatBonus(pathId: PathId | null): number {
+  switch (pathId) {
+    case 'MEDIUM_ENEMY':
+      return 7
+    case 'HARD_ENEMY':
+      return 10
+    case 'EASY_ENEMY':
+      return 5
+    default:
+      return 0
+  }
 }
 
 /** Post-combat gold: Nd6 + luck × multiplier by combat path tier. */
@@ -72,7 +88,7 @@ function computeVictoryGoldAndKeys(
   const { diceCount, luckMultiplier } = victoryGoldDiceAndLuck(entryPathId)
   const [rGold, diceTotal] = rollDice(rng, { count: diceCount, sides: 6 })
   rng = rGold
-  const gold = diceTotal + luck * luckMultiplier
+  const gold = diceTotal + luck * luckMultiplier + victoryGoldFlatBonus(entryPathId)
 
   let keysEarned: number
   if (isRelicRewardFight) {

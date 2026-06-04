@@ -146,6 +146,7 @@ export function RelicTravelProvider(props: Readonly<{ children: ReactNode }>) {
           >
             <div className="relicTravelFlyer__inner">
               <RelicIcon
+                relicId={flight.templateId}
                 imageSrc={relicImageMap[flight.templateId]}
                 fallback={r?.thumb ?? '?'}
                 alt={r?.name}

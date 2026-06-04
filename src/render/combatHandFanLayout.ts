@@ -111,13 +111,6 @@ export function combatHandFanZIndex(slots: ReadonlyArray<HandFanSlotStacking>, i
   return exhaustedCount + rank
 }
 
-/** Hover lifts within group; exhausted hover stays below non-exhausted cards. */
-export function combatHandFanHoverZIndex(slots: ReadonlyArray<HandFanSlotStacking>, index: number): number {
-  const exhaustedCount = countExhaustedSlots(slots)
-  if (slots[index]?.exhausted) return Math.max(1, exhaustedCount)
-  return 100
-}
-
 export function combatHandFanSlotStyle(
   index: number,
   count: number,
@@ -135,6 +128,5 @@ export function combatHandFanSlotStyle(
     '--hand-fan-rotate': `${rotateDeg}deg`,
     '--hand-fan-lift': `${liftPx}px`,
     '--hand-fan-z': String(combatHandFanZIndex(slots, index)),
-    '--hand-fan-hover-z': String(combatHandFanHoverZIndex(slots, index)),
   } as CSSProperties
 }

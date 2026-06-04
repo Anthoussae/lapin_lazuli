@@ -13,10 +13,13 @@ export type TriggerDef = Readonly<{
     | 'combat_start'
     | 'turn_start'
     | 'fourthSpellCastPerTurn'
+    | 'castSpellWithCostAboveAmount'
+    | 'onCastNamedCard'
     | 'card_played'
     | 'potion_played'
     | 'turn_end'
     | 'enemy_attack'
+    | 'onReceivingAttack'
     | 'onPlayerUnblockedDamage'
     | 'onTotalAttackBlock'
     | 'enemy_defeated'
@@ -25,6 +28,17 @@ export type TriggerDef = Readonly<{
     | 'onRest'
     | 'onSleep'
     | 'onLevelUp'
+    | 'onAddCardToDeck'
+    | 'onAddCardOfType'
+    | 'onChoosingPath'
+  /** When `on` is `onChoosingPath`, only fire for paths of this kind (combat includes minibosses and bosses). */
+  choosingPathType?: 'combat'
+  /** When `on` is `onAddCardOfType`, only fire when the added card's template includes this tag. */
+  cardTag?: string
+  /** When `on` is `castSpellWithCostAboveAmount`, minimum printed ink cost (inclusive). */
+  amount?: number
+  /** When `on` is `onCastNamedCard`, match {@link CardTemplate.name} (case- and space-insensitive). */
+  cardName?: string
   effect: Effect
   /** Declarative trigger animation; source pulse is implicit when this is set. */
   triggerFx?: TriggerFxDef
@@ -39,7 +53,7 @@ export type RelicCounterRender = Readonly<{
   offset: Readonly<{ x: number; y: number }>
   fontSize: number
   color: string
-  value: 'cardsPlayedThisTurn'
+  value: 'cardsPlayedThisTurn' | 'backpackTurnCounter'
 }>
 
 export type RelicTemplate = Readonly<{
@@ -56,6 +70,8 @@ export type RelicTemplate = Readonly<{
   forceStartOffer?: boolean
   /** Special render properties for this relic's icon (UI-only). */
   render?: RelicCounterRender
+  /** Optional: cadence for relics whose effects trigger every N player turns (persistent counters). */
+  counterEveryTurns?: number
   triggers: ReadonlyArray<TriggerDef>
 }>
 
@@ -125,8 +141,8 @@ export const Relics: Readonly<Record<RelicId, RelicTemplate>> = {
     starter: true,
     unique: true,
     notOfferableByShop: true,
-    text: "+150 gold.",
-    triggers: [{ id: 'GOLD_INGOT_PICKUP', on: 'onPickup', effect: { kind: 'GAIN_GOLD', amount: 150 } }],
+    text: "+200 gold.",
+    triggers: [{ id: 'GOLD_INGOT_PICKUP', on: 'onPickup', effect: { kind: 'GAIN_GOLD', amount: 200 } }],
   },
   MAGIC_WAND: {
     id: 'MAGIC_WAND',
@@ -152,9 +168,24 @@ export const Relics: Readonly<Record<RelicId, RelicTemplate>> = {
     thumb: 'G',
     starter: true,
     unique: true,
-    forceStartOffer: true,
-    text: '50% poison resist. +50% poison damage.',
+    text: '+50% poison damage.',
     triggers: [],
+  },
+  PURPLE_HAT: {
+    id: 'PURPLE_HAT',
+    name: 'Purple Hat',
+    thumb: 'P',
+    starter: true,
+    unique: true,
+    text: 'Whenever you play a card, add 1 bunny.',
+    triggers: [
+      {
+        id: 'PURPLE_HAT_CARD_PLAYED',
+        on: 'card_played',
+        effect: { kind: 'ADD_BUNNIES', amount: 1 },
+        triggerFx: { targets: [{ kind: 'cauldron', role: 'buff' }] },
+      },
+    ],
   },
   PHOENIX_FEATHER_QUILL: {
     id: 'PHOENIX_FEATHER_QUILL',
@@ -236,6 +267,50 @@ export const Relics: Readonly<Record<RelicId, RelicTemplate>> = {
       },
     ],
   },
+  MONOCLE: {
+    id: 'MONOCLE',
+    name: 'Monocle',
+    thumb: 'M',
+    starter: true,
+    unique: true,
+    text: 'Bunnymancies have a 20% critical chance.',
+    triggers: [
+      {
+        id: 'MONOCLE_BUNNYMANCY_CRITICAL',
+        on: 'onCastNamedCard',
+        cardName: 'bunnymancy',
+        effect: {
+          kind: 'CRITICAL',
+          chancePercent: 20,
+          chanceUpgradeValue: 0,
+          multiplierPercent: 200,
+          multiplierUpgradeValue: 0,
+        },
+      },
+    ],
+  },
+  HAND_OF_FATIMA: {
+    id: 'HAND_OF_FATIMA',
+    name: 'Hand of Fátima',
+    thumb: 'H',
+    starter: true,
+    unique: true,
+    text: 'Defends have a 20% critical chance.',
+    triggers: [
+      {
+        id: 'HAND_OF_FATIMA_DEFEND_CRITICAL',
+        on: 'onCastNamedCard',
+        cardName: 'defend',
+        effect: {
+          kind: 'CRITICAL',
+          chancePercent: 20,
+          chanceUpgradeValue: 0,
+          multiplierPercent: 200,
+          multiplierUpgradeValue: 0,
+        },
+      },
+    ],
+  },
   PAPER_BOAT: {
     id: 'PAPER_BOAT',
     name: 'Paper Boat',
@@ -261,6 +336,22 @@ export const Relics: Readonly<Record<RelicId, RelicTemplate>> = {
     text: "+5 max health.",
     triggers: [{ id: 'BANANA_PICKUP', on: 'onPickup', effect: { kind: 'GAIN_MAX_HP', amount: 5 } }],
   },
+  BUBBLE_WAND: {
+    id: 'BUBBLE_WAND',
+    name: 'Bubble Wand',
+    thumb: 'B',
+    starter: true,
+    unique: true,
+    text: 'Start each combat with a bubble.',
+    triggers: [
+      {
+        id: 'BUBBLE_WAND_COMBAT_START',
+        on: 'combat_start',
+        effect: { kind: 'APPLY_ENCHANTMENT', enchantmentId: 'BUBBLE', target: 'self', amount: 1 },
+        triggerFx: {},
+      },
+    ],
+  },
   NURSES_HAT: {
     id: 'NURSES_HAT',
     name: "Nurse's Hat",
@@ -283,12 +374,12 @@ export const Relics: Readonly<Record<RelicId, RelicTemplate>> = {
     thumb: 'M',
     starter: true,
     unique: true,
-    text: 'The first time you take damage each combat, gain +3 shield power until end of combat.',
+    text: 'Start each combat with two anti-magic shells.',
     triggers: [
       {
-        id: 'POCKET_MOON_FIRST_DAMAGE',
-        on: 'onPlayerUnblockedDamage',
-        effect: { kind: 'GAIN_SHIELD_POWER', amount: 3, duration: 'combat' },
+        id: 'POCKET_MOON_COMBAT_START',
+        on: 'combat_start',
+        effect: { kind: 'APPLY_ENCHANTMENT', enchantmentId: 'ANTI_MAGIC_SHELL', target: 'self', amount: 2 },
         triggerFx: {},
       },
     ],
@@ -354,14 +445,18 @@ export const Relics: Readonly<Record<RelicId, RelicTemplate>> = {
     thumb: 'B',
     starter: true,
     unique: true,
-    text: 'At the start of combat, gain +1 all powers for each burden you bear until end of combat.',
+    
+    text: 'Every 3 turns, gain 1 shield for each card in your deck.',
+    counterEveryTurns: 4,
+    render: {
+      kind: 'RelicCounter',
+      offset: { x: 21, y: 21 },
+      fontSize: 14,
+      color: '#ffffff',
+      value: 'backpackTurnCounter',
+    },
     triggers: [
-      {
-        id: 'BACKPACK_COMBAT_START',
-        on: 'combat_start',
-        effect: { kind: 'GAIN_ALL_POWERS_PER_OWNED_BURDEN' },
-        triggerFx: {},
-      },
+      // Trigger is handled specially in `applyTurnStartRelicTriggers` because it uses a persistent counter.
     ],
   },
   RYO: {
@@ -419,13 +514,110 @@ export const Relics: Readonly<Record<RelicId, RelicTemplate>> = {
     thumb: 'w',
     starter: true,
     unique: true,
-    text: 'Whenever you use a potion, heal 4 HP.',
+    text: 'Whenever you drink a potion, gain +4 max HP.',
     triggers: [
       {
         id: 'SPRIG_OF_WOLFSBANE_POTION_PLAYED',
         on: 'potion_played',
-        effect: { kind: 'HEAL', amount: 4 },
+        effect: { kind: 'GAIN_MAX_HP', amount: 4 },
         triggerFx: {},
+      },
+    ],
+  },
+  GLADIATOR_HELMET: {
+    id: 'GLADIATOR_HELMET',
+    name: "Gladiator's Helmet",
+    thumb: 'G',
+    starter: true,
+    unique: true,
+    text: 'Whenever you choose a combat path, gain 15 gold.',
+    triggers: [
+      {
+        id: 'GLADIATOR_HELMET_CHOOSING_COMBAT_PATH',
+        on: 'onChoosingPath',
+        choosingPathType: 'combat',
+        effect: { kind: 'GAIN_GOLD', amount: 15 },
+        triggerFx: {},
+      },
+    ],
+  },
+  BLUE_ROSE: {
+    id: 'BLUE_ROSE',
+    name: 'Blue Rose',
+    thumb: 'B',
+    starter: true,
+    unique: true,
+    text: 'Whenever you add a card to your deck, gain +2 Max HP.',
+    triggers: [
+      {
+        id: 'BLUE_ROSE_ADD_CARD_TO_DECK',
+        on: 'onAddCardToDeck',
+        effect: { kind: 'GAIN_MAX_HP', amount: 2 },
+        triggerFx: {},
+      },
+    ],
+  },
+  PET_ROCK: {
+    id: 'PET_ROCK',
+    name: 'Pet Rock',
+    thumb: 'P',
+    starter: true,
+    unique: true,
+    text: 'Whenever you cast a spell that costs 2 or more ink, gain 6 shields.',
+    triggers: [
+      {
+        id: 'PET_ROCK_CAST_SPELL_2_PLUS_INK',
+        on: 'castSpellWithCostAboveAmount',
+        amount: 2,
+        effect: { kind: 'GAIN_SHIELD', amount: 6 },
+        triggerFx: { targets: [{ kind: 'playerShield', role: 'buff' }] },
+      },
+    ],
+  },
+  EMBERS: {
+    id: 'EMBERS',
+    name: 'Embers',
+    thumb: 'E',
+    starter: true,
+    unique: true,
+    text: 'Whenever you add a fire card to your deck, upgrade it.',
+    triggers: [
+      {
+        id: 'EMBERS_ADD_FIRE_CARD',
+        on: 'onAddCardOfType',
+        cardTag: 'fire',
+        effect: { kind: 'UPGRADE_ADDED_CARD', upgradeAmount: 1 },
+        triggerFx: {},
+      },
+    ],
+  },
+  PEACOCK_FEATHER: {
+    id: 'PEACOCK_FEATHER',
+    name: 'Peacock Feather',
+    thumb: 'P',
+    starter: true,
+    unique: true,
+    text: '10% chance to dodge incoming attacks.',
+    triggers: [
+      {
+        id: 'PEACOCK_FEATHER_DODGE',
+        on: 'onReceivingAttack',
+        effect: { kind: 'DODGE', chance: 0.1 },
+      },
+    ],
+  },
+  HOURGLASS: {
+    id: 'HOURGLASS',
+    name: 'Hourglass',
+    thumb: 'H',
+    starter: false,
+    unique: true,
+    text: 'Upon pickup, reduce your level by 4 (minimum 0).',
+    triggers: [
+      {
+        id: 'HOURGLASS_PICKUP',
+        on: 'onPickup',
+        effect: { kind: 'MODIFY_GAME_LEVEL', amount: -5, min: 0 },
       },
     ],
   },

@@ -4,12 +4,13 @@ import { EnemyBoonTooltips, enemyBoonTooltipsViewportPosition } from './EnemyBoo
 
 type EnemyBoonHoverHostProps = Readonly<{
   boonIds: ReadonlyArray<EnemyBoonId>
+  enemyLevel: number
   children: ReactNode
   className?: string
 }>
 
 export function EnemyBoonHoverHost(props: EnemyBoonHoverHostProps) {
-  const { boonIds, children, className } = props
+  const { boonIds, enemyLevel, children, className } = props
   const [tip, setTip] = useState<null | { x: number; y: number }>(null)
 
   const placeTooltip = (e: MouseEvent<HTMLElement>) => {
@@ -33,7 +34,7 @@ export function EnemyBoonHoverHost(props: EnemyBoonHoverHostProps) {
       >
         {children}
       </div>
-      {tip ? <EnemyBoonTooltips boonIds={boonIds} x={tip.x} y={tip.y} /> : null}
+      {tip ? <EnemyBoonTooltips boonIds={boonIds} enemyLevel={enemyLevel} x={tip.x} y={tip.y} /> : null}
     </>
   )
 }

@@ -11,13 +11,13 @@ import special from '../../assets/images/combatIntents/special.png'
 
 /** Intent icon art keyed by {@link EnemyIntentKind}. */
 export const COMBAT_INTENT_IMAGES: Readonly<Record<EnemyIntentKind, string>> = Object.freeze({
-  [ENEMY_INTENT_KINDS.attackonly]: attackOnly,
-  [ENEMY_INTENT_KINDS.guardonly]: guardOnly,
-  [ENEMY_INTENT_KINDS.buffonly]: buffOnly,
-  [ENEMY_INTENT_KINDS.debuffonly]: debuffOnly,
-  [ENEMY_INTENT_KINDS.debuffattack]: debuffAttack,
-  [ENEMY_INTENT_KINDS.buffattack]: buffAttack,
-  [ENEMY_INTENT_KINDS.guardattack]: guardAttack,
+  [ENEMY_INTENT_KINDS.attackOnly]: attackOnly,
+  [ENEMY_INTENT_KINDS.guardOnly]: guardOnly,
+  [ENEMY_INTENT_KINDS.buffOnly]: buffOnly,
+  [ENEMY_INTENT_KINDS.debuffOnly]: debuffOnly,
+  [ENEMY_INTENT_KINDS.debuffAttack]: debuffAttack,
+  [ENEMY_INTENT_KINDS.buffAttack]: buffAttack,
+  [ENEMY_INTENT_KINDS.guardAttack]: guardAttack,
   [ENEMY_INTENT_KINDS.special]: special,
 })
 

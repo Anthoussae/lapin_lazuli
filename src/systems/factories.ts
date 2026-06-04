@@ -18,6 +18,7 @@ export function mkCardInstance(
     templateId,
     upgrades,
     exhausted: false,
+    disabled: false,
     costOverride: null,
     socketedGemId: null,
     unsocketable: false,
@@ -43,7 +44,8 @@ export function mkEnemyInstance(id: EnemyInstanceId, templateId: EnemyId): Enemy
     boons: [],
     strength: 0,
     intent: null,
-    scriptIntentIndex: 0,
+    lastChosenIntentId: null,
+    usedNeverRepeatIntentIds: [],
     powers: {},
   }
 }

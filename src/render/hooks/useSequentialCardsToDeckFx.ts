@@ -1,7 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react'
 import type { CardId } from '../../core/types/ids'
 import { Cards } from '../../data/cards'
-import { cardDescriptionLinesForOffer, formatCardName } from '../../ui/describe'
+import { buildGameCardDisplayForOffer, toCardTravelPayload } from '../gameCardDisplay'
+import { EMPTY_POWER_DISPLAY, type PowerDisplayContext } from '../../systems/combat/powerDisplay'
 import { collectorBulkPreviewHoldMs } from '../collectorBulkConfig'
 import { useCardTravel } from '../CardTravelContext'
 
@@ -21,11 +22,8 @@ type UseSequentialCardsToDeckFxArgs = Readonly<{
   slotRefForIndex: (index: number) => RefObject<HTMLDivElement | null>
   destination: 'deck' | 'discard'
   onApplied: (index: number) => void
-  power: number
-  firepower: number
-  firepowerMultiplier: number
-  shieldPower: number
-  hasGreenHat?: boolean
+  powerDisplay?: PowerDisplayContext
+  gameLevel?: number
 }>
 
 /** Collector-style preview hold, then flip + travel to deck or discard (one card at a time). */
@@ -38,11 +36,8 @@ export function useSequentialCardsToDeckFx(args: UseSequentialCardsToDeckFxArgs)
     slotRefForIndex,
     destination,
     onApplied,
-    power,
-    firepower,
-    firepowerMultiplier,
-    shieldPower,
-    hasGreenHat = false,
+    powerDisplay = EMPTY_POWER_DISPLAY,
+    gameLevel = 1,
   } = args
 
   const { travelCardToDeck, travelCardToDiscard, travelingCardKey } = useCardTravel()
@@ -88,30 +83,20 @@ export function useSequentialCardsToDeckFx(args: UseSequentialCardsToDeckFxArgs)
     travelStartedRef.current = nextIndex
 
     const t = Cards[nextOffer.cardId]
-    const label = t ? formatCardName(t.name, nextOffer.upgrades) : nextOffer.cardId
     const key = `${cardKeyPrefix}${nextIndex}`
     const payload = {
       cardKey: key,
       sourceEl: slotEl,
-      card: {
-        cardId: nextOffer.cardId,
-        name: label,
-        nameUpgraded: nextOffer.upgrades > 0,
-        inkLabel: t?.cost !== null && t?.cost !== undefined ? String(t.cost) : null,
-        descriptionLines: t
-          ? cardDescriptionLinesForOffer(
-              t,
-              nextOffer.upgrades,
-              power,
-              firepower,
-              firepowerMultiplier,
-              shieldPower,
-              nextOffer.foil === true,
-              hasGreenHat,
-            )
-          : [],
-        foil: nextOffer.foil === true,
-      },
+      card: t
+        ? toCardTravelPayload(
+            buildGameCardDisplayForOffer(t, nextOffer.upgrades, powerDisplay, nextOffer.foil === true, gameLevel),
+          )
+        : {
+            cardId: nextOffer.cardId,
+            name: nextOffer.cardId,
+            inkLabel: null,
+            descriptionLines: [],
+          },
       onComplete: () => {
         travelStartedRef.current = null
         previewStartedRef.current = false
@@ -125,15 +110,13 @@ export function useSequentialCardsToDeckFx(args: UseSequentialCardsToDeckFxArgs)
   }, [
     active,
     destination,
-    firepower,
-    firepowerMultiplier,
+    gameLevel,
     nextIndex,
     nextOffer,
     onApplied,
     pendingCount,
-    power,
+    powerDisplay,
     previewReady,
-    shieldPower,
     slotRefForIndex,
     travelCardToDeck,
     travelCardToDiscard,

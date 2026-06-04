@@ -23,7 +23,9 @@ export function CombatHandFan(props: CombatHandFanProps) {
         <div
           key={slot.key}
           ref={onSlotRef ? (el) => onSlotRef(slot.key, el) : undefined}
-          className={['handFan__slot', slot.exhausted ? 'handFan__slot--exhausted' : null].filter(Boolean).join(' ')}
+          className={['handFan__slot gameCardHoverHost', slot.exhausted ? 'handFan__slot--exhausted' : null]
+            .filter(Boolean)
+            .join(' ')}
           style={combatHandFanSlotStyle(index, count, slots)}
         >
           {slot.node}

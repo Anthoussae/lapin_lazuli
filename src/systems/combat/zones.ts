@@ -1,4 +1,5 @@
 import type { GameState } from '../../core/types/state'
+import { combatHandDrawPenaltyFromEnchantments } from '../enchantments/staticEffects'
 import type { CardInstanceId } from '../../core/types/ids'
 import type { GameEvent } from '../../reducers/events'
 import { rngInt } from '../../core/rng/rng'
@@ -99,7 +100,9 @@ export function drawCards(
 export function combatRefreshDrawCount(state: GameState, relicBonusDraw: number): number {
   const c = state.combat
   if (!c) return Math.max(0, state.player.baseHandSize + relicBonusDraw)
-  return Math.max(0, state.player.baseHandSize + c.handDrawDelta + relicBonusDraw)
+  const drawCount =
+    state.player.baseHandSize + c.handDrawDelta + relicBonusDraw - combatHandDrawPenaltyFromEnchantments(state)
+  return Math.max(1, drawCount)
 }
 
 /** Effective max ink (energy) during combat, including boon modifiers; outside combat returns {@link GameState.player}.maxEnergy. */

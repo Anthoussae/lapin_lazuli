@@ -1,0 +1,213 @@
+/*
+ * Card name, ink, and effect text — single styling source for every .gameCard instance.
+ * Tune global rules here and in tokens.css (--font-card-base-size, --card-art-inset-*).
+ * Per-card tweaks: cardTypographyLayout.tsx (CARD_NAME_* / CARD_TEXT_* overrides).
+ */
+
+.gameCard {
+  --card-font-scale-name: var(--card-font-scale-name-default);
+  --card-font-scale-ink: var(--card-font-scale-ink-default);
+  --card-font-scale-text: var(--card-font-scale-text-default);
+  --card-name-size-modifier: 1;
+  --card-text-size-modifier: 1;
+  /* Per-card --card-*-size-modifier (inline on .gameCard) — not valid on inherited :root sizes. */
+  --font-card-name-size: calc(
+    var(--font-card-base-size) * var(--font-card-name-size-ratio) * var(--card-name-size-modifier, 1)
+  );
+  --font-card-text-size: calc(
+    var(--font-card-base-size) * var(--font-card-text-size-ratio) * var(--card-text-size-modifier, 1)
+  );
+  --font-card-tags-size: calc(
+    var(--font-card-base-size) * var(--font-card-tags-size-ratio) * var(--card-text-size-modifier, 1)
+  );
+}
+
+.gameCard__overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding: var(--card-overlay-padding-top) var(--card-overlay-padding-inline)
+    var(--card-overlay-padding-bottom);
+  box-sizing: border-box;
+  pointer-events: none;
+  overflow: hidden;
+  min-height: 0;
+  z-index: 2;
+}
+
+.gameCard__header {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  flex: 0 0 auto;
+  min-height: var(--card-header-min-height);
+  width: 100%;
+  z-index: 2;
+}
+
+/* Name and ink occupy separate columns so they never overlap. */
+.gameCard__header--hasInk {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: var(--card-ink-berth-gap);
+  align-items: start;
+}
+
+.gameCard__name {
+  font-family: var(--font-card);
+  font-size: calc(var(--font-card-name-size) * var(--card-font-scale-name));
+  font-weight: var(--font-card-name-weight);
+  line-height: var(--card-name-line-height, var(--font-card-name-line-height));
+  color: var(--color-card-name);
+  width: 100%;
+  box-sizing: border-box;
+  text-align: center;
+  padding-inline: var(--card-name-padding-inline, var(--card-name-padding-inline-default));
+  overflow: hidden;
+  position: relative;
+  z-index: 0;
+  max-height: calc(var(--card-name-max-lines) * var(--card-name-line-height, var(--font-card-name-line-height)) * 1em);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0;
+}
+
+.gameCard__header--hasInk .gameCard__name {
+  grid-column: 1;
+  min-width: 0;
+  padding-inline: var(--card-name-padding-inline-with-ink);
+}
+
+.gameCard__nameLine {
+  display: block;
+  max-width: 100%;
+  width: max-content;
+  margin-inline: auto;
+  text-align: center;
+}
+
+.gameCard__name--singleLine .gameCard__nameLine {
+  white-space: nowrap;
+}
+
+.gameCard__name--upgraded {
+  color: var(--color-card-name-upgraded);
+}
+
+.gameCard__ink {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: end;
+  font-family: var(--font-card);
+  font-size: calc(var(--font-card-ink-size) * var(--card-font-scale-ink));
+  font-weight: var(--font-card-ink-weight);
+  line-height: var(--font-card-ink-line-height);
+  color: var(--color-card-ink);
+  white-space: nowrap;
+  z-index: 1;
+}
+
+.gameCard__ink--modified {
+  color: var(--color-card-ink-modified);
+}
+
+/* Fixed art band — illustration does not participate in name/desc flex layout. */
+.gameCard__art {
+  position: absolute;
+  left: var(--card-overlay-padding-inline);
+  right: var(--card-overlay-padding-inline);
+  top: var(--card-art-inset-top);
+  bottom: var(--card-art-inset-bottom);
+  display: grid;
+  place-items: center;
+  margin: 0;
+  overflow: hidden;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.gameCard__artImg {
+  width: calc(
+    var(--card-illustration-w, var(--card-illustration-default-w)) * var(--card-illustration-size-modifier)
+  );
+  height: calc(
+    var(--card-illustration-h, var(--card-illustration-default-h)) * var(--card-illustration-size-modifier)
+  );
+  object-fit: contain;
+  filter: var(--card-illustration-filter);
+  transform: translate(
+    var(--card-illustration-x, var(--card-illustration-default-x)),
+    var(--card-illustration-y, var(--card-illustration-default-y))
+  );
+  pointer-events: none;
+}
+
+.gameCard--potion .gameCard__artImg {
+  filter: var(--card-illustration-potion-filter);
+}
+
+.gameCard__artImg--placeholder {
+  opacity: 0.5;
+}
+
+.gameCard__desc {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--card-desc-line-gap);
+  width: 100%;
+  font-family: var(--font-card);
+  font-size: calc(var(--font-card-text-size) * var(--card-font-scale-text));
+  font-weight: var(--font-card-text-weight);
+  line-height: var(--card-text-line-height, var(--font-card-text-line-height));
+  color: var(--color-card-text);
+  text-align: center;
+  max-height: var(--card-desc-max-height, var(--card-desc-max-height-default));
+  overflow: hidden;
+  min-height: 0;
+  margin-top: auto;
+  z-index: 2;
+}
+
+.gameCard__descLine {
+  display: block;
+  width: 100%;
+  line-height: var(--card-text-line-height, var(--font-card-text-line-height));
+  text-align: center;
+}
+
+.gameCard__keyword {
+  font-weight: 800;
+  color: inherit;
+}
+
+.gameCard__tags {
+  flex: 0 0 auto;
+  width: 100%;
+  font-family: var(--font-card);
+  font-size: calc(var(--font-card-tags-size) * var(--card-font-scale-text));
+  font-weight: var(--font-card-tags-weight);
+  line-height: var(--font-card-tags-line-height);
+  text-align: center;
+  opacity: 0.72;
+  color: var(--color-card-tags);
+  margin-top: 2px;
+  z-index: 2;
+}
+
+.gameCard__amtUp,
+.gameCard__bunnyAmtUp {
+  color: var(--color-card-text-amt-up);
+  font-weight: var(--font-card-text-emphasis-weight);
+}
+
+.gameCard__amtDown,
+.gameCard__bunnyAmtDown {
+  color: var(--color-card-text-amt-down);
+  font-weight: var(--font-card-text-emphasis-weight);
+}

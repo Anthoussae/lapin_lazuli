@@ -14,7 +14,7 @@ export function KeywordHoverHost(props: KeywordHoverHostProps) {
 
   const placeTooltip = (e: MouseEvent<HTMLElement>) => {
     if (!keywordIds.length) return
-    setTip(keywordTooltipsViewportPosition(e.currentTarget.getBoundingClientRect()))
+    setTip(keywordTooltipsViewportPosition(e.currentTarget))
   }
 
   const clearTooltip = () => setTip(null)
@@ -24,7 +24,6 @@ export function KeywordHoverHost(props: KeywordHoverHostProps) {
       <div
         className={className}
         onMouseEnter={placeTooltip}
-        onMouseMove={placeTooltip}
         onMouseLeave={clearTooltip}
       >
         {children}

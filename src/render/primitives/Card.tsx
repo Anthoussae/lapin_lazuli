@@ -6,6 +6,7 @@ import { collectKeywordIdsFromDescriptionLines } from '../../ui/cardKeywords'
 import { cardBackArt, cardFrontArtForGem } from '../assets/cardImages'
 import { gemImageSrc } from '../assets/gemImages'
 import { renderCardIllustration } from '../cardIllustrationLayout'
+import { CardName, cardTypographyLayoutStyle } from '../cardTypographyLayout'
 import { CardDesc } from './CardDesc'
 import { KeywordTooltips, keywordTooltipsViewportPosition } from './KeywordTooltips'
 import { useCardFontScale } from './useCardFontScale'
@@ -27,6 +28,8 @@ export type CardProps = Readonly<{
   /** Template id — resolves illustration art when `illustration` is omitted. */
   cardId?: CardId
   illustration?: ReactNode
+  /** When true, card uses exhausted visuals and cannot be cast this combat (Disabling boon). */
+  combatDisabled?: boolean
   disabled?: boolean
   exhausted?: boolean
   selected?: boolean
@@ -66,6 +69,7 @@ export function Card(props: CardProps) {
     cardId,
     illustration,
     disabled,
+    combatDisabled,
     exhausted,
     selected,
     className,
@@ -84,6 +88,7 @@ export function Card(props: CardProps) {
       [
         face,
         name ?? '',
+        cardId ?? '',
         inkLabel ?? '',
         description ?? '',
         descriptionLines
@@ -100,6 +105,7 @@ export function Card(props: CardProps) {
       ].join('\0'),
     [face, name, inkLabel, description, descriptionLines],
   )
+  const typographyStyle = useMemo(() => cardTypographyLayoutStyle(cardId), [cardId])
   const { cardRef, overlayRef } = useCardFontScale(face === 'front' && !staticDisplay, contentKey)
   const keywordIds = useMemo(
     () => (descriptionLines ? collectKeywordIdsFromDescriptionLines(descriptionLines) : []),
@@ -111,7 +117,7 @@ export function Card(props: CardProps) {
 
   const placeHoverTooltip = (e: MouseEvent<HTMLDivElement>) => {
     if (!showHoverTooltips) return
-    setHoverTip(keywordTooltipsViewportPosition(e.currentTarget.getBoundingClientRect()))
+    setHoverTip(keywordTooltipsViewportPosition(e.currentTarget))
   }
 
   const clearHoverTooltip = () => setHoverTip(null)
@@ -123,17 +129,24 @@ export function Card(props: CardProps) {
       plainDescription(description)
     ) : null
 
+  const showExhaustedStyle = (exhausted || combatDisabled) && face === 'front'
+  const showClickDisabled = disabled && !combatDisabled
+
   const classes = [
     'gameCard',
     foil && face === 'front' ? 'gameCard--foil' : null,
     socketed ? 'gameCard--socketed' : null,
     isPotionCardId(cardId) ? 'gameCard--potion' : null,
     clickable ? 'gameCard--clickable' : null,
-    disabled ? 'gameCard--disabled' : null,
-    exhausted && face === 'front' ? 'gameCard--exhausted' : null,
+    showClickDisabled ? 'gameCard--disabled' : null,
+    combatDisabled && face === 'front' ? 'gameCard--combatDisabled' : null,
     selected ? 'gameCard--selected' : null,
     className,
   ]
+    .filter(Boolean)
+    .join(' ')
+
+  const faceClasses = ['gameCard__face', showExhaustedStyle ? 'gameCard--exhausted' : null]
     .filter(Boolean)
     .join(' ')
 
@@ -150,11 +163,11 @@ export function Card(props: CardProps) {
       <div
         ref={cardRef}
         className={classes}
+        style={typographyStyle}
         role={clickable ? 'button' : undefined}
         tabIndex={clickable && !disabled ? 0 : undefined}
         aria-disabled={clickable && disabled ? true : undefined}
         onMouseEnter={showHoverTooltips ? placeHoverTooltip : undefined}
-        onMouseMove={showHoverTooltips ? placeHoverTooltip : undefined}
         onMouseLeave={showHoverTooltips ? clearHoverTooltip : undefined}
         onClick={() => {
           if (!clickable || disabled) return
@@ -162,47 +175,57 @@ export function Card(props: CardProps) {
         }}
         onKeyDown={handleKeyDown}
       >
-      <img
-        className={['gameCard__frame', face === 'front' ? 'gameCard__frame--front' : null]
-          .filter(Boolean)
-          .join(' ')}
-        src={face === 'back' ? cardBackArt : cardFrontArtForGem(socketedGemId)}
-        alt=""
-        draggable={false}
-      />
-      {face === 'front' && foil ? <div className="gameCard__foilSheen" aria-hidden /> : null}
-      {face === 'front' && gemImage ? (
-        <img className="gameCard__gem" src={gemImage} alt="" draggable={false} />
-      ) : null}
-      {face === 'front' ? (
-        <div ref={overlayRef} className="gameCard__overlay">
-          <div className="gameCard__header">
-            {name ? (
+      {face === 'back' ? (
+        <img
+          className="gameCard__frame"
+          src={cardBackArt}
+          alt=""
+          draggable={false}
+        />
+      ) : (
+        <>
+          <div className={faceClasses}>
+            <img
+              className={['gameCard__frame', 'gameCard__frame--front'].join(' ')}
+              src={cardFrontArtForGem(socketedGemId, cardId)}
+              alt=""
+              draggable={false}
+            />
+            {foil ? <div className="gameCard__foilSheen" aria-hidden /> : null}
+            {gemImage ? (
+              <img className="gameCard__gem" src={gemImage} alt="" draggable={false} />
+            ) : null}
+            <div ref={overlayRef} className="gameCard__overlay">
               <div
-                className={['gameCard__name', nameUpgraded ? 'gameCard__name--upgraded' : null]
+                className={['gameCard__header', showInk ? 'gameCard__header--hasInk' : null]
                   .filter(Boolean)
                   .join(' ')}
               >
-                {name}
+                {name ? <CardName name={name} upgraded={nameUpgraded} /> : null}
+                {showInk ? (
+                  <div
+                    className={['gameCard__ink', inkModified ? 'gameCard__ink--modified' : null]
+                      .filter(Boolean)
+                      .join(' ')}
+                    aria-label={inkLabel === 'Exhausted' ? 'Exhausted' : `Ink cost ${inkLabel}`}
+                  >
+                    {inkLabel}
+                  </div>
+                ) : null}
               </div>
-            ) : null}
-            {showInk ? (
-              <div
-                className={['gameCard__ink', inkModified ? 'gameCard__ink--modified' : null]
-                  .filter(Boolean)
-                  .join(' ')}
-                aria-label={inkLabel === 'Exhausted' ? 'Exhausted' : `Ink cost ${inkLabel}`}
-              >
-                {inkLabel}
+              <div className="gameCard__art" aria-hidden>
+                {illustration ?? renderCardIllustration(cardId)}
               </div>
-            ) : null}
+              {descriptionContent}
+            </div>
           </div>
-          <div className="gameCard__art" aria-hidden>
-            {illustration ?? renderCardIllustration(cardId)}
-          </div>
-          {descriptionContent}
-        </div>
-      ) : null}
+          {combatDisabled ? (
+            <div className="gameCard__disabledStamp" aria-hidden>
+              DISABLED
+            </div>
+          ) : null}
+        </>
+      )}
       </div>
       {hoverTip ? (
         <KeywordTooltips ids={keywordIds} foil={foil} x={hoverTip.x} y={hoverTip.y} />

@@ -111,10 +111,10 @@ export function rollPathCombatEncounter(
   const boonRule: CombatBoonRule = COMBAT_BOON_RULE_BY_PATH[pathId] ?? { type: 'none' }
   const boons: EnemyBoonId[] = []
   if (boonRule.type === 'minibossTwoUnique') {
-    const b1 = rollWeightedEnemyBoon(r)
+    const b1 = rollWeightedEnemyBoon(r, level)
     r = b1.rng
     boons.push(b1.boonId)
-    const b2 = rollWeightedEnemyBoonExcluding(r, [b1.boonId])
+    const b2 = rollWeightedEnemyBoonExcluding(r, level, [b1.boonId])
     r = b2.rng
     boons.push(b2.boonId)
   } else if (boonRule.type === 'chanceOne') {
@@ -122,7 +122,7 @@ export function rollPathCombatEncounter(
     const [rChance, u] = rngNext(r)
     r = rChance
     if (u < p) {
-      const b = rollWeightedEnemyBoon(r)
+      const b = rollWeightedEnemyBoon(r, level)
       r = b.rng
       boons.push(b.boonId)
     }
@@ -132,7 +132,7 @@ export function rollPathCombatEncounter(
   if (tmpl.forceBoon && !boons.includes(tmpl.forceBoon)) boons.push(tmpl.forceBoon)
   const [r3, rolledHp] = rollDice(r, tmpl.hp)
   r = r3
-  const hpMult = enemyBoonHpMultiplierProduct(boons)
+  const hpMult = enemyBoonHpMultiplierProduct(boons, tmpl.level)
   const maxHp = Math.max(1, Math.ceil(rolledHp * hpMult))
 
   return {

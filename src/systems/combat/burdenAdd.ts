@@ -2,6 +2,7 @@ import type { CardId, EnemyInstanceId } from '../../core/types/ids'
 import type { BurdenAddEntry, CombatState, GameState } from '../../core/types/state'
 import { shuffleBurdenIntoDeck } from '../cards/shuffleBurdenIntoDeck'
 import { shuffleBurdenIntoDiscard } from '../cards/shuffleBurdenIntoDiscard'
+import { disablingBoonTriggerEvents } from './disablingBoon'
 import { combatRefreshDrawCount, drawCards } from './zones'
 import type { GameEvent } from '../../reducers/events'
 
@@ -48,12 +49,13 @@ function completePendingOpeningHandDraw(state: GameState): { state: GameState; e
   if (!combat || !pending) return { state, events: [] }
 
   const openingDraw = drawCards(state, combatRefreshDrawCount(state, pending.bonusDraw), { openingHand: true })
+  const combatAfterDraw = openingDraw.state.combat ?? combat
   return {
     state: {
       ...openingDraw.state,
-      combat: { ...combat, pendingOpeningHandDraw: null },
+      combat: { ...combatAfterDraw, pendingOpeningHandDraw: null },
     },
-    events: openingDraw.events,
+    events: [...openingDraw.events, ...disablingBoonTriggerEvents(openingDraw.state)],
   }
 }
 

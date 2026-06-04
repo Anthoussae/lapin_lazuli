@@ -5,6 +5,7 @@ import type { CardInstance } from '../../core/types/state'
 import { cardInstanceInkCost } from '../../systems/cards/inkCost'
 import type { ScreenProps } from '../screens/types'
 import { useCardTravel } from '../CardTravelContext'
+import { powerDisplayContextFromPlayer } from '../../systems/combat/powerDisplay'
 import { cardTravelPayloadForInstance } from '../cardSocketFlipPayload'
 import { GameCardView } from './GameCardView'
 import { InspectPileCloseButton } from './InspectPileCloseButton'
@@ -25,10 +26,7 @@ export function PrinterDuplicateDialog(
   const selectedId = printer?.duplicateSelectedCardInstanceId ?? null
   const canDuplicate = selectedId != null
   const cards = deckCardsSorted(Object.values(state.player.deck.cardById))
-  const power = state.player.power
-  const firepower = state.player.firepower
-  const firepowerMultiplier = state.player.firepowerMultiplier
-  const shieldPower = state.player.shieldPower
+  const powerDisplay = powerDisplayContextFromPlayer(state.player)
   const { travelCardToDeck, travelingCardKey } = useCardTravel()
   const cardSlotRefs = useRef(new Map<CardInstanceId, HTMLDivElement>())
   const traveling = travelingCardKey != null
@@ -62,7 +60,7 @@ export function PrinterDuplicateDialog(
       cardKey: `printer-duplicate-${selectedId}`,
       sourceEl: slotEl,
       card: {
-        ...cardTravelPayloadForInstance(template, inst, power, firepower, firepowerMultiplier, shieldPower),
+        ...cardTravelPayloadForInstance(template, inst, powerDisplay, state.level),
         inkLabel,
       },
       onComplete: () => {
@@ -108,7 +106,7 @@ export function PrinterDuplicateDialog(
                   else cardSlotRefs.current.delete(inst.id)
                 }}
                 className={[
-                  'printerDuplicateDialogCardSlot',
+                  'printerDuplicateDialogCardSlot gameCardHoverHost',
                   isTraveling ? 'printerDuplicateDialogCardSlot--animating' : null,
                 ]
                   .filter(Boolean)
@@ -118,11 +116,8 @@ export function PrinterDuplicateDialog(
                 <GameCardView
                   inst={inst}
                   template={t}
-                  power={power}
-                  firepower={firepower}
-                  firepowerMultiplier={firepowerMultiplier}
-                  shieldPower={shieldPower}
-                  hasGreenHat={state.player.relics.some((r) => r.templateId === 'GREEN_HAT')}
+                  powerDisplay={powerDisplay}
+                  gameLevel={state.level}
                   selected={selected}
                   className="printerDuplicateDialogCard"
                   onClick={

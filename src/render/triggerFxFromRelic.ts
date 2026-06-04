@@ -1,8 +1,7 @@
 import type { EnemyBoonId } from '../data/enemyBoons'
 import { EnemyBoons } from '../data/enemyBoons'
 import type { TriggerFxDef, TriggerFxTargetKind } from '../data/triggerFx'
-import type { RelicId } from '../core/types/ids'
-import type { EnemyInstanceId } from '../core/types/ids'
+import type { CardInstanceId, EnemyInstanceId, RelicId } from '../core/types/ids'
 import { Relics } from '../data/relics'
 
 export type TriggerFxRole = 'source' | 'buff' | 'debuff'
@@ -15,6 +14,7 @@ export type TriggerFxAnchor =
   | Readonly<{ kind: 'cauldron' }>
   | Readonly<{ kind: 'inkJar' }>
   | Readonly<{ kind: 'deck' }>
+  | Readonly<{ kind: 'handCard'; cardInstanceId: CardInstanceId }>
 
 export type TriggerFxFlash = Readonly<{
   anchor: TriggerFxAnchor
@@ -37,6 +37,8 @@ export function triggerFxAnchorKey(anchor: TriggerFxAnchor): string {
       return 'inkJar'
     case 'deck':
       return 'deck'
+    case 'handCard':
+      return `handCard:${anchor.cardInstanceId}`
   }
 }
 
@@ -79,6 +81,7 @@ export function flashesForBoonTrigger(
   enemyId: EnemyInstanceId,
   boonId: EnemyBoonId,
   triggerId: string,
+  targetCardInstanceIds: ReadonlyArray<CardInstanceId> = [],
 ): ReadonlyArray<TriggerFxFlash> | null {
   const enemy = enemies.enemyById[enemyId]
   if (!enemy?.boons.includes(boonId)) return null
@@ -87,5 +90,12 @@ export function flashesForBoonTrigger(
   const trig = tmpl?.triggers?.find((t) => t.id === triggerId)
   if (!trig?.triggerFx) return null
 
-  return flashesFromTriggerFx({ anchor: { kind: 'enemy', enemyInstanceId: enemyId }, role: 'source' }, trig.triggerFx)
+  const base = flashesFromTriggerFx({ anchor: { kind: 'enemy', enemyInstanceId: enemyId }, role: 'source' }, trig.triggerFx)
+  const handTargets = targetCardInstanceIds.map(
+    (cardInstanceId): TriggerFxFlash => ({
+      anchor: { kind: 'handCard', cardInstanceId },
+      role: 'debuff',
+    }),
+  )
+  return [...base, ...handTargets]
 }

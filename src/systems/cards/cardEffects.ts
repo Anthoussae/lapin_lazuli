@@ -3,6 +3,7 @@ import type { GemId } from '../../core/types/ids'
 import type { Effect } from '../../data/effects'
 import { cardTemplateById, Cards } from '../../data/cards'
 import { Gems } from '../../data/gems'
+import { mergeCriticalEffectsInList } from './critical'
 import { applyCardInstanceEffectModifiers } from './upgrades'
 
 export function cardBaseEffects(templateId: string, socketedGemId: GemId | null = null): ReadonlyArray<Effect> {
@@ -13,7 +14,7 @@ export function cardBaseEffects(templateId: string, socketedGemId: GemId | null 
     const gem = Gems[socketedGemId]
     if (gem) effects.push(...gem.effects)
   }
-  return effects
+  return mergeCriticalEffectsInList(effects)
 }
 
 export function cardInstanceBaseEffects(inst: CardInstance): ReadonlyArray<Effect> {
@@ -72,6 +73,15 @@ export function cardInstanceConsumes(inst: CardInstance): boolean {
   const tmpl = Cards[inst.templateId]
   if (tmpl?.tags.includes('consume')) return true
   return cardInstanceBaseEffects(inst).some((fx) => fx.kind === 'CONSUME')
+}
+
+/** Enchantment cards phase out after play unless the card is consumed (consume wins). */
+export function cardPlayPhasesOut(
+  inst: CardInstance,
+  resolvedEffects: ReadonlyArray<{ kind: string }>,
+): boolean {
+  if (cardInstanceConsumes(inst)) return false
+  return resolvedEffects.some((fx) => fx.kind === 'APPLY_ENCHANTMENT')
 }
 
 /** True when playing this card opens the hand-selection modal instead of resolving immediately. */

@@ -3,8 +3,7 @@ import type { CardInstanceId } from '../../core/types/ids'
 import type { GameState } from '../../core/types/state'
 import type { RngState } from '../../core/rng/rng'
 import { rngInt } from '../../core/rng/rng'
-import { allPotionCardIds, Cards } from '../../data/cards'
-import { mkCardInstance } from '../factories'
+import { allPotionCardIds, Cards, createCardInstance } from '../../data/cards'
 
 /** Weighted roll among potion templates (uses {@link Cards}[id].poolFrequency}). */
 export function rollRandomPotionId(rng: RngState): { rng: RngState; cardId: CardId } {
@@ -34,7 +33,7 @@ export function addRandomPotionToHand(state: GameState): GameState {
   const rolled = rollRandomPotionId(state.rng)
   const serial = state.player.nextCardInstanceSerial
   const newId = `c${serial}` as CardInstanceId
-  const inst = mkCardInstance(newId, rolled.cardId, 0, false, {
+  const inst = createCardInstance(newId, rolled.cardId, 0, false, {
     grantedExpire: true,
     combatEphemeral: true,
   })

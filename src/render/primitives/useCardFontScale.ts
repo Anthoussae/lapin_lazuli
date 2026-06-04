@@ -16,14 +16,19 @@ export function useCardFontScale(
   useLayoutEffect(() => {
     const card = cardRef.current
     const overlay = overlayRef.current
-    if (!enabled || !card || !overlay) {
+    if (!card || !overlay) {
       fontScalesRef.current = { name: 1, ink: 1, text: 1 }
       if (card) resetCardFontScales(card)
       return
     }
 
     const apply = () => {
-      fontScalesRef.current = fitCardFontScales(card, overlay)
+      if (enabled) {
+        fontScalesRef.current = fitCardFontScales(card, overlay)
+      } else {
+        resetCardFontScales(card)
+        fontScalesRef.current = { name: 1, ink: 1, text: 1 }
+      }
     }
 
     apply()

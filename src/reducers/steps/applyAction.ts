@@ -15,8 +15,8 @@ import { rngFromSeed, rngInt } from '../../core/rng/rng'
 import { Relics, StarterRelicPool, isRelicOfferable } from '../../data/relics'
 import type { PathCombatPreview, PathSelectionState } from '../../core/types/state'
 import type { CardId, CardInstanceId, PathId, RelicId } from '../../core/types/ids'
-import { mkCardInstance, mkRelicInstance } from '../../systems/factories'
-import { buildStarterDeck } from '../../data/cards'
+import { mkRelicInstance } from '../../systems/factories'
+import { buildStarterDeck, createCardInstance } from '../../data/cards'
 import { PathPool, Paths } from '../../data/paths'
 import type { MysteryRoomId } from '../../data/mysteryRooms'
 import { mkMysteryRoomState, MysteryRooms, mysteryRoomIsEvent, mysteryRoomPathId, rollMysteryRoom } from '../../data/mysteryRooms'
@@ -42,8 +42,9 @@ import { populateCardReward } from '../../systems/rewards/cardRewards'
 import { isRewardLootFullyCollected } from '../../systems/rewards/rewardLoot'
 import { pickThreeShopRelics, populateShop } from '../../systems/shop/populateShop'
 import { assignShopPrices } from '../../systems/shop/assignPrice'
+import { addCardInstanceToDeck } from '../../systems/cards/addCardToDeck'
 import { applyCardPickupEffects } from '../../systems/cards/pickupEffects'
-import { applyLevelUpRelicTriggers, applyRelicTriggers } from '../../systems/relics/triggers'
+import { applyChoosingPathRelicTriggers, applyLevelUpRelicTriggers, applyRelicTriggers } from '../../systems/relics/triggers'
 import { computeSleepHealAmount } from '../../systems/rest/sleepHeal'
 import { applyRandomStudyUpgrade, restChoiceMade } from '../../systems/rest/studyUpgrade'
 import { rollGemOffers } from '../../systems/gems/rollGems'
@@ -172,16 +173,20 @@ function applyPlayerAction(state: GameState, action: PlayerAction): { state: Gam
       return { state: foilPrinterCard(state), events: [] }
     case 'PRINTER/SELECT_DUPLICATE_CARD':
       return { state: selectPrinterDuplicateCard(state, action.cardInstanceId), events: [] }
-    case 'PRINTER/DUPLICATE':
-      return { state: duplicatePrinterCard(state), events: [] }
+    case 'PRINTER/DUPLICATE': {
+      const dup = duplicatePrinterCard(state)
+      return { state: dup.state, events: dup.events }
+    }
     case 'COLLECTOR/REVEAL_OFFERED_CARD':
       return { state: revealCollectorOfferedCard(state), events: [] }
     case 'COLLECTOR/SELL':
       return { state: applyCollectorSell(state), events: [] }
     case 'COLLECTOR/ACCEPT_BULK':
       return { state: applyCollectorAcceptBulk(state), events: [] }
-    case 'COLLECTOR/ADD_BULK_CARD':
-      return { state: applyCollectorAddBulkCard(state, action.index), events: [] }
+    case 'COLLECTOR/ADD_BULK_CARD': {
+      const bulk = applyCollectorAddBulkCard(state, action.index)
+      return { state: bulk.state, events: bulk.events }
+    }
   }
 }
 
@@ -201,6 +206,7 @@ function pickRewardGold(state: GameState): { state: GameState; events: GameEvent
       ...state,
       cardReward: { ...rw, goldPickedUp: true },
       player: { ...state.player, gold: state.player.gold + rw.goldEarned },
+      runStats: { ...state.runStats, totalGoldObtained: state.runStats.totalGoldObtained + rw.goldEarned },
     },
     events: [],
   }
@@ -230,24 +236,27 @@ function pickRewardCard(state: GameState, cardId: CardId): { state: GameState; e
   // Add a new instance of the chosen card to the player's deck (out of combat).
   const serial = state.player.nextCardInstanceSerial
   const newId = `c${serial}` as CardInstanceId
-  const inst = mkCardInstance(newId, cardId, offer.upgrades, offer.foil === true)
-  const cardById2 = { ...state.player.deck.cardById, [inst.id]: inst }
-  const drawPile2 = [...state.player.deck.drawPile, inst.id]
+  const inst = createCardInstance(newId, cardId, offer.upgrades, offer.foil === true)
+  const added = addCardInstanceToDeck(
+    { ...state, player: { ...state.player, nextCardInstanceSerial: serial + 1 } },
+    inst,
+  )
 
   const nextLevel = state.level + 1
   let rng = state.rng
-  const rolled = rollPaths(rng, nextLevel, 3, state.pathCooldownUntil, { ...state.player.deck, cardById: cardById2 })
+  const rolled = rollPaths(rng, nextLevel, 3, state.pathCooldownUntil, added.state.player.deck)
   const pathPick = buildPathSelection(rolled.rng, rolled.offered, nextLevel)
 
   let s2: GameState = {
-    ...state,
+    ...added.state,
     level: nextLevel,
-    rng: pathPick.rng,
-    player: {
-      ...state.player,
-      nextCardInstanceSerial: serial + 1,
-      deck: { ...state.player.deck, cardById: cardById2, drawPile: drawPile2 },
+    runStats: {
+      ...added.state.runStats,
+      maxLevelReached: Math.max(added.state.runStats.maxLevelReached, nextLevel),
+      cardsObtained: added.state.runStats.cardsObtained + 1,
     },
+    rng: pathPick.rng,
+    player: added.state.player,
     cardReward: null,
     restOutcome: null,
     defeat: null,
@@ -261,7 +270,10 @@ function pickRewardCard(state: GameState, cardId: CardId): { state: GameState; e
   s2 = applyCardPickupEffects(s2, cardId)
 
   const levelUp = applyLevelUpRelicTriggers(s2)
-  return { state: setPhase(levelUp.state, 'PATH_SELECT'), events: levelUp.events }
+  return {
+    state: setPhase(levelUp.state, 'PATH_SELECT'),
+    events: [...added.events, ...levelUp.events],
+  }
 }
 
 function pickRewardRelic(state: GameState, relicId: RelicId): { state: GameState; events: GameEvent[] } {
@@ -275,6 +287,7 @@ function pickRewardRelic(state: GameState, relicId: RelicId): { state: GameState
   let sPickup: GameState = {
     ...state,
     player: { ...state.player, relics: [...state.player.relics, inst] },
+    runStats: { ...state.runStats, relicsObtained: state.runStats.relicsObtained + 1 },
     cardReward: null,
     restOutcome: null,
     defeat: null,
@@ -285,7 +298,8 @@ function pickRewardRelic(state: GameState, relicId: RelicId): { state: GameState
   }
   sPickup = applyRelicTriggers(sPickup, relicId, 'onPickup')
 
-  const nextLevel = state.level + 1
+  // Relic pickup can mutate game-level (Hourglass, etc.), so advance from the post-pickup level.
+  const nextLevel = sPickup.level + 1
   let rng = sPickup.rng
   const rolled = rollPaths(rng, nextLevel, 3, sPickup.pathCooldownUntil, sPickup.player.deck)
   const pathPick = buildPathSelection(rolled.rng, rolled.offered, nextLevel)
@@ -293,6 +307,7 @@ function pickRewardRelic(state: GameState, relicId: RelicId): { state: GameState
   const s2: GameState = {
     ...sPickup,
     level: nextLevel,
+    runStats: { ...sPickup.runStats, maxLevelReached: Math.max(sPickup.runStats.maxLevelReached, nextLevel) },
     rng: pathPick.rng,
     pathSelection: pathPick.pathSelection,
     activeRoomPathId: null,
@@ -319,6 +334,7 @@ function buyShopItem(state: GameState, slotIndex: number): { state: GameState; e
     let s: GameState = {
       ...state,
       player: { ...state.player, gold, relics: [...state.player.relics, inst] },
+      runStats: { ...state.runStats, relicsObtained: state.runStats.relicsObtained + 1 },
       shop: { items },
     }
     s = applyRelicTriggers(s, item.relicId, 'onPickup')
@@ -338,27 +354,23 @@ function buyShopItem(state: GameState, slotIndex: number): { state: GameState; e
 
   const serial = state.player.nextCardInstanceSerial
   const newId = `c${serial}` as CardInstanceId
-  const inst = mkCardInstance(newId, item.cardId, item.upgrades)
-  const cardById2 = { ...state.player.deck.cardById, [inst.id]: inst }
-  const drawPile2 = [...state.player.deck.drawPile, inst.id]
+  const inst = createCardInstance(newId, item.cardId, item.upgrades)
+  const added = addCardInstanceToDeck(
+    { ...state, player: { ...state.player, gold, nextCardInstanceSerial: serial + 1 } },
+    inst,
+  )
 
-  let s: GameState = {
-    ...state,
-    player: {
-      ...state.player,
-      gold,
-      nextCardInstanceSerial: serial + 1,
-      deck: { ...state.player.deck, cardById: cardById2, drawPile: drawPile2 },
-    },
-    shop: { items },
+  let s = applyCardPickupEffects(added.state, item.cardId)
+  return {
+    state: { ...s, runStats: { ...s.runStats, cardsObtained: s.runStats.cardsObtained + 1 }, shop: { items } },
+    events: added.events,
   }
-  s = applyCardPickupEffects(s, item.cardId)
-  return { state: s, events: [] }
 }
 
 function startStarterRelicSelection(state: GameState): GameState {
   // Populate starter deck (MVP): 7x BUNNYMANCY, 1x MULTIBUNNIES.
   const starter = buildStarterDeck()
+  const starterDeckSize = Object.keys(starter.cardById).length
 
   // New Game should be random each run: reseed RNG here.
   const freshSeed = ((Date.now() ^ (Math.random() * 0xffffffff)) >>> 0) || 1
@@ -402,6 +414,15 @@ function startStarterRelicSelection(state: GameState): GameState {
     shop: null,
     pathCooldownUntil: {},
     mysteryRoomCooldownUntil: {},
+    runStats: {
+      maxLevelReached: 0,
+      totalGoldObtained: 0,
+      relicsObtained: 0,
+      cardsObtained: starterDeckSize,
+      gemsObtained: 0,
+      enemiesDefeated: 0,
+      totalCardUpgrades: 0,
+    },
     player: {
       ...state.player,
       nextCardInstanceSerial: 1,
@@ -421,7 +442,7 @@ function startStarterRelicSelection(state: GameState): GameState {
     treasureRoom: null,
     gemstoneCavern: null,
     mysteryRoom: null,
-    ui: { ...state.ui, debug: { ...state.ui.debug, lastEvents: [] } },
+    ui: { ...state.ui, debug: { lastEvents: [], eventBatchId: 0 } },
   }
   return setPhase(s2, 'RELIC_SELECT_STARTER')
 }
@@ -434,7 +455,11 @@ function chooseStarterRelic(state: GameState, relicId: RelicId): GameState {
   const inst = mkRelicInstance(`rb${nextIdx}`, relicId)
 
   // Apply on-pickup triggers immediately.
-  let sPickup: GameState = { ...state, player: { ...state.player, relics: [...state.player.relics, inst] } }
+  let sPickup: GameState = {
+    ...state,
+    player: { ...state.player, relics: [...state.player.relics, inst] },
+    runStats: { ...state.runStats, relicsObtained: state.runStats.relicsObtained + 1 },
+  }
   sPickup = applyRelicTriggers(sPickup, relicId, 'onPickup')
 
   // After picking a starter relic, advance to path selection.
@@ -463,7 +488,7 @@ function rollPaths(
   pathCooldownUntil: Readonly<Partial<Record<PathId, number>>>,
   deck: GameState['player']['deck'],
 ): { rng: GameState['rng']; offered: PathId[] } {
-  if (level === 15 || level === 32) return { rng: rngIn, offered: ['BOSS'] }
+  if (level === 15 || level === 32 || level === 45) return { rng: rngIn, offered: ['BOSS'] }
 
   const gemstoneCavernOfferable = deckHasSocketableCard(deck.cardById)
   let rng = rngIn
@@ -518,6 +543,7 @@ function advanceToNextPathSelectionAfterNode(
   const s2: GameState = {
     ...state,
     level: nextLevel,
+    runStats: { ...state.runStats, maxLevelReached: Math.max(state.runStats.maxLevelReached, nextLevel) },
     rng: pathPick.rng,
     restOutcome: null,
     defeat: null,
@@ -611,6 +637,7 @@ function pickTreasureRoomRelic(state: GameState, relicId: RelicId): GameState {
   let s: GameState = {
     ...state,
     player: { ...state.player, relics: [...state.player.relics, inst] },
+    runStats: { ...state.runStats, relicsObtained: state.runStats.relicsObtained + 1 },
     treasureRoom: { offered: [], selectionComplete: true },
   }
   s = applyRelicTriggers(s, relicId, 'onPickup')
@@ -864,14 +891,15 @@ function choosePath(
     return applyNonCombatMapRoute(baseState, pathId)
   }
 
+  const pathRelics = applyChoosingPathRelicTriggers(baseState, pathId)
   let preview: PathCombatPreview | null = combatPreview
-  let sCombat = baseState
+  let sCombat = pathRelics.state
   if (!preview) {
     const encounter = rollPathCombatEncounter(sCombat.rng, sCombat.level, pathId)
     sCombat = { ...sCombat, rng: encounter.rng }
     preview = encounter.preview
   }
   const out = startCombat(sCombat, preview.enemyTemplateId, pathId, preview.boons, preview.maxHp)
-  return { state: out.state, events: out.events }
+  return { state: out.state, events: [...pathRelics.events, ...out.events] }
 }
 

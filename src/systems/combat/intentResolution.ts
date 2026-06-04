@@ -1,17 +1,30 @@
 import type { EnemyInstanceId } from '../../core/types/ids'
 import type { EnemyIntent, EnemyIntentEffects, GameState } from '../../core/types/state'
 import type { GameEvent } from '../../reducers/events'
-import { applyPlayerUnblockedDamageRelicTriggers, applyTotalAttackBlockRelicTriggers } from '../relics/triggers'
-import { applyPlayerDamageThroughShields } from './shieldDamage'
+import {
+  applyPlayerDodgeRelicTriggers,
+  applyPlayerUnblockedDamageRelicTriggers,
+  applyTotalAttackBlockRelicTriggers,
+} from '../relics/triggers'
+import { playerDodgeChanceFromRelics, rollDodge } from './dodge'
+import { applyPlayerDamageThroughShieldsMaybeBubble } from '../enchantments/bubble'
+import { applyIncomingDamageAmplification } from '../enchantments/incomingDamageAmplification'
+import { applyOutgoingDamageAndHpLossModifiers } from '../enchantments/outgoingDamageReduction'
 import { applyEnchantmentOnTakingDamage } from '../enchantments/takingDamage'
 import { enqueueBurdenAdds } from './burdenAdd'
 import {
+  applyEnchantmentGrantsFromIntentEffects,
   burdenShuffleEntriesFromIntentEffects,
+  enemyAttackStrengthDamageBonus,
   enemyLockedShieldGainFromIntentEffects,
+  enemyShieldGainFromIntentEffects,
   intentHasVampiric,
   playerTurnStartBunnyDrainFromIntentEffects,
   strengthDeltaFromIntentEffects,
 } from './intentEffects'
+import { grantEnchantmentStacks } from '../enchantments/grantEnchantmentStacks'
+import { shieldPowerPenaltyFromEnchantments } from '../enchantments/staticEffects'
+import { resolveShieldGainAmount } from '../cards/shieldPower'
 
 export type ResolveEnemyIntentResult = Readonly<{
   state: GameState
@@ -30,14 +43,28 @@ function applyEnemySelfBuffs(
   if (!enemy) return state
 
   const strengthGain = strengthDeltaFromIntentEffects(effects)
-  const lockedShieldGain = enemyLockedShieldGainFromIntentEffects(effects)
-  if (strengthGain <= 0 && lockedShieldGain <= 0) return state
+  const enemyTarget = { kind: 'ENEMY' as const, enemyInstanceId: enemyId }
+  const shieldPenalty = shieldPowerPenaltyFromEnchantments(state, enemyTarget)
+  const lockedShieldGain = resolveShieldGainAmount(
+    enemyLockedShieldGainFromIntentEffects(effects),
+    0,
+    shieldPenalty,
+    false,
+  )
+  const shieldGain = resolveShieldGainAmount(
+    enemyShieldGainFromIntentEffects(effects),
+    0,
+    shieldPenalty,
+    false,
+  )
+  if (strengthGain <= 0 && lockedShieldGain <= 0 && shieldGain <= 0) return state
 
   const enemyById = {
     ...combat.enemies.enemyById,
     [enemyId]: {
       ...enemy,
       strength: enemy.strength + strengthGain,
+      shield: enemy.shield + shieldGain,
       lockedShield: enemy.lockedShield + lockedShieldGain,
     },
   }
@@ -62,6 +89,17 @@ function applyPlayerDebuffs(
   }
   for (const { cardId, count } of burdenShuffleEntriesFromIntentEffects(effects)) {
     s = enqueueBurdenAdds(s, cardId, count, 'draw', sourceEnemyId)
+  }
+  if (sourceEnemyId) {
+    for (const grant of applyEnchantmentGrantsFromIntentEffects(effects)) {
+      s = grantEnchantmentStacks(s, {
+        templateId: grant.enchantmentId,
+        target: { kind: 'PLAYER' },
+        owner: { kind: 'ENEMY', enemyInstanceId: sourceEnemyId },
+        stacks: grant.stacks,
+        amountOverride: grant.amountOverride,
+      })
+    }
   }
   return s
 }
@@ -88,43 +126,71 @@ function resolveAttack(
   const enemy = combat.enemies.enemyById[enemyId]
   if (!enemy) return { state, playerDied: false, events: [] }
 
-  const str = Math.max(0, enemy.strength)
-  const dmg = intent.damage + str
-  const { shield: nextSh, lockedShield: nextLockedSh, hp: nextHp, unshieldedDamage } = applyPlayerDamageThroughShields(
-    state.player.shield,
-    state.player.lockedShield,
-    state.player.hp,
-    dmg,
-  )
+  const strBonus = enemyAttackStrengthDamageBonus(enemy.strength)
+  const dmg = intent.damage + strBonus
 
   let s: GameState = state
   const events: GameEvent[] = []
 
-  if (unshieldedDamage > 0) {
-    const triggered = applyPlayerUnblockedDamageRelicTriggers(s, unshieldedDamage)
-    s = triggered.state
-    events.push(...triggered.events)
+  const dodgeRoll = rollDodge(s, playerDodgeChanceFromRelics(s))
+  s = dodgeRoll.state
+  const dodged = dmg > 0 && dodgeRoll.dodged
+
+  let nextSh = s.player.shield
+  let nextLockedSh = s.player.lockedShield
+  let nextHp = s.player.hp
+  let unshieldedDamage = 0
+
+  if (dodged) {
+    const dodgeFx = applyPlayerDodgeRelicTriggers(s)
+    s = dodgeFx.state
+    events.push({ type: 'EVT/PLAYER_DODGED' }, ...dodgeFx.events)
   } else if (dmg > 0) {
-    const blocked = applyTotalAttackBlockRelicTriggers(s, dmg, unshieldedDamage)
-    s = blocked.state
-    events.push(...blocked.events)
-  }
+    const resolvedDmg = applyIncomingDamageAmplification(
+      s,
+      { kind: 'PLAYER' },
+      applyOutgoingDamageAndHpLossModifiers(s, { kind: 'ENEMY', enemyInstanceId: enemyId }, dmg),
+    )
+    const damageHit = applyPlayerDamageThroughShieldsMaybeBubble(
+      s,
+      { kind: 'PLAYER' },
+      s.player.shield,
+      s.player.lockedShield,
+      s.player.hp,
+      resolvedDmg,
+    )
+    s = damageHit.state
+    nextSh = damageHit.shield
+    nextLockedSh = damageHit.lockedShield
+    nextHp = damageHit.hp
+    unshieldedDamage = damageHit.unshieldedDamage
 
-  s = {
-    ...s,
-    player: { ...s.player, shield: nextSh, lockedShield: nextLockedSh, hp: nextHp },
-  }
+    if (unshieldedDamage > 0) {
+      events.push({ type: 'EVT/PLAYER_UNBLOCKED_DAMAGE', source: 'ENEMY', amount: unshieldedDamage })
+      const triggered = applyPlayerUnblockedDamageRelicTriggers(s, unshieldedDamage)
+      s = triggered.state
+      events.push(...triggered.events)
+    } else {
+      const blocked = applyTotalAttackBlockRelicTriggers(s, dmg, unshieldedDamage)
+      s = blocked.state
+      events.push(...blocked.events)
+    }
 
-  if (dmg > 0) {
+    s = {
+      ...s,
+      player: { ...s.player, shield: nextSh, lockedShield: nextLockedSh, hp: nextHp },
+    }
+
     const ench = applyEnchantmentOnTakingDamage(s, {
       target: { kind: 'PLAYER' },
       source: { kind: 'ENEMY', enemyInstanceId: enemyId },
-      attemptedDamage: dmg,
+      attemptedDamage: resolvedDmg,
       cause: 'DIRECT',
     })
     s = ench.state
     events.push(...ench.events)
   }
+
   if (intentHasVampiric(intent.effects) && unshieldedDamage > 0) {
     const combatAfterHit = s.combat
     const enemyAfterHit = combatAfterHit?.enemies.enemyById[enemyId]

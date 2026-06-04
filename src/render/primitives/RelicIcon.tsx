@@ -1,6 +1,8 @@
 import { useState, type MouseEvent, type ReactNode, type Ref } from 'react'
 import { createPortal } from 'react-dom'
-import { relicTooltipViewportPosition } from '../relicTooltipPosition'
+import type { RelicId } from '../../core/types/ids'
+import { relicIconArtClassName } from '../relicIconLayout'
+import { relicIconTooltipViewportPosition } from '../relicTooltipPosition'
 import { RelicTooltip } from './RelicTooltip'
 
 export type RelicIconSize = 'default' | 'thumb'
@@ -15,6 +17,8 @@ export type RelicCounterProps = Readonly<{
 }>
 
 export type RelicIconProps = Readonly<{
+  /** When set, per-relic art tokens apply (e.g. hat scale/offset). */
+  relicId?: RelicId
   imageSrc?: string
   fallback: ReactNode
   alt?: string
@@ -35,6 +39,7 @@ export type RelicIconProps = Readonly<{
 
 export function RelicIcon(props: RelicIconProps) {
   const {
+    relicId,
     imageSrc,
     fallback,
     alt = '',
@@ -70,12 +75,12 @@ export function RelicIcon(props: RelicIconProps) {
 
   const placeTooltip = (e: MouseEvent<HTMLElement>) => {
     if (!showTooltip) return
-    setTip(relicTooltipViewportPosition(e.currentTarget.getBoundingClientRect()))
+    setTip(relicIconTooltipViewportPosition(e.currentTarget))
   }
 
   const clearTooltip = () => setTip(null)
 
-  const imgClass = ['relicIcon__img', artClassName].filter(Boolean).join(' ')
+  const imgClass = ['relicIcon__img', relicIconArtClassName(relicId), artClassName].filter(Boolean).join(' ')
 
   const visual = (
     <>

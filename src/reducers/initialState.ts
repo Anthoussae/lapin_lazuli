@@ -14,6 +14,15 @@ export function initialState(seed = 12345): GameState {
     seed,
     rng: rngFromSeed(seed),
     level: 0,
+    runStats: {
+      maxLevelReached: 0,
+      totalGoldObtained: 0,
+      relicsObtained: 0,
+      cardsObtained: 0,
+      gemsObtained: 0,
+      enemiesDefeated: 0,
+      totalCardUpgrades: 0,
+    },
     phase: 'BOOT',
     phasePrev: null,
     assets: { status: 'UNLOADED', loaded: [], failed: [] },
@@ -56,7 +65,7 @@ export function initialState(seed = 12345): GameState {
     ui: {
       anim: animInitial(),
       input: inputInitial(),
-      debug: { lastEvents: [] },
+      debug: { lastEvents: [], eventBatchId: 0 },
     },
   }
 

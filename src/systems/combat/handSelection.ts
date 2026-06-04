@@ -10,13 +10,18 @@ import {
 } from '../cards/cardEffects'
 import { upgradeCardInstance } from '../cards/upgrades'
 import { Cards, isPotionCardId } from '../../data/cards'
-import { Relics } from '../../data/relics'
-import { applyRelicEffect } from '../relics/applyRelicEffects'
 import { applyEffects } from './resolveEffects'
 import { consumeCardFromDeck } from './zones'
-import { cardHasFireTag, cardInstanceInkCost } from '../cards/inkCost'
+import { cardHasFireTag, cardInstanceInkCost, cardInstanceLooksExhausted } from '../cards/inkCost'
+import { applyCriticalRollToCardEffects } from '../cards/critical'
+import { cardPlayEffectsWithRelicCritical } from '../relics/onCastNamedCardCritical'
 import { consumeFreeFirstFireSpellIfFireCard } from '../relics/phoenixFeatherQuill'
-import { applyFourthSpellCastPerTurnRelicTriggers, applyPotionPlayedRelicTriggers } from '../relics/triggers'
+import {
+  applyCardPlayedRelicTriggers,
+  applyCastSpellWithCostAboveAmountRelicTriggers,
+  applyFourthSpellCastPerTurnRelicTriggers,
+  applyPotionPlayedRelicTriggers,
+} from '../relics/triggers'
 
 export function cancelHandSelection(state: GameState): { state: GameState; events: GameEvent[] } {
   const combat = state.combat
@@ -68,7 +73,8 @@ export function pickHandSelectionCard(state: GameState, cardInstanceId: CardInst
 
 export function submitHandSelection(state: GameState): { state: GameState; events: GameEvent[] } {
   const pick = state.combat?.handSelection
-  if (!pick || pick.chosenIds.length <= 0) return { state, events: [] }
+  if (!pick) return { state, events: [] }
+  if (pick.chosenIds.length <= 0 && pick.kind !== 'CONSUME_SELECTED_CARD') return { state, events: [] }
   return resolveHandSelection(state, pick.chosenIds)
 }
 
@@ -86,7 +92,7 @@ function resolveHandSelection(state: GameState, chosenIds: ReadonlyArray<CardIns
   if (!state.player.deck.hand.includes(playedId)) {
     return { state: setPhase({ ...state, combat: { ...combat, handSelection: null } }, 'COMBAT_PLAYER_READY'), events: [] }
   }
-  if (inst.exhausted) {
+  if (cardInstanceLooksExhausted(inst)) {
     return { state: setPhase({ ...state, combat: { ...combat, handSelection: null } }, 'COMBAT_PLAYER_READY'), events: [] }
   }
   const tmpl = Cards[inst.templateId]
@@ -99,20 +105,20 @@ function resolveHandSelection(state: GameState, chosenIds: ReadonlyArray<CardIns
 
   // Phase resolving + on-cast relic triggers.
   let s: GameState = setPhase({ ...state, combat: { ...combat, handSelection: null } }, 'COMBAT_RESOLVING')
-  for (const rInst of s.player.relics) {
-    const rTmpl = Relics[rInst.templateId]
-    for (const trig of rTmpl.triggers) {
-      if (trig.on !== 'card_played') continue
-      s = applyRelicEffect(s, trig.effect)
-    }
-  }
+  const cardPlayedRelics = applyCardPlayedRelicTriggers(s)
+  s = cardPlayedRelics.state
 
-  let potionRelicEvents: GameEvent[] = []
+  let potionRelicEvents: GameEvent[] = [...cardPlayedRelics.events]
   if (isPotionCardId(inst.templateId)) {
     const potionRelics = applyPotionPlayedRelicTriggers(s)
     s = potionRelics.state
     potionRelicEvents = potionRelics.events
   }
+
+  const printedInkCost = inst.costOverride ?? tmpl.cost
+  const inkCostRelics = applyCastSpellWithCostAboveAmountRelicTriggers(s, printedInkCost)
+  s = inkCostRelics.state
+  const inkCostRelicEvents = inkCostRelics.events
 
   // Pay cost.
   s = { ...s, player: { ...s.player, energy: s.player.energy - cost } }
@@ -144,8 +150,10 @@ function resolveHandSelection(state: GameState, chosenIds: ReadonlyArray<CardIns
   // Apply any non-interactive effects the card might also have (if we add such cards later).
   const scaled = cardInstanceResolvedPlayEffects(inst)
   const nonInteractiveFx = scaled.filter((fx) => fx.kind !== 'UPGRADE_SELECTED_CARD' && fx.kind !== 'CONSUME_SELECTED_CARD')
+  const effectsForCast = cardPlayEffectsWithRelicCritical(s, tmpl, nonInteractiveFx)
   const selectedEnemyId = s.combat?.targeting.selectedEnemyId ?? null
-  const out = applyEffects(s, nonInteractiveFx, { selectedEnemyId, playedCardInstanceId: playedId }, {
+  const critRoll = applyCriticalRollToCardEffects(s, effectsForCast, tmpl.tags)
+  const out = applyEffects(critRoll.state, critRoll.effects, { selectedEnemyId, playedCardInstanceId: playedId }, {
     powerBoostsCardAddBunnies: true,
     shieldPowerBoostsCardGainShield: true,
     firepowerBoostsCardDealDamage: true,
@@ -165,6 +173,6 @@ function resolveHandSelection(state: GameState, chosenIds: ReadonlyArray<CardIns
   const fourth = applyFourthSpellCastPerTurnRelicTriggers(s)
   return {
     state: setPhase(fourth.state, 'COMBAT_PLAYER_READY'),
-    events: [...potionRelicEvents, ...out.events, ...fourth.events],
+    events: [...potionRelicEvents, ...inkCostRelicEvents, ...critRoll.events, ...out.events, ...fourth.events],
   }
 }

@@ -1,7 +1,8 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import { Cards } from '../../data/cards'
-import { cardInstanceInkCost, cardInstanceInkCostModified } from '../../systems/cards/inkCost'
-import { cardDescriptionLinesForInstance, formatCardInstanceDisplayName } from '../../ui/describe'
+import { formatCardInstanceDisplayName } from '../../ui/describe'
+import { cardTravelPayloadForInstance } from '../cardSocketFlipPayload'
+import { powerDisplayContextFromPlayer } from '../../systems/combat/powerDisplay'
 import { useSequentialCardsToDeckFx } from '../hooks/useSequentialCardsToDeckFx'
 import { plainYellowBackdrop } from '../assets/backdropImages'
 import { collectorSprite, speechBubbleRightSprite } from '../assets/displayImages'
@@ -66,10 +67,7 @@ export function CollectorScreen({ state, enqueue }: ScreenProps) {
   const sellPrice = collector?.sellPrice ?? 0
   const inst = offeredId ? state.player.deck.cardById[offeredId] : undefined
   const template = inst ? Cards[inst.templateId] : undefined
-  const power = state.player.power
-  const firepower = state.player.firepower
-  const firepowerMultiplier = state.player.firepowerMultiplier
-  const shieldPower = state.player.shieldPower
+  const powerDisplay = powerDisplayContextFromPlayer(state.player)
 
   const cardName = inst && template ? formatCardInstanceDisplayName(template, inst) : 'card'
   const sellTooltip = `Sell ${cardName} for ${sellPrice} gold`
@@ -88,10 +86,8 @@ export function CollectorScreen({ state, enqueue }: ScreenProps) {
     slotRefForIndex: (index) => bulkSlotRefs[index]!,
     destination: 'deck',
     onApplied: (index) => enqueue({ type: 'COLLECTOR/ADD_BULK_CARD', index }),
-    power,
-    firepower,
-    firepowerMultiplier,
-    shieldPower,
+    powerDisplay,
+    gameLevel: state.level,
   })
 
   const handleAcceptBulk = () => {
@@ -113,28 +109,10 @@ export function CollectorScreen({ state, enqueue }: ScreenProps) {
       if (!targetCenter) return false
 
       pullStartedRef.current = true
-      const ink = cardInstanceInkCost(inst, template)
-      const inkModified = cardInstanceInkCostModified(inst, template)
       travelCardPullFromDeck({
         cardKey: offeredId,
         target: viewportPointRelativeTo(stage, targetCenter.x, targetCenter.y),
-        card: {
-          cardId: inst.templateId,
-          name: formatCardInstanceDisplayName(template, inst),
-          nameUpgraded: inst.upgrades > 0,
-          inkLabel: inst.exhausted ? 'Exhausted' : ink !== null ? String(ink) : null,
-          inkModified,
-          descriptionLines: cardDescriptionLinesForInstance(
-            template,
-            inst,
-            power,
-            firepower,
-            firepowerMultiplier,
-            shieldPower,
-          ),
-          socketedGemId: inst.socketedGemId ?? null,
-          foil: inst.foil === true,
-        },
+        card: cardTravelPayloadForInstance(template, inst, powerDisplay, state.level),
         onComplete: () => enqueue({ type: 'COLLECTOR/REVEAL_OFFERED_CARD' }),
       })
       return true
@@ -149,12 +127,9 @@ export function CollectorScreen({ state, enqueue }: ScreenProps) {
     cardRevealed,
     deckInspectImageRef,
     enqueue,
-    firepower,
-    firepowerMultiplier,
     inst,
     offeredId,
-    power,
-    shieldPower,
+    powerDisplay,
     stageLayerRef,
     template,
     travelCardPullFromDeck,
@@ -224,12 +199,8 @@ export function CollectorScreen({ state, enqueue }: ScreenProps) {
                 cardInstanceId={offeredId}
                 inst={inst}
                 template={template}
-                power={power}
-                firepower={firepower}
-                firepowerMultiplier={firepowerMultiplier}
-                shieldPower={shieldPower}
-                hasGreenHat={state.player.relics.some((r) => r.templateId === 'GREEN_HAT')}
-                staticDisplay
+                powerDisplay={powerDisplay}
+                gameLevel={state.level}
               />
             </div>
           </>
@@ -267,12 +238,8 @@ export function CollectorScreen({ state, enqueue }: ScreenProps) {
                 template={t}
                 offerUpgradeApplications={offer.upgrades}
                 offerFoil={offer.foil === true}
-                power={power}
-                firepower={firepower}
-                firepowerMultiplier={firepowerMultiplier}
-                shieldPower={shieldPower}
-                hasGreenHat={state.player.relics.some((r) => r.templateId === 'GREEN_HAT')}
-                staticDisplay
+                powerDisplay={powerDisplay}
+                gameLevel={state.level}
                 className={isTraveling ? 'gameCard--traveling' : undefined}
               />
             ) : null}

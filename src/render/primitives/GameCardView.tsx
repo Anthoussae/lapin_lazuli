@@ -1,29 +1,37 @@
 import type { CardInstance } from '../../core/types/state'
 import type { CardTemplate } from '../../data/cards'
+import type { CardInstanceId } from '../../core/types/ids'
+import { EMPTY_POWER_DISPLAY, type PowerDisplayContext } from '../../systems/combat/powerDisplay'
+import type { CardTravelPayload } from '../CardTravelContext'
 import {
-  cardDescriptionLinesForInstance,
-  cardDescriptionLinesForOffer,
-  formatCardInstanceDisplayName,
-  formatCardName,
-} from '../../ui/describe'
-import { cardInstanceInkCost, cardInstanceInkCostModified } from '../../systems/cards/inkCost'
+  buildGameCardDisplayForInstance,
+  buildGameCardDisplayForOffer,
+  gameCardDisplayFromTravelPayload,
+  type GameCardDisplay,
+} from '../gameCardDisplay'
+
+export type { GameCardDisplay } from '../gameCardDisplay'
+import { useTriggerFxArtProps } from '../TriggerFxContext'
 import { Card } from './Card'
 
 export type GameCardViewProps = Readonly<{
-  template: CardTemplate | undefined
+  /** Pre-resolved face data (preferred when parent already built display for travel FX). */
+  display?: GameCardDisplay
+  template?: CardTemplate | undefined
   inst?: CardInstance
   /** Shop/reward tier count when no instance exists. */
   offerUpgradeApplications?: number
   /** Foil on shop/reward offers when no instance exists. */
   offerFoil?: boolean
+  /** Pre-built face for travel / flip FX (same render path as combat and deck inspect). */
+  travelPayload?: CardTravelPayload
   /** Override displayed name (e.g. sold suffix). */
   nameOverride?: string
   cardInstanceId?: string
-  power?: number
-  firepower?: number
-  firepowerMultiplier?: number
-  shieldPower?: number
-  hasGreenHat?: boolean
+  /** Bunny/fire/shield power and green-hat poison modifiers for effect text. */
+  powerDisplay?: PowerDisplayContext
+  /** Current run level; used for level-scaling card text (e.g. Bunny Summons). */
+  gameLevel?: number
   /** Phoenix-feather Quill: fire spells cost 0 until the first fire spell is cast. */
   freeFirstFireSpell?: boolean
   /** Paintbrush: next spell costs 0 (all cards display as 0). */
@@ -33,9 +41,14 @@ export type GameCardViewProps = Readonly<{
   className?: string
   onClick?: () => void
   staticDisplay?: boolean
+  /** When true, this hand card can receive debuff trigger FX (e.g. Disabling boon). */
+  handCardTriggerFx?: boolean
 }>
 
-export function GameCardView(props: GameCardViewProps) {
+function resolveGameCardDisplay(props: GameCardViewProps): GameCardDisplay | null {
+  if (props.display) return props.display
+  if (props.travelPayload) return gameCardDisplayFromTravelPayload(props.travelPayload)
+
   const {
     template,
     inst,
@@ -43,76 +56,99 @@ export function GameCardView(props: GameCardViewProps) {
     offerFoil,
     nameOverride,
     cardInstanceId,
-    power = 0,
-    firepower = 0,
-    firepowerMultiplier = 0,
-    shieldPower = 0,
-    hasGreenHat = false,
+    powerDisplay = EMPTY_POWER_DISPLAY,
+    gameLevel = 1,
     freeFirstFireSpell = false,
     nextSpellCosts0 = false,
+  } = props
+
+  if (inst && template) {
+    return buildGameCardDisplayForInstance(template, inst, powerDisplay, gameLevel, {
+      freeFirstFireSpell,
+      nextSpellCosts0,
+    }, nameOverride)
+  }
+
+  if (template && offerUpgradeApplications !== undefined) {
+    return buildGameCardDisplayForOffer(
+      template,
+      offerUpgradeApplications,
+      powerDisplay,
+      offerFoil === true,
+      gameLevel,
+    )
+  }
+
+  if (nameOverride) {
+    return {
+      cardId: template?.id ?? inst?.templateId,
+      name: nameOverride,
+      nameUpgraded: false,
+      inkLabel: null,
+      inkModified: false,
+      descriptionLines: [],
+      socketedGemId: null,
+      foil: false,
+      combatDisabled: false,
+      exhausted: false,
+    }
+  }
+
+  if (inst?.templateId ?? cardInstanceId) {
+    return {
+      cardId: inst?.templateId,
+      name: inst?.templateId ?? cardInstanceId ?? '',
+      nameUpgraded: false,
+      inkLabel: null,
+      inkModified: false,
+      descriptionLines: [],
+      socketedGemId: null,
+      foil: false,
+      combatDisabled: inst?.disabled === true,
+      exhausted: inst?.exhausted === true,
+    }
+  }
+
+  return null
+}
+
+export function GameCardView(props: GameCardViewProps) {
+  const {
+    cardInstanceId,
     disabled,
     selected,
     className,
     onClick,
     staticDisplay,
+    handCardTriggerFx = false,
   } = props
 
-  const descriptionLines =
-    inst && template
-      ? cardDescriptionLinesForInstance(template, inst, power, firepower, firepowerMultiplier, shieldPower, hasGreenHat)
-      : template && offerUpgradeApplications !== undefined
-        ? cardDescriptionLinesForOffer(
-            template,
-            offerUpgradeApplications,
-            power,
-            firepower,
-            firepowerMultiplier,
-            shieldPower,
-            offerFoil === true,
-            hasGreenHat,
-          )
-        : []
+  const handTriggerFx = useTriggerFxArtProps(
+    handCardTriggerFx && cardInstanceId
+      ? { kind: 'handCard', cardInstanceId: cardInstanceId as CardInstanceId }
+      : null,
+  )
 
-  const name =
-    nameOverride ??
-    (inst && template
-      ? formatCardInstanceDisplayName(template, inst)
-      : template && offerUpgradeApplications !== undefined
-        ? formatCardName(template.name, offerUpgradeApplications)
-        : inst?.templateId ?? cardInstanceId ?? '')
-
-  const inkOpts = { freeFirstFireSpell, nextSpellCosts0 }
-  const ink =
-    inst && template
-      ? cardInstanceInkCost(inst, template, inkOpts)
-      : template?.cost !== null && template?.cost !== undefined
-        ? template.cost
-        : null
-  const inkModified =
-    inst && template ? cardInstanceInkCostModified(inst, template, inkOpts) : false
-  const inkLabel = inst?.exhausted ? 'Exhausted' : ink !== null ? String(ink) : null
-
-  const nameUpgraded =
-    inst != null ? inst.upgrades > 0 : offerUpgradeApplications !== undefined ? offerUpgradeApplications > 0 : false
-
-  const cardId = template?.id ?? inst?.templateId
+  const display = resolveGameCardDisplay(props)
+  if (!display) return null
 
   return (
     <Card
-      cardId={cardId}
-      name={name || undefined}
-      nameUpgraded={nameUpgraded}
-      inkLabel={inkLabel}
-      inkModified={inkModified}
-      descriptionLines={descriptionLines}
+      cardId={display.cardId}
+      name={display.name || undefined}
+      nameUpgraded={display.nameUpgraded}
+      inkLabel={display.inkLabel}
+      inkModified={display.inkModified}
+      descriptionLines={display.descriptionLines}
       disabled={disabled}
-      exhausted={inst?.exhausted}
+      combatDisabled={display.combatDisabled}
+      exhausted={display.exhausted}
       selected={selected}
-      className={className}
+      className={[className, handTriggerFx.className].filter(Boolean).join(' ') || undefined}
       onClick={onClick}
       staticDisplay={staticDisplay}
-      socketedGemId={inst?.socketedGemId ?? null}
-      foil={inst?.foil === true || offerFoil === true}
+      socketedGemId={display.socketedGemId}
+      foil={display.foil}
     />
   )
 }

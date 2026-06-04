@@ -19,19 +19,31 @@ function RelicBeltSlot(
   const { slotIndex, templateId, relic, state } = props
   const triggerFx = useTriggerFxArtProps({ kind: 'relic', slotIndex })
   const render = relic?.render
+  const relicInst = state.player.relics[slotIndex]
   const counter =
-    render?.kind === 'RelicCounter' && render.value === 'cardsPlayedThisTurn'
-      ? {
-          value: state.combat?.cardsPlayedThisTurn ?? 0,
-          offsetX: render.offset.x,
-          offsetY: render.offset.y,
-          fontSize: render.fontSize,
-          color: render.color,
-        }
+    render?.kind === 'RelicCounter'
+      ? render.value === 'cardsPlayedThisTurn'
+        ? {
+            value: state.combat?.cardsPlayedThisTurn ?? 0,
+            offsetX: render.offset.x,
+            offsetY: render.offset.y,
+            fontSize: render.fontSize,
+            color: render.color,
+          }
+        : render.value === 'backpackTurnCounter'
+          ? {
+              value: relicInst?.counters?.backpackTurnCounter ?? 0,
+              offsetX: render.offset.x,
+              offsetY: render.offset.y,
+              fontSize: render.fontSize,
+              color: render.color,
+            }
+          : undefined
       : undefined
   return (
     <div className="relicBeltSlot" data-relic-belt-slot={slotIndex}>
       <RelicIcon
+        relicId={templateId}
         imageSrc={relicImageMap[templateId]}
         fallback={relic?.thumb ?? '?'}
         alt={relic?.name}
@@ -81,6 +93,7 @@ export function RelicBelt(props: Readonly<{ state: GameState }>) {
           aria-hidden
         >
           <RelicIcon
+            relicId={pendingTemplate}
             imageSrc={relicImageMap[pendingTemplate]}
             fallback={pendingRelic?.thumb ?? '?'}
             alt={pendingRelic?.name}

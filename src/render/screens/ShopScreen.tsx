@@ -1,14 +1,15 @@
 import { useShopUnaffordableReject } from '../ShopUnaffordableRejectContext'
 import { Cards } from '../../data/cards'
 import { Relics } from '../../data/relics'
-import { cardDescriptionLinesForOffer, describeRelicEffect, formatCardName } from '../../ui/describe'
+import { describeRelicEffect } from '../../ui/describe'
+import { powerDisplayContextFromPlayer } from '../../systems/combat/powerDisplay'
+import { buildGameCardDisplayForOffer, toCardTravelPayload } from '../gameCardDisplay'
 import { shopBackdrop } from '../assets/backdropImages'
 import { keySprite, shopShelvesSprite } from '../assets/displayImages'
 import { relicImageMap } from '../assets/relicImages'
 import { useCardTravel } from '../CardTravelContext'
 import { useKeyTravel } from '../KeyTravelContext'
 import { useRelicTravel } from '../RelicTravelContext'
-import { relicIconViewportRect } from '../relicBeltLayout'
 import { GameCardView } from '../primitives/GameCardView'
 import { CenteredPanel } from '../primitives/CenteredPanel'
 import { RelicIcon } from '../primitives/RelicIcon'
@@ -21,6 +22,7 @@ export function ShopScreen(props: ScreenProps) {
   const { travelKeyToHud, travelingKey } = useKeyTravel()
   const { rejectFlashSlot, flashUnaffordable } = useShopUnaffordableReject()
   const shop = state.shop
+  const powerDisplay = powerDisplayContextFromPlayer(state.player)
 
   if (!shop) return null
 
@@ -29,7 +31,7 @@ export function ShopScreen(props: ScreenProps) {
 
   const shelfSlotClass = (slotIndex: number, canBuy: boolean, extra?: string) =>
     [
-      'shopShelfSlot',
+      'shopShelfSlot gameCardHoverHost',
       extra,
       !canBuy ? 'shopShelfSlot--unaffordable' : null,
       rejectFlashSlot === slotIndex ? 'shopShelfSlot--rejectFlash' : null,
@@ -59,14 +61,17 @@ export function ShopScreen(props: ScreenProps) {
           if (item.kind === 'RELIC') {
             const r = Relics[item.relicId]
             const title = r?.name ?? item.relicId
+            const isChosen = travelingTemplateId === item.relicId
             return (
               <div key={`shop-${slotIndex}`} className={shelfSlotClass(slotIndex, canBuy, 'shopRelicSlot')}>
                 <RelicIcon
+                  relicId={item.relicId}
                   imageSrc={relicImageMap[item.relicId]}
                   fallback={r?.thumb ?? '?'}
                   alt={r?.name}
                   tooltipName={title}
                   tooltipEffect={r ? describeRelicEffect(r) : ''}
+                  traveling={isChosen}
                   disabled={picking}
                   onClick={(e) => {
                     if (picking) return
@@ -74,14 +79,12 @@ export function ShopScreen(props: ScreenProps) {
                       flashUnaffordable(slotIndex)
                       return
                     }
-                    const sourceRect = relicIconViewportRect(e.currentTarget)
                     const beltSlotIndex = state.player.relics.length
-                    buy()
                     travelRelicToBelt({
                       templateId: item.relicId,
-                      sourceRect,
+                      sourceEl: e.currentTarget,
                       beltSlotIndex,
-                      onComplete: () => {},
+                      onComplete: buy,
                     })
                   }}
                 />
@@ -121,9 +124,12 @@ export function ShopScreen(props: ScreenProps) {
           }
 
           const t = Cards[item.cardId]
-          const label = t ? formatCardName(t.name, item.upgrades) : item.cardId
           const cardKey = `shop-${item.cardId}-${slotIndex}`
           const isChosen = travelingCardKey === cardKey
+          const display = t
+            ? buildGameCardDisplayForOffer(t, item.upgrades, powerDisplay, false, state.level)
+            : null
+          const facePayload = display ? toCardTravelPayload(display) : null
           return (
             <div key={cardKey} className={shelfSlotClass(slotIndex, canBuy, 'cardOfferSlot')}>
               <button
@@ -136,38 +142,17 @@ export function ShopScreen(props: ScreenProps) {
                     flashUnaffordable(slotIndex)
                     return
                   }
+                  if (!facePayload) return
                   travelCardToDeck({
                     cardKey,
                     sourceEl: e.currentTarget,
-                    card: {
-                      cardId: item.cardId,
-                      name: label,
-                      inkLabel: t?.cost !== null && t?.cost !== undefined ? String(t.cost) : null,
-                      descriptionLines: t
-                        ? cardDescriptionLinesForOffer(
-                            t,
-                            item.upgrades,
-                            state.player.power,
-                            state.player.firepower,
-                            state.player.firepowerMultiplier,
-                            state.player.shieldPower,
-                            false,
-                            state.player.relics.some((r) => r.templateId === 'GREEN_HAT'),
-                          )
-                        : [],
-                    },
+                    card: facePayload,
                     onComplete: () => enqueue({ type: 'SHOP/BUY_ITEM', slotIndex }),
                   })
                 }}
               >
                 <GameCardView
-                  template={t}
-                  offerUpgradeApplications={item.upgrades}
-                  power={state.player.power}
-                  firepower={state.player.firepower}
-                  firepowerMultiplier={state.player.firepowerMultiplier}
-                  shieldPower={state.player.shieldPower}
-                  hasGreenHat={state.player.relics.some((r) => r.templateId === 'GREEN_HAT')}
+                  display={display ?? undefined}
                   className={isChosen ? 'gameCard--traveling' : undefined}
                 />
                 <span className="shopCardOffer__price">{item.price}g</span>

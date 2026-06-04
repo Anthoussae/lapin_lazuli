@@ -2,8 +2,8 @@ import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import type { CardInstance, GameState } from '../../core/types/state'
 import type { CardInstanceId } from '../../core/types/ids'
 import { Cards } from '../../data/cards'
-import { cardDescriptionLinesForInstance, formatCardInstanceDisplayName } from '../../ui/describe'
-import { cardInstanceInkCost, cardInstanceInkCostModified } from '../../systems/cards/inkCost'
+import type { PowerDisplayContext } from '../../systems/combat/powerDisplay'
+import { buildGameCardDisplayForInstance, toCardTravelPayload } from '../gameCardDisplay'
 import { cardViewportRect } from '../cardLayout'
 import { useCardConsume } from '../CardConsumeContext'
 import { useCardTravel } from '../CardTravelContext'
@@ -12,10 +12,8 @@ type UseCombatHandDrawAnimationsArgs = Readonly<{
   handIds: ReadonlyArray<CardInstanceId>
   discardPileIds: ReadonlyArray<CardInstanceId>
   cardById: GameState['player']['deck']['cardById']
-  power: number
-  firepower: number
-  firepowerMultiplier: number
-  shieldPower: number
+  powerDisplay: PowerDisplayContext
+  gameLevel: number
   freeFirstFireSpell: boolean
   nextSpellCosts0: boolean
   enabled: boolean
@@ -27,33 +25,26 @@ type UseCombatHandDrawAnimationsArgs = Readonly<{
 function cardTravelPayload(
   cardInstanceId: CardInstanceId,
   inst: CardInstance | undefined,
-  power: number,
-  firepower: number,
-  firepowerMultiplier: number,
-  shieldPower: number,
+  powerDisplay: PowerDisplayContext,
+  gameLevel: number,
   freeFirstFireSpell: boolean,
   nextSpellCosts0: boolean,
 ) {
   const template = inst ? Cards[inst.templateId] : undefined
-  const inkOpts = { freeFirstFireSpell, nextSpellCosts0 }
-  const ink = inst && template ? cardInstanceInkCost(inst, template, inkOpts) : null
-  const inkModified = inst && template ? cardInstanceInkCostModified(inst, template, inkOpts) : false
-  return {
-    cardId: inst?.templateId,
-    name:
-      inst && template
-        ? formatCardInstanceDisplayName(template, inst)
-        : inst?.templateId ?? cardInstanceId,
-    nameUpgraded: (inst?.upgrades ?? 0) > 0,
-    inkLabel: inst?.exhausted ? 'Exhausted' : ink !== null ? String(ink) : null,
-    inkModified,
-    descriptionLines:
-      inst && template
-        ? cardDescriptionLinesForInstance(template, inst, power, firepower, firepowerMultiplier, shieldPower)
-        : [],
-    socketedGemId: inst?.socketedGemId ?? null,
-    foil: inst?.foil === true,
+  if (!inst || !template) {
+    return {
+      cardId: inst?.templateId,
+      name: inst?.templateId ?? cardInstanceId,
+      inkLabel: null,
+      descriptionLines: [] as const,
+    }
   }
+  return toCardTravelPayload(
+    buildGameCardDisplayForInstance(template, inst, powerDisplay, gameLevel, {
+      freeFirstFireSpell,
+      nextSpellCosts0,
+    }),
+  )
 }
 
 function wasDiscardedFromHand(
@@ -93,10 +84,8 @@ export function useCombatHandDrawAnimations(args: UseCombatHandDrawAnimationsArg
     handIds,
     discardPileIds,
     cardById,
-    power,
-    firepower,
-    firepowerMultiplier,
-    shieldPower,
+    powerDisplay,
+    gameLevel,
     freeFirstFireSpell,
     nextSpellCosts0,
     enabled,
@@ -164,16 +153,7 @@ export function useCombatHandDrawAnimations(args: UseCombatHandDrawAnimationsArg
     travelCardFromDeck({
       cardKey: nextId,
       destEl,
-      card: cardTravelPayload(
-        nextId,
-        inst,
-        power,
-        firepower,
-        firepowerMultiplier,
-        shieldPower,
-        freeFirstFireSpell,
-        nextSpellCosts0,
-      ),
+      card: cardTravelPayload(nextId, inst, powerDisplay, gameLevel, freeFirstFireSpell, nextSpellCosts0),
       onComplete: () => {
         drawQueueRef.current.shift()
         processingRef.current = false
@@ -186,13 +166,11 @@ export function useCombatHandDrawAnimations(args: UseCombatHandDrawAnimationsArg
     cardById,
     enabled,
     freeFirstFireSpell,
-    firepower,
-    firepowerMultiplier,
+    gameLevel,
     hasPendingConsumeWork,
     hasPendingDiscardWork,
     nextSpellCosts0,
-    power,
-    shieldPower,
+    powerDisplay,
     travelCardFromDeck,
     travelingCardKey,
   ])
@@ -252,16 +230,7 @@ export function useCombatHandDrawAnimations(args: UseCombatHandDrawAnimationsArg
         cardKey: nextId,
         sourceEl: sourceEl ?? undefined,
         sourceRect: sourceEl ? undefined : sourceRect,
-        card: cardTravelPayload(
-          nextId,
-          inst,
-          power,
-          firepower,
-          firepowerMultiplier,
-          shieldPower,
-          freeFirstFireSpell,
-          nextSpellCosts0,
-        ),
+        card: cardTravelPayload(nextId, inst, powerDisplay, gameLevel, freeFirstFireSpell, nextSpellCosts0),
         onComplete: () => {
           discardInFlightRef.current.delete(nextId)
           discardQueueRef.current = discardQueueRef.current.filter((id) => id !== nextId)
@@ -277,12 +246,10 @@ export function useCombatHandDrawAnimations(args: UseCombatHandDrawAnimationsArg
     cardById,
     clearDiscardSlotCache,
     enabled,
-    firepower,
-    firepowerMultiplier,
+    gameLevel,
     freeFirstFireSpell,
     nextSpellCosts0,
-    power,
-    shieldPower,
+    powerDisplay,
     travelCardToDiscard,
   ])
 

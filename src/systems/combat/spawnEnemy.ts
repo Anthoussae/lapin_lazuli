@@ -25,12 +25,12 @@ export function spawnEnemy(
   if (opts?.fixedMaxHp !== undefined) {
     hp = Math.max(1, opts.fixedMaxHp)
   } else {
-    const hpMult = enemyBoonHpMultiplierProduct(finalBoons)
+    const hpMult = enemyBoonHpMultiplierProduct(finalBoons, tmpl.level)
     const [r, rolledHp] = rollDice(state.rng, tmpl.hp)
     rng2 = r
     hp = Math.max(1, Math.ceil(rolledHp * hpMult))
   }
-  const strength = Math.max(0, (tmpl.strength ?? 0) + enemyBoonStrengthBonus(finalBoons))
+  const strength = Math.max(0, (tmpl.strength ?? 0) + enemyBoonStrengthBonus(finalBoons, tmpl.level))
   const enemy: EnemyInstance = { ...base, hp, maxHp: hp, shield: 0, lockedShield: 0, boons: finalBoons, strength }
   return { state: { ...state, rng: rng2 }, enemy }
 }

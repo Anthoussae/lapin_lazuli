@@ -10,6 +10,15 @@ export type EffectUpgrade = Readonly<{ upgradeValue?: number }>
 export type Effect =
   | ({ kind: 'DRAW_CARDS'; amount: number } & EffectUpgrade)
   | ({ kind: 'ADD_BUNNIES'; amount: number } & EffectUpgrade)
+  /**
+   * Add bunnies equal to `gameLevel * multiplier`. Upgrades increase `multiplier` by
+   * `multiplierUpgradePerLevel` per upgrade counter. Bunny power is added on top when cast from a card.
+   */
+  | ({
+      kind: 'ADD_BUNNIES_EQUAL_TO_GAME_LEVEL'
+      multiplier: number
+      multiplierUpgradePerLevel: number
+    } & EffectUpgrade)
   /** Multiplier applied to current bunnies; result is rounded up. Scales via `upgradeValue`. */
   | ({ kind: 'MULTIPLY_BUNNIES'; amount: number } & EffectUpgrade)
   | ({ kind: 'HEAL'; amount: number } & EffectUpgrade)
@@ -22,12 +31,30 @@ export type Effect =
   | ({ kind: 'GAIN_SHIELD'; amount: number; target?: 'player' | 'selectedEnemy' } & EffectUpgrade)
   /** Temporary shield equal to {@link GameState.level} (relics). */
   | ({ kind: 'GAIN_SHIELD_EQUAL_TO_LEVEL' } & EffectUpgrade)
+  /**
+   * Modify {@link GameState.level}. Used for meta-progression effects like Hourglass.
+   * `amount` may be negative. `min` defaults to 0.
+   */
+  | ({ kind: 'MODIFY_GAME_LEVEL'; amount: number; min?: number } & EffectUpgrade)
   /** Locked shield for the player; not cleared at turn start. */
   | ({ kind: 'GAIN_LOCKED_SHIELD'; amount: number } & EffectUpgrade)
   /** Move all temporary player shield into locked shield. */
   | ({ kind: 'LOCK_ALL_SHIELD' } & EffectUpgrade)
   /** Direct damage to the selected enemy (shield first); resolved on card play. */
   | ({ kind: 'DEAL_DAMAGE'; amount: number } & EffectUpgrade)
+  /** Remove all temporary and locked shield from the selected enemy. */
+  | ({ kind: 'SHATTER' } & EffectUpgrade)
+  /**
+   * Critical keyword: chance and multiplier scale independently via their upgrade fields.
+   * On cast, all other numeric card values may be multiplied when the roll succeeds.
+   */
+  | ({
+      kind: 'CRITICAL'
+      chancePercent: number
+      chanceUpgradeValue: number
+      multiplierPercent: number
+      multiplierUpgradeValue: number
+    } & EffectUpgrade)
   | ({ kind: 'GAIN_MAX_HP'; amount: number } & EffectUpgrade)
   | ({ kind: 'GAIN_GOLD'; amount: number } & EffectUpgrade)
   /** Gain `ceil(playerGold * percentAmount / 100)` gold (relic interest). */
@@ -56,6 +83,8 @@ export type Effect =
   | ({ kind: 'CONSUME_SELECTED_CARD'; numberOfTargets: number } & EffectUpgrade)
   | ({ kind: 'UPGRADE_SPECIFIC_CARD'; target: CardId; numberOfTargets: number; upgradeAmount: number } & EffectUpgrade)
   | ({ kind: 'UPGRADE_RANDOM_DECK_CARDS'; numberOfTargets: number; upgradeAmount: number } & EffectUpgrade)
+  /** Upgrade the card instance that triggered an `onAddCardOfType` relic (relic context only). */
+  | ({ kind: 'UPGRADE_ADDED_CARD'; upgradeAmount: number } & EffectUpgrade)
   /** At combat start, put this card in your opening hand (not a draw; ignores hand-size modifiers). */
   | ({ kind: 'DESTINY' } & EffectUpgrade)
   /** On play, permanently remove this card from the deck. */
@@ -71,3 +100,9 @@ export type Effect =
   | ({ kind: 'APPLY_ENCHANTMENT'; enchantmentId: EnchantmentId; target: 'self' | 'opponent' | 'global'; amount?: number } & EffectUpgrade)
   /** Randomly remove `amount` enchantment instances owned by your opponent. */
   | ({ kind: 'DISPEL'; amount: number } & EffectUpgrade)
+  /**
+   * Passive dodge chance (0–1) on `onReceivingAttack` relic triggers, or `dodgeChance` on enemy templates.
+   * Effective dodge chance is capped at 50% regardless of stacking.
+   * Dodged hits deal no damage; other attack effects still resolve.
+   */
+  | ({ kind: 'DODGE'; chance: number } & EffectUpgrade)

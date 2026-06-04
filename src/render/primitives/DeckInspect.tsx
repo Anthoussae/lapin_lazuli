@@ -6,7 +6,7 @@ import { deckInspectSprite, discardInspectSpriteForCount } from '../assets/displ
 import { useTriggerFxArtProps } from '../TriggerFxContext'
 import { useCardConsume } from '../CardConsumeContext'
 import { fontOfLetheForgetConsumeDelayMs } from '../fontOfLetheForgetFxConfig'
-import { effectiveFirepower, effectivePower, effectiveShieldPower } from '../../systems/combat/combatBonuses'
+import { powerDisplayContextFromPlayer, powerDisplayContextFromState } from '../../systems/combat/powerDisplay'
 import { GameCardView } from './GameCardView'
 import { InspectPileCardSlot } from './InspectPileCardSlot'
 import { InspectPileCloseButton } from './InspectPileCloseButton'
@@ -27,10 +27,7 @@ export function DeckInspect(props: Readonly<{ state: GameState; inCombat: boolea
   const pileOpen = deckOpen || discardOpen
   const [overlayMounted, setOverlayMounted] = useState(false)
   const [overlayExiting, setOverlayExiting] = useState(false)
-  const power = inCombat ? effectivePower(state) : state.player.power
-  const firepower = inCombat ? effectiveFirepower(state) : state.player.firepower
-  const firepowerMultiplier = state.player.firepowerMultiplier
-  const shieldPower = inCombat ? effectiveShieldPower(state) : state.player.shieldPower
+  const powerDisplay = inCombat ? powerDisplayContextFromState(state) : powerDisplayContextFromPlayer(state.player)
 
   useEffect(() => {
     if (pileOpen) {
@@ -148,11 +145,8 @@ export function DeckInspect(props: Readonly<{ state: GameState; inCombat: boolea
                           cardInstanceId={cid}
                           inst={inst}
                           template={t}
-                          power={power}
-                          firepower={firepower}
-                          firepowerMultiplier={firepowerMultiplier}
-                          shieldPower={shieldPower}
-                          hasGreenHat={state.player.relics.some((r) => r.templateId === 'GREEN_HAT')}
+                          powerDisplay={powerDisplay}
+                          gameLevel={state.level}
                         />
                       </InspectPileCardSlot>
                     )
@@ -169,11 +163,8 @@ export function DeckInspect(props: Readonly<{ state: GameState; inCombat: boolea
                       <GameCardView
                         inst={inst}
                         template={t}
-                        power={power}
-                        firepower={firepower}
-                        firepowerMultiplier={firepowerMultiplier}
-                        shieldPower={shieldPower}
-                        hasGreenHat={state.player.relics.some((r) => r.templateId === 'GREEN_HAT')}
+                        powerDisplay={powerDisplay}
+                        gameLevel={state.level}
                       />
                     </InspectPileCardSlot>
                   )

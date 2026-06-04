@@ -4,6 +4,7 @@ import type { CardInstanceId } from '../../core/types/ids'
 import type { CardInstance } from '../../core/types/state'
 import type { ScreenProps } from '../screens/types'
 import { useCardSocketFlip } from '../CardSocketFlipContext'
+import { powerDisplayContextFromPlayer } from '../../systems/combat/powerDisplay'
 import { cardFoilFlipPayload } from '../cardSocketFlipPayload'
 import { GameCardView } from './GameCardView'
 import { InspectPileCloseButton } from './InspectPileCloseButton'
@@ -26,10 +27,7 @@ export function PrinterFoilDialog(
   const selectedId = printer?.selectedCardInstanceId ?? null
   const canFoil = selectedId != null
   const cards = nonFoilDeckCardsSorted(Object.values(state.player.deck.cardById))
-  const power = state.player.power
-  const firepower = state.player.firepower
-  const firepowerMultiplier = state.player.firepowerMultiplier
-  const shieldPower = state.player.shieldPower
+  const powerDisplay = powerDisplayContextFromPlayer(state.player)
   const { playCardSocketFlip, animatingCardInstanceId, isSocketFlipPlaying } = useCardSocketFlip()
   const cardSlotRefs = useRef(new Map<CardInstanceId, HTMLDivElement>())
 
@@ -58,8 +56,8 @@ export function PrinterFoilDialog(
     playCardSocketFlip({
       cardInstanceId: selectedId,
       sourceEl: slotEl,
-      cardBefore: cardFoilFlipPayload(template, inst, power, firepower, firepowerMultiplier, shieldPower, false),
-      cardAfter: cardFoilFlipPayload(template, inst, power, firepower, firepowerMultiplier, shieldPower, true),
+      cardBefore: cardFoilFlipPayload(template, inst, powerDisplay, false, state.level),
+      cardAfter: cardFoilFlipPayload(template, inst, powerDisplay, true, state.level),
       onComplete: () => enqueue({ type: 'PRINTER/FOIL' }),
     })
   }
@@ -100,7 +98,7 @@ export function PrinterFoilDialog(
                   else cardSlotRefs.current.delete(inst.id)
                 }}
                 className={[
-                  'printerFoilDialogCardSlot',
+                  'printerFoilDialogCardSlot gameCardHoverHost',
                   animating ? 'printerFoilDialogCardSlot--animating' : null,
                 ]
                   .filter(Boolean)
@@ -110,11 +108,8 @@ export function PrinterFoilDialog(
                 <GameCardView
                   inst={inst}
                   template={t}
-                  power={power}
-                  firepower={firepower}
-                  firepowerMultiplier={firepowerMultiplier}
-                  shieldPower={shieldPower}
-                  hasGreenHat={state.player.relics.some((r) => r.templateId === 'GREEN_HAT')}
+                  powerDisplay={powerDisplay}
+                  gameLevel={state.level}
                   selected={selected}
                   className="printerFoilDialogCard"
                   onClick={

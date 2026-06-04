@@ -6,8 +6,18 @@ import type { RelicTemplate, TriggerDef } from '../data/relics'
 import type { GemId } from '../core/types/ids'
 import type { CardInstance } from '../core/types/state'
 import { cardBaseEffects } from '../systems/cards/cardEffects'
-import { boostFireDealDamage, cardHasFireDamageTags } from '../systems/cards/firepower'
-import { boostShieldGain, cardHasAddShieldTag } from '../systems/cards/shieldPower'
+import { cardHasFireDamageTags } from '../systems/cards/firepower'
+import { cardHasAddShieldTag } from '../systems/cards/shieldPower'
+import {
+  displayAddBunnies,
+  displayFireDamage,
+  displayOutgoingPlayerDamage,
+  displayPlayerPoisonHpLoss,
+  displayShieldGain,
+  EMPTY_POWER_DISPLAY,
+  greenHatPoisonBoostCeil,
+  type PowerDisplayContext,
+} from '../systems/combat/powerDisplay'
 import { applyCardInstanceEffectModifiers } from '../systems/cards/upgrades'
 import {
   cardKeywordIds,
@@ -26,19 +36,11 @@ export function englishPlural(n: number, one: string, many = `${one}s`): string 
   return n === 1 ? one : many
 }
 
-/** Half-step multipliers (1.5, 2, 2.5, …) for display. */
+/** Exact multiplier for card text (e.g. 2.75); bunny count after multiply is rounded separately. */
 export function formatBunnyMultiplier(amount: number): string {
-  const x = Math.round(amount * 2) / 2
+  const x = Math.round(amount * 100) / 100
   if (Number.isInteger(x)) return String(x)
-  return `${Math.floor(x)}.5`
-}
-
-function greenHatPoisonResistCeil(n: number): number {
-  return Math.ceil(n * 0.5)
-}
-
-function greenHatPoisonBoostCeil(n: number): number {
-  return Math.ceil(n * 1.5)
+  return x.toFixed(2).replace(/\.?0+$/, '')
 }
 
 export function describeEffect(fx: Effect): string {
@@ -47,6 +49,8 @@ export function describeEffect(fx: Effect): string {
       return `draw ${fx.amount} ${plural(fx.amount, 'card')}`
     case 'ADD_BUNNIES':
       return `add ${fx.amount} ${plural(fx.amount, 'bunny', 'bunnies')}`
+    case 'ADD_BUNNIES_EQUAL_TO_GAME_LEVEL':
+      return `add ${fx.multiplier} ${plural(fx.multiplier, 'bunny', 'bunnies')} per level`
     case 'MULTIPLY_BUNNIES':
       return `multiply your bunnies by ${formatBunnyMultiplier(fx.amount)}`
     case 'HEAL':
@@ -77,6 +81,10 @@ export function describeEffect(fx: Effect): string {
       return 'upgrades after casting'
     case 'DEAL_DAMAGE':
       return `deal ${fx.amount} damage`
+    case 'SHATTER':
+      return 'destroy all enemy shields'
+    case 'CRITICAL':
+      return `${fx.chancePercent}% critical chance, ${fx.multiplierPercent}% critical multiplier`
     case 'GAIN_MAX_HP':
       return `gain ${fx.amount} max hp`
     case 'GAIN_GOLD':
@@ -87,8 +95,8 @@ export function describeEffect(fx: Effect): string {
       return `gain ${fx.amount} ${plural(fx.amount, 'key')}`
     case 'GAIN_POWER':
       return fx.duration === 'combat'
-        ? `gain ${fx.amount} ${plural(fx.amount, 'power')} until end of combat`
-        : `gain ${fx.amount} ${plural(fx.amount, 'power')}`
+        ? `gain ${fx.amount} bunny power until end of combat`
+        : `gain ${fx.amount} bunny power`
     case 'GAIN_SHIELD_POWER':
       return fx.duration === 'combat'
         ? `gain ${fx.amount} shield power until end of combat`
@@ -108,7 +116,9 @@ export function describeEffect(fx: Effect): string {
     case 'UPGRADE_SELECTED_CARD':
       return `upgrade ${fx.numberOfTargets} ${plural(fx.numberOfTargets, 'card')} in your hand`
     case 'CONSUME_SELECTED_CARD':
-      return fx.numberOfTargets === 1 ? 'consume a selected card' : `consume up to ${fx.numberOfTargets} selected cards`
+      return fx.numberOfTargets === 1
+        ? 'consume up to 1 selected card'
+        : `consume up to ${fx.numberOfTargets} selected cards`
     case 'UPGRADE_SPECIFIC_CARD': {
       // Use template id; display formatting can be improved later.
       const pretty = fx.target === 'MULTIBUNNIES' ? 'Multibunnies' : fx.target
@@ -117,6 +127,8 @@ export function describeEffect(fx: Effect): string {
     }
     case 'UPGRADE_RANDOM_DECK_CARDS':
       return `upgrade ${fx.numberOfTargets} random ${plural(fx.numberOfTargets, 'card')} in your deck`
+    case 'UPGRADE_ADDED_CARD':
+      return 'upgrade it'
     case 'ACTIVATE_FREE_FIRST_FIRE_SPELL':
       return 'your first fire spell each combat costs 0 ink'
     case 'NEXT_SPELL_COSTS_0':
@@ -130,12 +142,37 @@ export function describeEffect(fx: Effect): string {
       if (fx.enchantmentId === 'STONESKIN') return `Enchantment. Gain +${amt} shield power`
       if (fx.enchantmentId === 'HARE_RAISING') return `Enchantment. Gain +${amt} bunny power`
       if (fx.enchantmentId === 'WARM') return `Enchantment. Gain +${amt} fire power`
-      if (fx.enchantmentId === 'POISON') return `enemy loses ${amt} hp each turn`
-      if (fx.enchantmentId === 'FLAMEWREATH') return `deal ${amt} damage when attacked`
+      if (fx.enchantmentId === 'POISON') return `enemy takes ${amt} poison damage each turn`
+      if (fx.enchantmentId === 'FLAMEWREATH') return `deal ${amt} fire damage when attacked`
+      if (fx.enchantmentId === 'GUARDIAN_ANGEL') return `Enchantment. Gain +${amt} shields each turn`
+      if (fx.enchantmentId === 'BUBBLE') return amt === 1 ? 'gain 1 bubble' : `gain ${amt} bubbles`
+      if (fx.enchantmentId === 'ANTI_MAGIC_SHELL') {
+        const word = amt === 1 ? 'shell' : 'shells'
+        return `Gain ${amt} anti-magic ${word}.`
+      }
+      if (fx.enchantmentId === 'BUNNY_RESIST') return 'reduce incoming bunny damage by 75%'
+      if (fx.enchantmentId === 'FIRE_RESIST') return 'reduce incoming fire damage by 75%'
+      if (fx.enchantmentId === 'POISON_RESIST') return 'reduce incoming poison damage by 75%'
+      if (fx.enchantmentId === 'DIZZY') return amt === 1 ? 'draw 1 fewer card each turn' : `draw ${amt} fewer cards each turn`
+      if (fx.enchantmentId === 'RUST') {
+        return amt === 3 ? 'decrease shield power by 3' : `decrease shield power by ${amt}`
+      }
+      if (fx.enchantmentId === 'AMPLIFY_DAMAGE') {
+        return amt <= 1 ? 'increase incoming damage by 30%' : `increase incoming damage by 30% (${amt} stacks)`
+      }
+      if (fx.enchantmentId === 'WEAKEN') return 'decrease outgoing damage by 50%'
       return `apply ${fx.enchantmentId}`
     }
+    case 'DODGE':
+      return `${Math.round(fx.chance * 100)}% chance to dodge incoming attacks`
     case 'DISPEL':
       return `dispel ${fx.amount}`
+    case 'MODIFY_GAME_LEVEL': {
+      const amt = fx.amount
+      const abs = Math.abs(amt)
+      if (amt === 0) return 'change your level by 0'
+      return amt < 0 ? `reduce your level by ${abs}` : `increase your level by ${abs}`
+    }
   }
 }
 
@@ -152,11 +189,46 @@ function plainCardDescLine(text: string): { kind: 'plain'; text: string } {
   return { kind: 'plain', text: capitalizeCardDescriptionText(text) }
 }
 
-const RELIC_TRIGGER_LINE: Partial<Record<TriggerDef['on'], (eff: string) => string>> = {
+function embedsCriticalInEffect(effects: ReadonlyArray<Effect>): boolean {
+  return effects.some((fx) => fx.kind === 'CRITICAL')
+}
+
+function splitVisibleAndTooltipOnlyKeywordIds(
+  ids: ReadonlyArray<CardKeywordId>,
+  opts: Readonly<{
+    embedsEnchantmentInEffect: boolean
+    embedsCriticalInEffect: boolean
+    embedsPiercingInEffect: boolean
+  }>,
+): Readonly<{ visible: CardKeywordId[]; tooltipOnly: CardKeywordId[] }> {
+  const visible = ids.filter(
+    (id) =>
+      id !== 'socketed' &&
+      !(id === 'enchantment' && opts.embedsEnchantmentInEffect) &&
+      !(id === 'critical' && opts.embedsCriticalInEffect) &&
+      !(id === 'piercing' && opts.embedsPiercingInEffect),
+  )
+  const tooltipOnly = ids.filter((id) => !visible.includes(id))
+  return { visible, tooltipOnly }
+}
+
+function keywordDescriptionLines(
+  visible: ReadonlyArray<CardKeywordId>,
+  tooltipOnly: ReadonlyArray<CardKeywordId>,
+): CardDescLine[] {
+  const lines: CardDescLine[] = []
+  if (visible.length) lines.push({ kind: 'keywords', ids: visible })
+  if (tooltipOnly.length) lines.push({ kind: 'keywords', ids: tooltipOnly, tooltipOnly: true })
+  return lines
+}
+
+const RELIC_TRIGGER_LINE: Partial<Record<TriggerDef['on'], (eff: string, trig: TriggerDef) => string>> = {
   onPickup: (eff) => capitalizeFirst(eff),
   combat_start: (eff) => `At combat start, ${eff}.`,
   turn_start: (eff) => `At turn start, ${eff}.`,
   fourthSpellCastPerTurn: (eff) => `After you cast your fourth spell this turn, ${eff}.`,
+  castSpellWithCostAboveAmount: (eff, trig) =>
+    `Whenever you cast a spell that costs ${trig.amount ?? 2} or more ink, ${eff}.`,
   draw_starting_hand: (eff) => `When drawing your starting hand, ${eff}.`,
   onNonOpenerCardDraw: (eff) => `Whenever you draw a card other than into your opening hand, ${eff}.`,
   onPlayerUnblockedDamage: (eff) => `The first time you take damage each combat, ${eff}.`,
@@ -165,11 +237,15 @@ const RELIC_TRIGGER_LINE: Partial<Record<TriggerDef['on'], (eff: string) => stri
   combat_end: (eff) => `At the end of each combat, ${eff}.`,
   onRest: (eff) => `When you rest, ${eff}.`,
   onSleep: (eff) => `When you sleep, ${eff}.`,
+  onChoosingPath: (eff) => `Whenever you choose a combat path, ${eff}.`,
+  onAddCardToDeck: (eff) => `Whenever you add a card to your deck, ${eff}.`,
+  onAddCardOfType: (eff, trig) =>
+    `Whenever you add a ${trig.cardTag ?? 'matching'} card to your deck, ${eff}.`,
 }
 
 export function describeRelicTrigger(trig: TriggerDef): string {
   const eff = describeEffect(trig.effect)
-  return RELIC_TRIGGER_LINE[trig.on]?.(eff) ?? eff
+  return RELIC_TRIGGER_LINE[trig.on]?.(eff, trig) ?? eff
 }
 
 export function describeRelic(relic: RelicTemplate): string {
@@ -197,19 +273,116 @@ function formatKeywordLabelsLine(ids: ReadonlyArray<CardKeywordId>): string {
   return `${ids.map((id) => CARD_KEYWORDS[id].label).join(', ')}.`
 }
 
+function cardEmbedsPiercingInEffect(card: CardTemplate, effects: ReadonlyArray<Effect>): boolean {
+  return (
+    card.tags.includes('piercing') &&
+    effects.some((fx) => fx.kind === 'HP_LOSS' && (fx.target ?? 'selectedEnemy') === 'selectedEnemy')
+  )
+}
+
+function poisonHpLossDisplayAmount(
+  card: CardTemplate,
+  fx: Effect & { kind: 'HP_LOSS' },
+  powerDisplay: PowerDisplayContext,
+): number {
+  const t = fx.target ?? 'selectedEnemy'
+  if (powerDisplay.hasGreenHat && card.tags.includes('poison')) {
+    return displayPlayerPoisonHpLoss(fx.amount, powerDisplay, t)
+  }
+  return displayOutgoingPlayerDamage(fx.amount, powerDisplay)
+}
+
+function piercingHpLossSegments(
+  card: CardTemplate,
+  base: number,
+  display: number,
+): CardDescSegment[] {
+  const suffix = card.tags.includes('poison') ? ' poison damage.' : ' damage.'
+  return [txt('Piercing. Deal '), amtSeg(base, display), txt(suffix)]
+}
+
+function piercingHpLossPlainText(card: CardTemplate, base: number, display: number): string {
+  const suffix = card.tags.includes('poison') ? ' poison damage.' : ' damage.'
+  const amountText = display === base ? `${display}` : `${base}→${display}`
+  return capitalizeCardDescriptionText(`Piercing. Deal ${amountText}${suffix}`)
+}
+
+function shatterThenFireDamageEffects(
+  effects: ReadonlyArray<Effect>,
+): Readonly<{ baseDamage: Effect & { kind: 'DEAL_DAMAGE' }; displayDamage: Effect & { kind: 'DEAL_DAMAGE' } }> | null {
+  if (effects.length < 2) return null
+  if (effects[0].kind !== 'SHATTER' || effects[1].kind !== 'DEAL_DAMAGE') return null
+  return { baseDamage: effects[1], displayDamage: effects[1] }
+}
+
+function shatterThenFireDamageText(
+  card: CardTemplate,
+  baseDamage: number,
+  displayDamage: number,
+  powerDisplay: PowerDisplayContext,
+): string {
+  const boosted = cardHasFireDamageTags(card.tags)
+    ? displayFireDamage(displayDamage, powerDisplay)
+    : displayDamage
+  const display = displayOutgoingPlayerDamage(boosted, powerDisplay)
+  const amountText = display === baseDamage ? `${display}` : `${baseDamage}→${display}`
+  return capitalizeCardDescriptionText(`Destroy all enemy shields, then deal ${amountText} fire damage.`)
+}
+
+function shatterThenFireDamageSegments(
+  card: CardTemplate,
+  baseDamage: number,
+  displayDamage: number,
+  powerDisplay: PowerDisplayContext,
+): CardDescSegment[] {
+  const boosted = cardHasFireDamageTags(card.tags)
+    ? displayFireDamage(displayDamage, powerDisplay)
+    : displayDamage
+  const display = displayOutgoingPlayerDamage(boosted, powerDisplay)
+  return capitalizeFirstSegment([
+    txt('Destroy all enemy shields, then deal '),
+    amtSeg(baseDamage, display),
+    txt(' fire damage.'),
+  ])
+}
+
 function describeEffectsOrConsumeFallback(
   card: CardTemplate,
   scaled: ReadonlyArray<Effect>,
   socketedGemId: GemId | null = null,
   grantedExpire = false,
+  powerDisplay: PowerDisplayContext = EMPTY_POWER_DISPLAY,
 ): string {
   const lines: string[] = []
   const unplayable = unplayableDescriptionLine(card)
   if (unplayable) lines.push(unplayable)
   const visibleFx = scaled.filter((fx) => !isDescriptionKeywordEffect(fx))
-  if (visibleFx.length) lines.push(...visibleFx.map((fx) => capitalizeCardDescriptionText(`${describeEffect(fx)}.`)))
-  else if (card.tags.includes('consume')) lines.push('Consume.')
-  const keywordIds = cardKeywordIds(card, socketedGemId, grantedExpire)
+  const shatterFire = shatterThenFireDamageEffects(visibleFx)
+  if (shatterFire) {
+    lines.push(
+      shatterThenFireDamageText(
+        card,
+        shatterFire.baseDamage.amount,
+        shatterFire.displayDamage.amount,
+        powerDisplay,
+      ),
+    )
+  } else if (visibleFx.length) {
+    lines.push(
+      ...visibleFx.map((fx) => {
+        if (fx.kind === 'HP_LOSS' && card.tags.includes('piercing') && (fx.target ?? 'selectedEnemy') === 'selectedEnemy') {
+          const display = poisonHpLossDisplayAmount(card, fx, powerDisplay)
+          return piercingHpLossPlainText(card, fx.amount, display)
+        }
+        return capitalizeCardDescriptionText(`${describeEffect(fx)}.`)
+      }),
+    )
+  }
+  const keywordIds = cardKeywordIds(card, socketedGemId, grantedExpire).filter(
+    (id) =>
+      !(id === 'critical' && embedsCriticalInEffect(visibleFx)) &&
+      !(id === 'piercing' && cardEmbedsPiercingInEffect(card, visibleFx)),
+  )
   if (keywordIds.length) lines.push(capitalizeCardDescriptionText(formatKeywordLabelsLine(keywordIds)))
   return lines.join('\n')
 }
@@ -269,7 +442,8 @@ export type CardDescSegment =
 export type CardDescLine =
   | { kind: 'plain'; text: string }
   | { kind: 'segments'; segments: ReadonlyArray<CardDescSegment> }
-  | { kind: 'keywords'; ids: ReadonlyArray<CardKeywordId> }
+  /** `tooltipOnly` keywords are omitted from card text but still power hover tooltips. */
+  | { kind: 'keywords'; ids: ReadonlyArray<CardKeywordId>; tooltipOnly?: boolean }
 
 function amtSeg(base: number, display: number, format: CardDescAmountFormat = 'integer'): CardDescSegment {
   return { kind: 'amount', base, display, format }
@@ -279,13 +453,16 @@ function txt(text: string): CardDescSegment {
   return { kind: 'text', text }
 }
 
-const EMBEDDED_ENCHANTMENT_POWER_IDS = new Set(['STONESKIN', 'HARE_RAISING', 'WARM'])
+const EMBEDDED_ENCHANTMENT_KEYWORD_IDS = new Set(['STONESKIN', 'HARE_RAISING', 'WARM', 'GUARDIAN_ANGEL'])
 
 function enchantmentPowerGainSegments(
   enchantmentId: string,
   baseAmt: number,
   displayAmt: number,
 ): CardDescSegment[] | null {
+  if (enchantmentId === 'GUARDIAN_ANGEL') {
+    return [txt('Enchantment. Gain +'), amtSeg(baseAmt, displayAmt), txt(' shields each turn.')]
+  }
   const suffix =
     enchantmentId === 'STONESKIN'
       ? ' shield power.'
@@ -308,14 +485,11 @@ function effectDescriptionLine(
   card: CardTemplate,
   baseFx: Effect,
   displayFx: Effect,
-  power: number,
-  firepower: number,
-  firepowerMultiplier: number,
-  shieldPower: number,
-  hasGreenHat: boolean,
+  powerDisplay: PowerDisplayContext,
+  gameLevel: number,
 ): CardDescLine {
   const segments = capitalizeFirstSegment(
-    buildEffectSegments(card, baseFx, displayFx, power, firepower, firepowerMultiplier, shieldPower, hasGreenHat),
+    buildEffectSegments(card, baseFx, displayFx, powerDisplay, gameLevel),
   )
   return { kind: 'segments', segments }
 }
@@ -324,11 +498,8 @@ function buildEffectSegments(
   card: CardTemplate,
   baseFx: Effect,
   displayFx: Effect,
-  power: number,
-  firepower: number,
-  firepowerMultiplier: number,
-  shieldPower: number,
-  hasGreenHat: boolean,
+  powerDisplay: PowerDisplayContext,
+  _gameLevel: number,
 ): CardDescSegment[] {
   switch (displayFx.kind) {
     case 'DRAW_CARDS':
@@ -339,11 +510,21 @@ function buildEffectSegments(
       ]
     case 'ADD_BUNNIES': {
       const base = baseFx.kind === 'ADD_BUNNIES' ? baseFx.amount : displayFx.amount
-      const display = power > 0 ? displayFx.amount + power : displayFx.amount
+      const display = displayAddBunnies(displayFx.amount, powerDisplay)
       return [
         txt('add '),
         amtSeg(base, display),
         txt(` ${plural(display, 'bunny', 'bunnies')}.`),
+      ]
+    }
+    case 'ADD_BUNNIES_EQUAL_TO_GAME_LEVEL': {
+      if (baseFx.kind !== 'ADD_BUNNIES_EQUAL_TO_GAME_LEVEL' || displayFx.kind !== 'ADD_BUNNIES_EQUAL_TO_GAME_LEVEL') {
+        return [txt(`${describeEffect(displayFx)}.`)]
+      }
+      return [
+        txt('add '),
+        amtSeg(baseFx.multiplier, displayFx.multiplier),
+        txt(` ${plural(displayFx.multiplier, 'bunny', 'bunnies')} per level.`),
       ]
     }
     case 'MULTIPLY_BUNNIES':
@@ -363,22 +544,17 @@ function buildEffectSegments(
         txt(` ${plural(displayFx.amount, 'hp')}.`),
       ]
     case 'HP_LOSS': {
-      let base = baseFx.kind === 'HP_LOSS' ? baseFx.amount : displayFx.amount
+      const base = baseFx.kind === 'HP_LOSS' ? baseFx.amount : displayFx.amount
       const t = displayFx.target ?? 'selectedEnemy'
-      let display = displayFx.amount
-      if (hasGreenHat && card.tags.includes('poison')) {
-        if (t === 'player') {
-          base = greenHatPoisonResistCeil(base)
-          display = greenHatPoisonResistCeil(display)
-        } else {
-          base = greenHatPoisonBoostCeil(base)
-          display = greenHatPoisonBoostCeil(display)
-        }
+      const display = poisonHpLossDisplayAmount(card, displayFx, powerDisplay)
+      if (card.tags.includes('piercing') && t === 'selectedEnemy') {
+        return piercingHpLossSegments(card, base, display)
       }
+      const lossSuffix = card.tags.includes('poison') ? ' poison damage.' : ` ${plural(display, 'hp')}.`
       if (t === 'player') {
-        return [txt('lose '), amtSeg(base, display), txt(` ${plural(display, 'hp')}.`)]
+        return [txt('lose '), amtSeg(base, display), txt(lossSuffix)]
       }
-      return [txt('enemy loses '), amtSeg(base, display), txt(` ${plural(display, 'hp')}.`)]
+      return [txt('enemy loses '), amtSeg(base, display), txt(lossSuffix)]
     }
     case 'GAIN_SHIELD': {
       const base = baseFx.kind === 'GAIN_SHIELD' ? baseFx.amount : displayFx.amount
@@ -390,31 +566,50 @@ function buildEffectSegments(
           txt(` ${plural(displayFx.amount, 'shield')}.`),
         ]
       }
-      const display =
-        cardHasAddShieldTag(card.tags) && shieldPower > 0
-          ? boostShieldGain(displayFx.amount, shieldPower)
-          : displayFx.amount
+      const display = displayShieldGain(
+        displayFx.amount,
+        powerDisplay,
+        cardHasAddShieldTag(card.tags),
+      )
       return [
         txt('gain '),
         amtSeg(base, display),
         txt(` ${plural(display, 'shield')}.`),
       ]
     }
-    case 'GAIN_LOCKED_SHIELD':
+    case 'GAIN_LOCKED_SHIELD': {
+      const base = baseFx.kind === 'GAIN_LOCKED_SHIELD' ? baseFx.amount : displayFx.amount
+      const display = displayShieldGain(displayFx.amount, powerDisplay, false)
       return [
         txt('gain '),
-        amtSeg(
-          baseFx.kind === 'GAIN_LOCKED_SHIELD' ? baseFx.amount : displayFx.amount,
-          displayFx.amount,
-        ),
-        txt(` locked ${plural(displayFx.amount, 'shield')}.`),
+        amtSeg(base, display),
+        txt(` locked ${plural(display, 'shield')}.`),
       ]
+    }
     case 'DEAL_DAMAGE': {
       const base = baseFx.kind === 'DEAL_DAMAGE' ? baseFx.amount : displayFx.amount
-      const display = cardHasFireDamageTags(card.tags)
-        ? boostFireDealDamage(displayFx.amount, firepower, firepowerMultiplier)
+      const boosted = cardHasFireDamageTags(card.tags)
+        ? displayFireDamage(displayFx.amount, powerDisplay)
         : displayFx.amount
-      return [txt('deal '), amtSeg(base, display), txt(' damage.')]
+      const display = displayOutgoingPlayerDamage(boosted, powerDisplay)
+      return [
+        txt('deal '),
+        amtSeg(base, display),
+        txt(cardHasFireDamageTags(card.tags) ? ' fire damage.' : ' damage.'),
+      ]
+    }
+    case 'SHATTER':
+      return [txt('destroy all enemy shields.')]
+    case 'CRITICAL': {
+      if (baseFx.kind !== 'CRITICAL' || displayFx.kind !== 'CRITICAL') {
+        return [txt(`${describeEffect(displayFx)}.`)]
+      }
+      return [
+        amtSeg(baseFx.chancePercent, displayFx.chancePercent),
+        txt('% critical chance. '),
+        amtSeg(baseFx.multiplierPercent, displayFx.multiplierPercent),
+        txt('% critical multiplier.'),
+      ]
     }
     case 'GAIN_MAX_HP':
       return [
@@ -438,7 +633,7 @@ function buildEffectSegments(
       return [
         txt('gain '),
         amtSeg(baseFx.kind === 'GAIN_POWER' ? baseFx.amount : displayFx.amount, displayFx.amount),
-        txt(` ${plural(displayFx.amount, 'power')}.`),
+        txt(' bunny power.'),
       ]
     case 'GAIN_FIREPOWER':
       return [
@@ -489,7 +684,7 @@ function buildEffectSegments(
         txt(` ${plural(displayFx.numberOfTargets, 'card')} in your hand.`),
       ]
     case 'CONSUME_SELECTED_CARD':
-      if (displayFx.numberOfTargets === 1) return [txt('consume a selected card.')]
+      if (displayFx.numberOfTargets === 1) return [txt('consume up to 1 selected card.')]
       return [
         txt('consume up to '),
         amtSeg(
@@ -525,13 +720,30 @@ function buildEffectSegments(
       const powerGain = enchantmentPowerGainSegments(displayFx.enchantmentId, base, display)
       if (powerGain) return powerGain
       if (displayFx.enchantmentId === 'FLAMEWREATH') {
-        const boosted = boostFireDealDamage(display, firepower, firepowerMultiplier)
-        return [txt('deal '), amtSeg(base, boosted), txt(' damage when attacked.')]
+        const boosted = displayFireDamage(display, powerDisplay)
+        return [txt('deal '), amtSeg(base, boosted), txt(' fire damage when attacked.')]
       }
       if (displayFx.enchantmentId === 'POISON') {
-        const baseAdj = hasGreenHat ? greenHatPoisonBoostCeil(base) : base
-        const displayAdj = hasGreenHat ? greenHatPoisonBoostCeil(display) : display
-        return [txt('enemy loses '), amtSeg(baseAdj, displayAdj), txt(` hp each turn.`)]
+        const displayAdj = powerDisplay.hasGreenHat ? greenHatPoisonBoostCeil(display) : display
+        return [txt('enemy takes '), amtSeg(base, displayAdj), txt(' poison damage each turn.')]
+      }
+      if (displayFx.enchantmentId === 'BUBBLE') {
+        const word = display === 1 ? 'bubble' : 'bubbles'
+        return [txt('gain '), amtSeg(base, display), txt(` ${word}.`)]
+      }
+      if (displayFx.enchantmentId === 'ANTI_MAGIC_SHELL') {
+        const word = display === 1 ? 'shell' : 'shells'
+        return [txt('gain '), amtSeg(base, display), txt(` anti-magic ${word}.`)]
+      }
+      if (displayFx.enchantmentId === 'DIZZY') {
+        const cardWord = display === 1 ? 'card' : 'cards'
+        return [txt('draw '), amtSeg(base, display), txt(` fewer ${cardWord} each turn.`)]
+      }
+      if (displayFx.enchantmentId === 'RUST') {
+        return [txt('decrease shield power by '), amtSeg(base, display), txt('.')]
+      }
+      if (displayFx.enchantmentId === 'WEAKEN') {
+        return [txt('decrease outgoing damage by '), amtSeg(50, 50), txt('%.')]
       }
       return [txt(`${describeEffect(displayFx)}.`)]
     }
@@ -546,14 +758,11 @@ function buildEffectSegments(
 export function cardDescriptionLines(
   card: CardTemplate,
   upgrades: number,
-  power: number,
+  powerDisplay: PowerDisplayContext,
   socketedGemId: GemId | null = null,
-  firepower = 0,
-  firepowerMultiplier = 0,
-  shieldPower = 0,
   foil = false,
   grantedExpire = false,
-  hasGreenHat = false,
+  gameLevel = 1,
 ): CardDescLine[] {
   const baseEffects = cardBaseEffects(card.id, socketedGemId)
   const lines: CardDescLine[] = []
@@ -562,7 +771,6 @@ export function cardDescriptionLines(
   if (!baseEffects.length) {
     const keywordIds = cardKeywordIds(card, socketedGemId, grantedExpire)
     const keywordLines: CardDescLine[] = keywordIds.length ? [{ kind: 'keywords', ids: keywordIds }] : []
-    if (!lines.length && card.tags.includes('consume')) return [plainCardDescLine('Consume.')]
     return [...lines, ...keywordLines]
   }
   const baseScaled = applyCardInstanceEffectModifiers(baseEffects, 0, foil).filter(
@@ -571,25 +779,27 @@ export function cardDescriptionLines(
   const scaled = applyCardInstanceEffectModifiers(baseEffects, upgrades, foil).filter(
     (fx) => !isDescriptionKeywordEffect(fx),
   )
-  const effectLines: CardDescLine[] = scaled.map((fx, i) =>
-    effectDescriptionLine(
-      card,
-      baseScaled[i] ?? fx,
-      fx,
-      power,
-      firepower,
-      firepowerMultiplier,
-      shieldPower,
-      hasGreenHat,
-    ),
-  )
+  const shatterFire =
+    baseScaled.length >= 2 &&
+    baseScaled[0].kind === 'SHATTER' &&
+    scaled[0].kind === 'SHATTER' &&
+    baseScaled[1].kind === 'DEAL_DAMAGE' &&
+    scaled[1].kind === 'DEAL_DAMAGE'
+      ? { baseDamage: baseScaled[1].amount, displayDamage: scaled[1].amount }
+      : null
+  const effectLines: CardDescLine[] = shatterFire
+    ? [{ kind: 'segments', segments: shatterThenFireDamageSegments(card, shatterFire.baseDamage, shatterFire.displayDamage, powerDisplay) }]
+    : scaled.map((fx, i) => effectDescriptionLine(card, baseScaled[i] ?? fx, fx, powerDisplay, gameLevel))
   const embedsEnchantmentInEffect = scaled.some(
-    (fx) => fx.kind === 'APPLY_ENCHANTMENT' && EMBEDDED_ENCHANTMENT_POWER_IDS.has(fx.enchantmentId),
+    (fx) => fx.kind === 'APPLY_ENCHANTMENT' && EMBEDDED_ENCHANTMENT_KEYWORD_IDS.has(fx.enchantmentId),
   )
-  const keywordIds = cardKeywordIds(card, socketedGemId, grantedExpire).filter(
-    (id) => !(id === 'enchantment' && embedsEnchantmentInEffect),
-  )
-  const keywordLines: CardDescLine[] = keywordIds.length ? [{ kind: 'keywords', ids: keywordIds }] : []
+  const { visible: visibleKeywordIds, tooltipOnly: tooltipOnlyKeywordIds } =
+    splitVisibleAndTooltipOnlyKeywordIds(cardKeywordIds(card, socketedGemId, grantedExpire), {
+      embedsEnchantmentInEffect,
+      embedsCriticalInEffect: embedsCriticalInEffect(scaled),
+      embedsPiercingInEffect: cardEmbedsPiercingInEffect(card, scaled),
+    })
+  const keywordLines = keywordDescriptionLines(visibleKeywordIds, tooltipOnlyKeywordIds)
   return [...lines, ...effectLines, ...keywordLines]
 }
 
@@ -620,47 +830,27 @@ export function gemOfferDescriptionLines(gem: GemTemplate): CardDescLine[] {
 export function cardDescriptionLinesForInstance(
   card: CardTemplate,
   inst: CardInstance,
-  power: number,
-  firepower = 0,
-  firepowerMultiplier = 0,
-  shieldPower = 0,
-  hasGreenHat = false,
+  powerDisplay: PowerDisplayContext,
+  gameLevel = 1,
 ): CardDescLine[] {
   return cardDescriptionLines(
     card,
     inst.upgrades,
-    power,
+    powerDisplay,
     inst.socketedGemId ?? null,
-    firepower,
-    firepowerMultiplier,
-    shieldPower,
     inst.foil === true,
     inst.grantedExpire === true,
-    hasGreenHat,
+    gameLevel,
   )
 }
 
 export function cardDescriptionLinesForOffer(
   card: CardTemplate,
   upgradeApplications: number,
-  power = 0,
-  firepower = 0,
-  firepowerMultiplier = 0,
-  shieldPower = 0,
+  powerDisplay: PowerDisplayContext,
   foil = false,
-  hasGreenHat = false,
+  gameLevel = 1,
 ): CardDescLine[] {
-  return cardDescriptionLines(
-    card,
-    upgradeApplications,
-    power,
-    null,
-    firepower,
-    firepowerMultiplier,
-    shieldPower,
-    foil,
-    false,
-    hasGreenHat,
-  )
+  return cardDescriptionLines(card, upgradeApplications, powerDisplay, null, foil, false, gameLevel)
 }
 

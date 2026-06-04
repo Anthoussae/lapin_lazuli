@@ -1,7 +1,7 @@
 import type { CardId, CardInstanceId } from '../../core/types/ids'
 import type { RngState } from '../../core/rng/rng'
 import { rngInt } from '../../core/rng/rng'
-import type { GameState } from '../../core/types/state'
+import type { CardInstance, GameState } from '../../core/types/state'
 import { Cards } from '../../data/cards'
 import type { Effect } from '../../data/effects'
 import { foilCardEffectAmounts, foilCardEffectUpgradeValues } from './foil'
@@ -10,8 +10,17 @@ export function isCardUpgradeable(templateId: CardId): boolean {
   return !Cards[templateId]?.unupgradeable
 }
 
+export function isCardInstanceUpgradeable(inst: CardInstance): boolean {
+  return inst.unupgradable !== true && isCardUpgradeable(inst.templateId)
+}
+
 function ceilScaledAmount(base: number, perUpgrade: number, upgrades: number): number {
   return Math.ceil(base + perUpgrade * upgrades)
+}
+
+/** Bunny multipliers scale exactly; only the post-multiply bunny count is rounded up. */
+function exactScaledAmount(base: number, perUpgrade: number, upgrades: number): number {
+  return base + perUpgrade * upgrades
 }
 
 function effectUpgradePerTier(fx: Effect): number {
@@ -19,6 +28,22 @@ function effectUpgradePerTier(fx: Effect): number {
 }
 
 function scaleEffect(fx: Effect, upgrades: number): Effect {
+  if (fx.kind === 'ADD_BUNNIES_EQUAL_TO_GAME_LEVEL') {
+    if (fx.multiplierUpgradePerLevel <= 0) return fx
+    return {
+      ...fx,
+      multiplier: fx.multiplier + fx.multiplierUpgradePerLevel * upgrades,
+    }
+  }
+
+  if (fx.kind === 'CRITICAL') {
+    return {
+      ...fx,
+      chancePercent: ceilScaledAmount(fx.chancePercent, fx.chanceUpgradeValue, upgrades),
+      multiplierPercent: ceilScaledAmount(fx.multiplierPercent, fx.multiplierUpgradeValue, upgrades),
+    }
+  }
+
   const per = effectUpgradePerTier(fx)
   if (per <= 0) return fx
 
@@ -33,7 +58,9 @@ function scaleEffect(fx: Effect, upgrades: number): Effect {
 
   if ('amount' in fx) {
     if (typeof fx.amount !== 'number') return fx
-    return { ...fx, amount: ceilScaledAmount(fx.amount, per, upgrades) }
+    const scale =
+      fx.kind === 'MULTIPLY_BUNNIES' ? exactScaledAmount : ceilScaledAmount
+    return { ...fx, amount: scale(fx.amount, per, upgrades) }
   }
 
   return fx
@@ -63,10 +90,11 @@ export function applyCardInstanceEffectModifiers(
 
 export function upgradeCardInstance(state: GameState, cardInstanceId: CardInstanceId, amount: number): GameState {
   const inst = state.player.deck.cardById[cardInstanceId]
-  if (!inst || !isCardUpgradeable(inst.templateId) || amount <= 0) return state
+  if (!inst || !isCardInstanceUpgradeable(inst) || amount <= 0) return state
   const next = { ...inst, upgrades: inst.upgrades + amount }
   return {
     ...state,
+    runStats: { ...state.runStats, totalCardUpgrades: state.runStats.totalCardUpgrades + amount },
     player: {
       ...state.player,
       deck: { ...state.player.deck, cardById: { ...state.player.deck.cardById, [cardInstanceId]: next } },
@@ -88,7 +116,7 @@ export function upgradeSelectedCards(
   const pushCandidate = (id: CardInstanceId) => {
     if (seen.has(id)) return
     const inst = state.player.deck.cardById[id]
-    if (!inst || !isCardUpgradeable(inst.templateId)) return
+    if (!inst || !isCardInstanceUpgradeable(inst)) return
     candidates.push(id)
     seen.add(id)
   }
@@ -105,7 +133,7 @@ export function upgradeSelectedCards(
 
 export function upgradeableDeckCardIds(state: GameState): ReadonlyArray<CardInstanceId> {
   return Object.values(state.player.deck.cardById)
-    .filter((c) => isCardUpgradeable(c.templateId))
+    .filter((c) => isCardInstanceUpgradeable(c))
     .map((c) => c.id)
     .sort()
 }
@@ -153,7 +181,7 @@ export function upgradeSpecificCards(
   if (numberOfTargets <= 0 || upgradeAmount <= 0) return state
   const deck = state.player.deck
   const ids = Object.values(deck.cardById)
-    .filter((c) => c.templateId === targetTemplateId && isCardUpgradeable(c.templateId))
+    .filter((c) => c.templateId === targetTemplateId && isCardInstanceUpgradeable(c))
     .map((c) => c.id)
   if (!ids.length) return state
 

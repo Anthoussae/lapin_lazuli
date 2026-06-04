@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react'
-import { TickingNumber } from './TickingNumber'
+import { useTickingNumber } from '../hooks/useTickingNumber'
 
 export type BarDisplayProps = Readonly<{
   /** Prefix shown before the amount, e.g. "Health:" */
@@ -14,6 +14,10 @@ export type BarDisplayProps = Readonly<{
   /** Metallic gold frame via global `.gilt-rim` tokens. */
   giltRim?: boolean
   durationMs?: number
+  /** Toxic green fill for poison HP loss tick (see tokens.css --bar-display-poison-fill). */
+  poisonHpDrop?: boolean
+  /** Orange fill for fire damage HP loss tick (see tokens.css --bar-display-fire-fill). */
+  fireHpDrop?: boolean
   className?: string
 }>
 
@@ -32,12 +36,20 @@ export function BarDisplay(props: BarDisplayProps) {
     barAbsenceColor = DEFAULT_EMPTY,
     giltRim = false,
     durationMs,
+    poisonHpDrop = false,
+    fireHpDrop = false,
     className,
   } = props
 
   const safeMax = Math.max(0, max)
-  const displayCurrent = Math.max(0, current)
-  const fillPct = safeMax > 0 ? Math.min(100, (displayCurrent / safeMax) * 100) : 0
+  const animateHp = durationMs != null && durationMs > 0
+  const { display: tickedCurrent } = useTickingNumber(Math.max(0, current), {
+    durationMs: animateHp ? durationMs : 1,
+  })
+  const targetCurrent = Math.max(0, current)
+  const displayCurrent = animateHp ? tickedCurrent : targetCurrent
+  /** Fill tracks the target HP with a CSS width transition; the number still ticks in whole steps. */
+  const fillPct = safeMax > 0 ? Math.min(100, (targetCurrent / safeMax) * 100) : 0
   const amountAria = showMax ? `${displayCurrent}/${safeMax}` : String(displayCurrent)
 
   const style = {
@@ -45,9 +57,21 @@ export function BarDisplay(props: BarDisplayProps) {
     '--bar-display-fill': barColor,
     '--bar-display-empty': barAbsenceColor,
     '--bar-display-fill-pct': `${fillPct}%`,
+    ...(animateHp && durationMs != null
+      ? { '--bar-display-tick-duration': `${durationMs}ms` }
+      : {}),
   } as CSSProperties
 
-  const rootClass = ['barDisplay', giltRim ? 'gilt-rim' : '', className].filter(Boolean).join(' ')
+  const rootClass = [
+    'barDisplay',
+    giltRim ? 'gilt-rim' : '',
+    animateHp ? 'barDisplay--hpTick' : '',
+    poisonHpDrop ? 'barDisplay--poisonHpDrop' : '',
+    fireHpDrop ? 'barDisplay--fireHpDrop' : '',
+    className,
+  ]
+    .filter(Boolean)
+    .join(' ')
 
   return (
     <div
@@ -65,7 +89,7 @@ export function BarDisplay(props: BarDisplayProps) {
       <div className="barDisplay__text">
         <span className="barDisplay__label">{label}</span>
         <span className="barDisplay__amount">
-          <TickingNumber value={displayCurrent} durationMs={durationMs} />
+          <span className="tickingNumber">{displayCurrent}</span>
           {showMax ? (
             <>
               /<span className="barDisplay__max">{safeMax}</span>

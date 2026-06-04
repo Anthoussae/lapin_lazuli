@@ -1,3 +1,4 @@
+import type { CardInstanceId } from '../../core/types/ids'
 import type { RngState } from '../../core/rng/rng'
 import { rngInt } from '../../core/rng/rng'
 import type { CardInstance, GameState } from '../../core/types/state'
@@ -22,18 +23,21 @@ export function cardInstanceBestnessWeight(inst: CardInstance): number {
 
 /**
  * Picks one card from `instances` with the highest {@link cardInstanceBestnessWeight}.
- * Ties are broken with seeded RNG.
+ * Ties are broken with seeded RNG. Cards in `excludeIds` are omitted.
  */
 export function determineBestCard(
   rng: RngState,
   instances: ReadonlyArray<CardInstance>,
+  excludeIds: ReadonlySet<CardInstanceId> | ReadonlyArray<CardInstanceId> = [],
 ): readonly [RngState, CardInstance | null] {
-  if (instances.length === 0) return [rng, null]
+  const excluded = excludeIds instanceof Set ? excludeIds : new Set(excludeIds)
+  const pool = instances.filter((inst) => !excluded.has(inst.id))
+  if (pool.length === 0) return [rng, null]
 
   let maxWeight = Number.NEGATIVE_INFINITY
   const tied: CardInstance[] = []
 
-  for (const inst of instances) {
+  for (const inst of pool) {
     const w = cardInstanceBestnessWeight(inst)
     if (w > maxWeight) {
       maxWeight = w

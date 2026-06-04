@@ -1,9 +1,11 @@
 import { CARD_KEYWORDS, FOIL_CARD_TOOLTIP, type CardKeywordId } from '../../ui/cardKeywords'
 import { gameTooltipAnchorOffsetX } from '../gameTooltipConfig'
+import { gameCardHoverTooltipAnchorRect } from '../hoverTooltipAnchorRect'
 import { GameTooltipStack } from './GameTooltip'
 
-export function keywordTooltipsViewportPosition(rect: DOMRect): Readonly<{ x: number; y: number }> {
-  return { x: rect.right + gameTooltipAnchorOffsetX(), y: rect.top }
+export function keywordTooltipsViewportPosition(element: HTMLElement): Readonly<{ x: number; y: number }> {
+  const anchor = gameCardHoverTooltipAnchorRect(element)
+  return { x: anchor.right + gameTooltipAnchorOffsetX(), y: anchor.top }
 }
 
 type KeywordTooltipsProps = Readonly<{

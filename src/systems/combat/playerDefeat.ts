@@ -27,7 +27,7 @@ export function completePlayerDefeat(state: GameState): { state: GameState; even
   const resetExhausted = (s: GameState): GameState => {
     const deck = s.player.deck
     const nextById = Object.fromEntries(
-      Object.entries(deck.cardById).map(([id, c]) => [id, { ...c, exhausted: false }]),
+      Object.entries(deck.cardById).map(([id, c]) => [id, { ...c, exhausted: false, disabled: false }]),
     )
     return { ...s, player: { ...s.player, deck: { ...deck, cardById: nextById } } }
   }
@@ -39,6 +39,7 @@ export function completePlayerDefeat(state: GameState): { state: GameState; even
   const s2 = setPhase(
     {
       ...cleared,
+      runStats: { ...cleared.runStats, maxLevelReached: Math.max(cleared.runStats.maxLevelReached, cleared.level) },
       defeat: cleared.defeat ?? { enemyName: 'Unknown enemy', level: cleared.level },
     },
     'DEFEAT',

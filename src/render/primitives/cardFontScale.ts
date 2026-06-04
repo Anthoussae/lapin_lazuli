@@ -1,4 +1,7 @@
-/** Keep in sync with `--card-font-scale-min` / `--card-font-scale-text-max` in tokens.css. */
+/**
+ * Dynamic fit for name and effect text on `.gameCard` (see cardTypography.css for base rules).
+ * Keep in sync with `--card-font-scale-min` / `--card-font-scale-text-max` in tokens.css.
+ */
 const MIN_SCALE = 0.5
 const TEXT_MAX_SCALE = 1.25
 const SCALE_STEP = 0.05
@@ -19,6 +22,11 @@ function regionOverflows(el: HTMLElement): boolean {
   return el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1
 }
 
+function nameRegionOverflows(nameEl: HTMLElement): boolean {
+  if (regionOverflows(nameEl)) return true
+  return [...nameEl.querySelectorAll<HTMLElement>('.gameCard__nameLine')].some(regionOverflows)
+}
+
 export function resetCardFontScales(card: HTMLElement): void {
   card.style.setProperty(CARD_FONT_SCALE_VARS.name, '1')
   card.style.setProperty(CARD_FONT_SCALE_VARS.ink, '1')
@@ -26,15 +34,20 @@ export function resetCardFontScales(card: HTMLElement): void {
 }
 
 /** Largest scale in [MIN_SCALE, 1] where this element fits its box. */
-function fitRegion(card: HTMLElement, el: HTMLElement, cssVar: string): number {
+function fitRegion(
+  card: HTMLElement,
+  el: HTMLElement,
+  cssVar: string,
+  overflows: (el: HTMLElement) => boolean = regionOverflows,
+): number {
   let scale = 1
   card.style.setProperty(cssVar, '1')
-  if (!regionOverflows(el)) return 1
+  if (!overflows(el)) return 1
 
   while (scale > MIN_SCALE) {
     scale = Math.max(MIN_SCALE, Math.round((scale - SCALE_STEP) * 100) / 100)
     card.style.setProperty(cssVar, String(scale))
-    if (!regionOverflows(el)) return scale
+    if (!overflows(el)) return scale
   }
 
   return MIN_SCALE
@@ -96,7 +109,7 @@ export function fitCardFontScales(card: HTMLElement, overlay: HTMLElement): Card
   const nameEl = overlay.querySelector<HTMLElement>('.gameCard__name')
   const textEls = [...overlay.querySelectorAll<HTMLElement>('.gameCard__desc, .gameCard__tags')]
 
-  const name = nameEl ? fitRegion(card, nameEl, CARD_FONT_SCALE_VARS.name) : 1
+  const name = nameEl ? fitRegion(card, nameEl, CARD_FONT_SCALE_VARS.name, nameRegionOverflows) : 1
   // Ink always uses `--font-card-ink-size` at full scale; shrinking made costs look smaller than the token.
   card.style.setProperty(CARD_FONT_SCALE_VARS.ink, '1')
   const ink = 1

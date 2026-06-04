@@ -1,15 +1,16 @@
-import type { EnemyIntent } from '../../core/types/state'
+import type { EnemyInstanceId } from '../../core/types/ids'
+import type { EnemyIntent, GameState } from '../../core/types/state'
 import { combatIntentImageForKind } from '../assets/combatIntentImages'
 import { describeEnemyIntent } from '../../ui/describeEnemyIntent'
+import { enemyAttackStrengthDamageBonus } from '../../systems/combat/intentEffects'
+import { displayIncomingEnemyAttackDamage } from '../../systems/combat/powerDisplay'
 
 export type CombatEnemyIntentDisplayProps = Readonly<{
+  state: GameState
+  enemyInstanceId: EnemyInstanceId
   intent: EnemyIntent | null
   strength: number
 }>
-
-function attackDamageForIntent(intent: Extract<EnemyIntent, { kind: 'ATTACK' }>, strength: number): number {
-  return intent.damage + Math.max(0, strength)
-}
 
 function intentDisplayName(intent: EnemyIntent): string {
   if (intent.kind === 'WAIT') return 'Wait'
@@ -17,18 +18,24 @@ function intentDisplayName(intent: EnemyIntent): string {
 }
 
 export function CombatEnemyIntentDisplay(props: CombatEnemyIntentDisplayProps) {
-  const { intent, strength } = props
+  const { state, enemyInstanceId, intent, strength } = props
   if (!intent) return null
 
   const src = combatIntentImageForKind(intent.intentKind)
   const showAttackValue = intent.kind === 'ATTACK'
-  const attackValue = showAttackValue ? attackDamageForIntent(intent, strength) : null
+  const baseAttack =
+    showAttackValue && intent.kind === 'ATTACK'
+      ? intent.damage + enemyAttackStrengthDamageBonus(strength)
+      : 0
+  const attackValue = showAttackValue
+    ? displayIncomingEnemyAttackDamage(state, enemyInstanceId, baseAttack)
+    : null
 
   return (
     <div
       className="combatMonsterIntent"
       role="img"
-      aria-label={describeEnemyIntent(intent, strength)}
+      aria-label={describeEnemyIntent(intent, strength, attackValue ?? undefined)}
     >
       {attackValue != null ? (
         <div className="combatMonsterIntent__attackValue" aria-hidden>

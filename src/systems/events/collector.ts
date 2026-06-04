@@ -1,11 +1,13 @@
+import type { GameEvent } from '../../reducers/events'
 import type { CardInstanceId } from '../../core/types/ids'
 import { rngInt } from '../../core/rng/rng'
 import type { RngState } from '../../core/rng/rng'
 import type { GameState, MysteryRoomState } from '../../core/types/state'
 import { consumeCardFromDeck } from '../combat/zones'
 import { determineBestOwnedCard } from '../cards/determineBestCard'
+import { addCardInstanceToDeck } from '../cards/addCardToDeck'
 import { applyCardPickupEffects } from '../cards/pickupEffects'
-import { mkCardInstance } from '../factories'
+import { createCardInstance } from '../../data/cards'
 import { populateCardReward } from '../rewards/cardRewards'
 
 export const COLLECTOR_BULK_CARD_COUNT = 2
@@ -69,6 +71,7 @@ export function applyCollectorAcceptBulk(state: GameState): GameState {
     baseRewardLevel: state.level,
     luck: state.player.luck,
     count: COLLECTOR_BULK_CARD_COUNT,
+    baseCardsOnly: true,
   })
 
   return {
@@ -86,34 +89,37 @@ export function applyCollectorAcceptBulk(state: GameState): GameState {
   }
 }
 
-export function applyCollectorAddBulkCard(state: GameState, index: number): GameState {
+export function applyCollectorAddBulkCard(
+  state: GameState,
+  index: number,
+): Readonly<{ state: GameState; events: GameEvent[] }> {
   const mr = state.mysteryRoom
   const collector = mr?.collector
-  if (mr?.roomId !== 'COLLECTOR' || !collector?.bulkAccepted || !collector.bulkCards) return state
+  if (mr?.roomId !== 'COLLECTOR' || !collector?.bulkAccepted || !collector.bulkCards) {
+    return { state, events: [] }
+  }
 
   const entry = collector.bulkCards[index]
-  if (!entry || index !== collector.bulkCardsAdded) return state
+  if (!entry || index !== collector.bulkCardsAdded) return { state, events: [] }
 
   const serial = state.player.nextCardInstanceSerial
   const newId = `c${serial}` as CardInstanceId
-  const inst = mkCardInstance(newId, entry.cardId, entry.upgrades, entry.foil === true)
-  const cardById2 = { ...state.player.deck.cardById, [inst.id]: inst }
-  const drawPile2 = [...state.player.deck.drawPile, inst.id]
+  const inst = createCardInstance(newId, entry.cardId, entry.upgrades, entry.foil === true)
+  const added = addCardInstanceToDeck(
+    { ...state, player: { ...state.player, nextCardInstanceSerial: serial + 1 } },
+    inst,
+  )
 
   let s: GameState = {
-    ...state,
-    player: {
-      ...state.player,
-      nextCardInstanceSerial: serial + 1,
-      deck: { ...state.player.deck, cardById: cardById2, drawPile: drawPile2 },
-    },
+    ...added.state,
+    runStats: { ...added.state.runStats, cardsObtained: added.state.runStats.cardsObtained + 1 },
     mysteryRoom: {
       ...mr,
       collector: { ...collector, bulkCardsAdded: collector.bulkCardsAdded + 1 },
     },
   }
   s = applyCardPickupEffects(s, entry.cardId)
-  return s
+  return { state: s, events: added.events }
 }
 
 export function applyCollectorSell(state: GameState): GameState {
@@ -128,6 +134,10 @@ export function applyCollectorSell(state: GameState): GameState {
   return {
     ...consumed,
     player: { ...consumed.player, gold: consumed.player.gold + collector.sellPrice },
+    runStats: {
+      ...consumed.runStats,
+      totalGoldObtained: consumed.runStats.totalGoldObtained + Math.max(0, collector.sellPrice),
+    },
     mysteryRoom: {
       ...mr,
       collector: { ...collector, sold: true },

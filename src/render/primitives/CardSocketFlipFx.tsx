@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type TransitionEvent } from 'react'
 import { cardBackArt } from '../assets/cardImages'
 import type { CardTravelPayload } from '../CardTravelContext'
-import { Card } from './Card'
+import { GameCardView } from './GameCardView'
 
 export type CardSocketFlipFxProps = Readonly<{
   fxId: number
@@ -68,17 +68,7 @@ export function CardSocketFlipFx(props: CardSocketFlipFxProps) {
         onTransitionEnd={handleFlipTransitionEnd}
       >
         <div className="cardSocketFlipFx__face cardSocketFlipFx__face--front">
-          <Card
-            face="front"
-            cardId={card.cardId}
-            name={card.name}
-            nameUpgraded={card.nameUpgraded}
-            inkLabel={card.inkLabel}
-            descriptionLines={card.descriptionLines}
-            socketedGemId={card.socketedGemId ?? null}
-            foil={card.foil === true}
-            staticDisplay
-          />
+          <GameCardView travelPayload={card} />
         </div>
         <div className="cardSocketFlipFx__face cardSocketFlipFx__face--back">
           <img className="cardSocketFlipFx__backImg" src={cardBackArt} alt="" draggable={false} />

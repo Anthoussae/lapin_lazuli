@@ -70,9 +70,10 @@ export function confirmGemstoneSocketing(state: GameState): GameState {
   const inst = state.player.deck.cardById[selectedCardInstanceId]
   if (!inst || !isCardSocketableForGem(inst, gemId)) return state
 
-  const nextInst: CardInstance = { ...inst, socketedGemId: gemId, unsocketable: true }
+  const nextInst: CardInstance = { ...inst, socketedGemId: gemId, unsocketable: true, unupgradable: true }
   return {
     ...state,
+    runStats: { ...state.runStats, gemsObtained: state.runStats.gemsObtained + 1 },
     gemstoneCavern: {
       offered: [],
       socketing: null,

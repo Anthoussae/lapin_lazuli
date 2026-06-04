@@ -1,7 +1,8 @@
 import type { GameState, Phase } from '../core/types/state'
 import type { GameAction, PlayerAction } from './actions'
 import type { GameEvent } from './events'
-import { eventToString } from './events'
+import { buildDebugLastEvents } from './fxDebugEvents'
+import { gameLog } from '../runtime/gameLog'
 import { applyAction } from './steps/applyAction'
 import { resolveEventQueue } from './steps/resolveEvents'
 import { deriveAnimationsFromEvents, tickAnimations } from './steps/animations'
@@ -35,6 +36,7 @@ function processAction(state: GameState, action: GameAction): GameState {
   const s3 = deriveAnimationsFromEvents(s2, allEvents)
   const s4 = stampDebugEvents(s3, allEvents)
   const s5 = enterAnimatingPhaseIfBlocking(s4)
+  gameLog.capture(state, action, s5, allEvents)
   return pruneStaleCombatIntents(s5)
 }
 
@@ -60,8 +62,16 @@ function flushQueuedIntents(state: GameState): GameState {
 
 function stampDebugEvents(state: GameState, events: ReadonlyArray<GameEvent>): GameState {
   if (!events.length) return state
-  const last = events.slice(-8).map(eventToString)
-  return { ...state, ui: { ...state.ui, debug: { ...state.ui.debug, lastEvents: last } } }
+  return {
+    ...state,
+    ui: {
+      ...state.ui,
+      debug: {
+        lastEvents: buildDebugLastEvents(events),
+        eventBatchId: state.ui.debug.eventBatchId + 1,
+      },
+    },
+  }
 }
 
 function enterAnimatingPhaseIfBlocking(state: GameState): GameState {

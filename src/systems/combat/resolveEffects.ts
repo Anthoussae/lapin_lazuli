@@ -4,17 +4,28 @@ import type { Effect } from '../../data/effects'
 import type { GameEvent } from '../../reducers/events'
 import { Cards } from '../../data/cards'
 import type { EnchantmentTargetRef } from '../../core/types/enchantments'
-import type { EnchantmentInstanceId } from '../../core/types/ids'
 import { Enchantments } from '../../data/enchantments'
 import { drawCards } from './zones'
-import { normalizeBunnies } from '../bunnies'
-import { boostFireDealDamage, cardHasFireDamageTags } from '../cards/firepower'
-import { boostShieldGain, cardHasAddShieldTag } from '../cards/shieldPower'
+import { bunnySummonsTotalBunnies } from '../cards/bunnySummons'
+import { multiplyBunnies, normalizeBunnies } from '../bunnies'
+import { cardInstanceHasFireDamage } from '../cards/fireRelease'
+import { cardHasFireDamageTags } from '../cards/firepower'
+import { cardHasAddShieldTag, resolveShieldGainAmount } from '../cards/shieldPower'
 import { upgradeRandomDeckCards, upgradeSpecificCards } from '../cards/upgrades'
-import { addCombatFirepower, addCombatPower, addCombatShieldPower, effectiveFirepower, effectivePower, effectiveShieldPower } from './combatBonuses'
+import { addCombatFirepower, addCombatPower, addCombatShieldPower, effectivePower, effectiveShieldPower } from './combatBonuses'
+import {
+  displayCardPoisonHpLoss,
+  displayFireDamage,
+  powerDisplayContextFromState,
+} from './powerDisplay'
 import { damageEnemy } from './damageEnemy'
+import { shatterEnemyShields } from './shatter'
+import { applyHpLossMaybeBubble, BUBBLE_ENCHANTMENT_ID } from '../enchantments/bubble'
+import { applyIncomingDamageAndHpLossModifiers } from '../enchantments/incomingDamageModifiers'
+import { applyOutgoingDamageAndHpLossModifiers } from '../enchantments/outgoingDamageReduction'
 import { dispelOpponentEnchantments } from '../enchantments/dispel'
-import { applyStaticEnchantmentOnGain } from '../enchantments/staticEffects'
+import { grantEnchantmentStacks } from '../enchantments/grantEnchantmentStacks'
+import { shieldPowerPenaltyFromEnchantments } from '../enchantments/staticEffects'
 
 /** When set, ADD_BUNNIES from played card effects gains +player.power per stack (not used for relic pipelines). */
 export type ApplyEffectsOptions = Readonly<{
@@ -33,6 +44,7 @@ export function applyEffects(
   const events: GameEvent[] = []
 
   for (const fx of effects) {
+    if (fx.kind === 'CRITICAL') continue
     if (fx.kind === 'DRAW_CARDS') {
       const drew = drawCards(s, fx.amount)
       s = drew.state
@@ -41,81 +53,135 @@ export function applyEffects(
       const bonus = opts?.powerBoostsCardAddBunnies ? effectivePower(s) : 0
       const amt = fx.amount + bonus
       s = { ...s, player: { ...s.player, bunnies: normalizeBunnies(s.player.bunnies + amt) } }
+    } else if (fx.kind === 'ADD_BUNNIES_EQUAL_TO_GAME_LEVEL') {
+      const bonus = opts?.powerBoostsCardAddBunnies ? effectivePower(s) : 0
+      const amt = bunnySummonsTotalBunnies(fx, s.level, bonus)
+      s = { ...s, player: { ...s.player, bunnies: normalizeBunnies(s.player.bunnies + amt) } }
     } else if (fx.kind === 'MULTIPLY_BUNNIES') {
-      s = { ...s, player: { ...s.player, bunnies: normalizeBunnies(s.player.bunnies * fx.amount) } }
+      s = {
+        ...s,
+        player: { ...s.player, bunnies: multiplyBunnies(s.player.bunnies, fx.amount) },
+      }
     } else if (fx.kind === 'HEAL') {
       const nextHp = Math.min(s.player.maxHp, s.player.hp + fx.amount)
       s = { ...s, player: { ...s.player, hp: nextHp } }
     } else if (fx.kind === 'HP_LOSS') {
       const target = fx.target ?? 'selectedEnemy'
       let amt = Math.max(0, fx.amount)
+      let isPoison = false
       if (amt > 0 && ctx.playedCardInstanceId) {
         const inst = s.player.deck.cardById[ctx.playedCardInstanceId]
         const tmpl = inst ? Cards[inst.templateId] : null
-        const hasGreenHat = s.player.relics.some((r) => r.templateId === 'GREEN_HAT')
-        if (hasGreenHat && tmpl?.tags.includes('poison')) {
-          if (target === 'selectedEnemy') amt = Math.ceil(amt * 1.5)
-          if (target === 'player') amt = Math.ceil(amt * 0.5)
+        if (tmpl?.tags.includes('poison')) {
+          isPoison = true
+          const pCtx = powerDisplayContextFromState(s)
+          const poisonTarget = target === 'player' ? 'player' : 'selectedEnemy'
+          amt = displayCardPoisonHpLoss(amt, pCtx, poisonTarget)
         }
       }
       if (amt <= 0) continue
+      const targetRef =
+        target === 'player'
+          ? ({ kind: 'PLAYER' } as const)
+          : ctx.selectedEnemyId
+            ? ({ kind: 'ENEMY', enemyInstanceId: ctx.selectedEnemyId } as const)
+            : null
+      if (targetRef) {
+        amt = applyOutgoingDamageAndHpLossModifiers(s, { kind: 'PLAYER' }, amt)
+        amt = applyIncomingDamageAndHpLossModifiers(s, targetRef, amt, isPoison ? { damageType: 'POISON' } : undefined)
+      }
+      if (amt <= 0) continue
       if (target === 'player') {
-        const nextHp = s.player.hp - amt
-        const died = s.player.hp > 0 && nextHp <= 0
+        const loss = applyHpLossMaybeBubble(s, { kind: 'PLAYER' }, s.player.hp, amt)
+        s = loss.state
+        const nextHp = loss.nextHp
+        const died = loss.lossApplied && s.player.hp > 0 && nextHp <= 0
         s = { ...s, player: { ...s.player, hp: nextHp } }
+        if (isPoison && loss.lossApplied && ctx.playedCardInstanceId) {
+          pushPoisonCardHpLossEvent(events, 'PLAYER', ctx.playedCardInstanceId)
+        }
         if (died) {
           const combat0 = s.combat
           if (combat0) s = { ...s, combat: { ...combat0, playerDefeatPending: true } }
           events.push({ type: 'EVT/UNIT_DIED', unit: 'PLAYER' })
         }
       } else if (target === 'selectedEnemy' && ctx.selectedEnemyId && s.combat) {
-        const combat0 = s.combat
-        const e0 = combat0.enemies.enemyById[ctx.selectedEnemyId]
+        const e0 = s.combat.enemies.enemyById[ctx.selectedEnemyId]
         if (!e0 || e0.hp <= 0) continue
-        const nextHp = e0.hp - amt
-        const died = e0.hp > 0 && nextHp <= 0
-        const enemyById2 = { ...combat0.enemies.enemyById, [e0.id]: { ...e0, hp: nextHp } }
+        const loss = applyHpLossMaybeBubble(s, { kind: 'ENEMY', enemyInstanceId: e0.id }, e0.hp, amt)
+        s = loss.state
+        const combatAfterBubble = s.combat
+        if (!combatAfterBubble) continue
+        const enemyAfterBubble = combatAfterBubble.enemies.enemyById[e0.id]
+        if (!enemyAfterBubble) continue
+        const nextHp = loss.nextHp
+        const died = loss.lossApplied && e0.hp > 0 && nextHp <= 0
         s = {
           ...s,
           combat: {
-            ...combat0,
-            monsterDefeatPending: died ? e0.id : combat0.monsterDefeatPending,
-            enemies: { ...combat0.enemies, enemyById: enemyById2 },
+            ...combatAfterBubble,
+            monsterDefeatPending: died ? e0.id : combatAfterBubble.monsterDefeatPending,
+            enemies: {
+              ...combatAfterBubble.enemies,
+              enemyById: { ...combatAfterBubble.enemies.enemyById, [e0.id]: { ...enemyAfterBubble, hp: nextHp } },
+            },
           },
+        }
+        if (isPoison && loss.lossApplied && ctx.playedCardInstanceId) {
+          pushPoisonCardHpLossEvent(events, e0.id, ctx.playedCardInstanceId)
         }
         if (died) events.push({ type: 'EVT/UNIT_DIED', unit: e0.id })
       }
     } else if (fx.kind === 'GAIN_SHIELD') {
       const target = fx.target ?? 'player'
       if (target === 'player') {
-        let amount = fx.amount
+        let appliesShieldPowerBoost = false
         if (opts?.shieldPowerBoostsCardGainShield && ctx.playedCardInstanceId) {
           const inst = s.player.deck.cardById[ctx.playedCardInstanceId]
           const tmpl = inst ? Cards[inst.templateId] : null
-          if (tmpl && cardHasAddShieldTag(tmpl.tags)) {
-            amount = boostShieldGain(amount, effectiveShieldPower(s))
-          }
+          appliesShieldPowerBoost = !!(tmpl && cardHasAddShieldTag(tmpl.tags))
         }
+        const amount = resolveShieldGainAmount(
+          fx.amount,
+          effectiveShieldPower(s),
+          shieldPowerPenaltyFromEnchantments(s, { kind: 'PLAYER' }),
+          appliesShieldPowerBoost,
+        )
+        if (amount <= 0) continue
         s = { ...s, player: { ...s.player, shield: s.player.shield + amount } }
       } else if (target === 'selectedEnemy' && ctx.selectedEnemyId && s.combat) {
         const id = ctx.selectedEnemyId
         const c = s.combat
         const e = c.enemies.enemyById[id]
         if (e) {
+          const amount = resolveShieldGainAmount(
+            fx.amount,
+            0,
+            shieldPowerPenaltyFromEnchantments(s, { kind: 'ENEMY', enemyInstanceId: id }),
+            false,
+          )
+          if (amount <= 0) continue
           s = {
             ...s,
             combat: {
               ...c,
               enemies: {
                 ...c.enemies,
-                enemyById: { ...c.enemies.enemyById, [id]: { ...e, shield: e.shield + fx.amount } },
+                enemyById: { ...c.enemies.enemyById, [id]: { ...e, shield: e.shield + amount } },
               },
             },
           }
         }
       }
     } else if (fx.kind === 'GAIN_LOCKED_SHIELD') {
-      s = { ...s, player: { ...s.player, lockedShield: s.player.lockedShield + fx.amount } }
+      const amount = resolveShieldGainAmount(
+        fx.amount,
+        0,
+        shieldPowerPenaltyFromEnchantments(s, { kind: 'PLAYER' }),
+        false,
+      )
+      if (amount <= 0) continue
+      s = { ...s, player: { ...s.player, lockedShield: s.player.lockedShield + amount } }
     } else if (fx.kind === 'LOCK_ALL_SHIELD') {
       const moved = Math.max(0, s.player.shield)
       s = {
@@ -126,17 +192,31 @@ export function applyEffects(
           lockedShield: s.player.lockedShield + moved,
         },
       }
+    } else if (fx.kind === 'SHATTER') {
+      if (ctx.selectedEnemyId) {
+        s = shatterEnemyShields(s, ctx.selectedEnemyId)
+      }
     } else if (fx.kind === 'DEAL_DAMAGE') {
       if (ctx.selectedEnemyId) {
         let damage = fx.amount
+        let enemyMayDodge = false
+        let isFireDamage = false
         if (opts?.firepowerBoostsCardDealDamage && ctx.playedCardInstanceId) {
           const inst = s.player.deck.cardById[ctx.playedCardInstanceId]
           const tmpl = inst ? Cards[inst.templateId] : null
-          if (tmpl && cardHasFireDamageTags(tmpl.tags)) {
-            damage = boostFireDealDamage(fx.amount, effectiveFirepower(s), s.player.firepowerMultiplier)
+          if (inst && tmpl) {
+            isFireDamage = cardInstanceHasFireDamage(inst, tmpl.tags)
+            enemyMayDodge = isFireDamage
+            if (isFireDamage && cardHasFireDamageTags(tmpl.tags)) {
+              damage = displayFireDamage(fx.amount, powerDisplayContextFromState(s))
+            }
           }
         }
-        const out = damageEnemy(s, ctx.selectedEnemyId, damage, { attacker: { kind: 'PLAYER' } })
+        const out = damageEnemy(s, ctx.selectedEnemyId, damage, {
+          attacker: { kind: 'PLAYER' },
+          enemyMayDodge,
+          incomingDamageType: isFireDamage ? 'FIRE' : undefined,
+        })
         s = out.state
         events.push(...out.events)
       }
@@ -166,6 +246,8 @@ export function applyEffects(
       } else {
         s = { ...s, player: { ...s.player, firepower: s.player.firepower + fx.amount } }
       }
+    } else if (fx.kind === 'GAIN_LUCK') {
+      s = { ...s, player: { ...s.player, luck: s.player.luck + fx.amount } }
     } else if (fx.kind === 'GAIN_INK') {
       // Ink maps to energy in MVP. Intentionally allowed to exceed max ink.
       s = { ...s, player: { ...s.player, energy: s.player.energy + fx.amount } }
@@ -198,30 +280,14 @@ export function applyEffects(
               ? { kind: 'ENEMY', enemyInstanceId: ctx.selectedEnemyId }
               : null
       if (!target) continue
-
-      const stackable = tmpl.stackable ?? false
-      if (!stackable) {
-        const already = combat0.enchantments.some((e) => e.templateId === tmpl.id && sameEnchantmentTarget(e.target, target))
-        if (already) continue
-      }
-
-      const instId = (`ench${combat0.nextEnchantmentInstanceSerial}` as unknown) as EnchantmentInstanceId
-      const nextInst = {
-        id: instId,
+      const stacksToAdd = tmpl.id === BUBBLE_ENCHANTMENT_ID ? Math.max(1, fx.amount ?? 1) : 1
+      s = grantEnchantmentStacks(s, {
         templateId: tmpl.id,
-        owner: { kind: 'PLAYER' } as const,
+        owner: { kind: 'PLAYER' },
         target,
-        amountOverride: fx.amount,
-      }
-      const sNext: GameState = {
-        ...s,
-        combat: {
-          ...combat0,
-          enchantments: [...combat0.enchantments, nextInst],
-          nextEnchantmentInstanceSerial: combat0.nextEnchantmentInstanceSerial + 1,
-        },
-      }
-      s = applyStaticEnchantmentOnGain(sNext, nextInst)
+        stacks: stacksToAdd,
+        amountOverride: tmpl.id === BUBBLE_ENCHANTMENT_ID ? undefined : fx.amount,
+      })
     } else if (fx.kind === 'DISPEL') {
       s = dispelOpponentEnchantments(s, fx.amount, { kind: 'PLAYER' })
     }
@@ -230,10 +296,12 @@ export function applyEffects(
   return { state: s, events }
 }
 
-function sameEnchantmentTarget(a: EnchantmentTargetRef, b: EnchantmentTargetRef): boolean {
-  if (a.kind !== b.kind) return false
-  if (a.kind === 'ENEMY') return a.enemyInstanceId === (b as Extract<EnchantmentTargetRef, { kind: 'ENEMY' }>).enemyInstanceId
-  return true
+function pushPoisonCardHpLossEvent(
+  events: GameEvent[],
+  unit: 'PLAYER' | EnemyInstanceId,
+  cardInstanceId: CardInstanceId,
+): void {
+  events.push({ type: 'EVT/POISON_CARD_HP_LOSS', unit, cardInstanceId })
 }
 
 export { applyCardInstanceEffectModifiers, scaleCardEffects } from '../cards/upgrades'

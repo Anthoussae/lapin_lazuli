@@ -13,7 +13,7 @@ function amountClassName(segment: Extract<CardDescSegment, { kind: 'amount' }>):
   return undefined
 }
 
-function CardDescSegments(props: Readonly<{ segments: ReadonlyArray<CardDescSegment> }>) {
+export function CardDescSegments(props: Readonly<{ segments: ReadonlyArray<CardDescSegment> }>) {
   const { segments } = props
   return (
     <>
@@ -36,6 +36,7 @@ export function CardDesc(props: Readonly<{ lines: ReadonlyArray<CardDescLine> }>
     <div className="gameCard__desc">
       {lines.map((line, i) => {
         if (line.kind === 'keywords') {
+          if (line.tooltipOnly) return null
           return <KeywordLine key={i} ids={line.ids} />
         }
         if (line.kind === 'plain') {

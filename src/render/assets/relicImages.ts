@@ -25,6 +25,17 @@ import ryo from '../../assets/images/relics/ryo.png'
 import woodenShield from '../../assets/images/relics/woodenShield.png'
 import copperAlembics from '../../assets/images/relics/copperAlembics.png'
 import wolfsbane from '../../assets/images/relics/wolfsbane.png'
+import gladiatorHelmet from '../../assets/images/relics/gladiatorHelmet.png'
+import blueRose from '../../assets/images/relics/blueRose.png'
+import bubbleWand from '../../assets/images/relics/bubbleWand.png'
+import petRock from '../../assets/images/relics/petRock.png'
+import embers from '../../assets/images/relics/embers.png'
+import monocle from '../../assets/images/relics/monocle.png'
+import handOfFatima from '../../assets/images/relics/handOfFatima.png'
+import purpleHat from '../../assets/images/relics/purpleHat.png'
+import peacockFeather from '../../assets/images/relics/peacockFeather.png'
+import banana from '../../assets/images/relics/banana.png'
+import hourglass from '../../assets/images/relics/hourglass.png'
 
 export const relicImageMap: Partial<Record<RelicId, string>> = {
   KEYCHAIN: gaolersKeychain,
@@ -36,12 +47,15 @@ export const relicImageMap: Partial<Record<RelicId, string>> = {
   MAGIC_WAND: magicWand,
   RED_HAT: redHat,
   GREEN_HAT: greenHat,
+  PURPLE_HAT: purpleHat,
   PHOENIX_FEATHER_QUILL: phoenixFeatherQuill,
   ENCHANTED_ENCYCLOPAEDIA: encyclopaedia,
   NAZAR: nazar,
   LUCKY_EGG: goldenEgg,
   SHAKUJO: shakujo,
   MAGES_TOME: grandmagusTome,
+  MONOCLE: monocle,
+  HAND_OF_FATIMA: handOfFatima,
   PAPER_BOAT: paperBoat,
   NURSES_HAT: nursesHat,
   POCKET_MOON: pocketMoon,
@@ -53,6 +67,14 @@ export const relicImageMap: Partial<Record<RelicId, string>> = {
   WOODEN_SHIELD: woodenShield,
   COPPER_ALEMBICS: copperAlembics,
   SPRIG_OF_WOLFSBANE: wolfsbane,
+  GLADIATOR_HELMET: gladiatorHelmet,
+  BLUE_ROSE: blueRose,
+  BUBBLE_WAND: bubbleWand,
+  PET_ROCK: petRock,
+  EMBERS: embers,
+  PEACOCK_FEATHER: peacockFeather,
+  BANANA: banana,
+  HOURGLASS: hourglass,
 }
 
 export const RELIC_PRELOAD_URLS: readonly string[] = Object.values(relicImageMap).filter(

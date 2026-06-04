@@ -1,6 +1,6 @@
 import { useState, type MouseEvent, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { gemTooltipViewportPosition } from '../relicTooltipPosition'
+import { gemIconTooltipViewportPosition } from '../relicTooltipPosition'
 import { RelicTooltip } from './RelicTooltip'
 
 export type GemIconProps = Readonly<{
@@ -44,7 +44,9 @@ export function GemIcon(props: GemIconProps) {
 
   const showTooltipAtAnchor = (e: MouseEvent<HTMLElement>) => {
     if (!showTooltip) return
-    setTip(gemTooltipViewportPosition(e.currentTarget.getBoundingClientRect()))
+    const visual = e.currentTarget.querySelector<HTMLElement>('.gemIcon__visual')
+    const anchor = visual ?? e.currentTarget
+    setTip(gemIconTooltipViewportPosition(anchor))
   }
 
   const clearTooltip = () => setTip(null)

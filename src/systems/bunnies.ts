@@ -3,6 +3,11 @@ export function normalizeBunnies(n: number): number {
   return Math.ceil(n)
 }
 
+/** Apply a bunny multiplier; multiplier is exact, resulting count is rounded up. */
+export function multiplyBunnies(current: number, multiplier: number): number {
+  return normalizeBunnies(current * multiplier)
+}
+
 /** Keep in sync with `--bunny-release-sprite-max` in tokens.css. */
 export const BUNNY_RELEASE_SPRITE_MAX = 50
 

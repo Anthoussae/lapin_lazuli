@@ -6,11 +6,30 @@ export function foilCeil50(n: number): number {
 }
 
 function foilEffectUpgradeValues(fx: Effect): Effect {
+  if (fx.kind === 'ADD_BUNNIES_EQUAL_TO_GAME_LEVEL') {
+    if (fx.multiplierUpgradePerLevel <= 0) return fx
+    return { ...fx, multiplierUpgradePerLevel: foilCeil50(fx.multiplierUpgradePerLevel) }
+  }
+  if (fx.kind === 'CRITICAL') {
+    return {
+      ...fx,
+      chanceUpgradeValue: fx.chanceUpgradeValue > 0 ? foilCeil50(fx.chanceUpgradeValue) : fx.chanceUpgradeValue,
+      multiplierUpgradeValue:
+        fx.multiplierUpgradeValue > 0 ? foilCeil50(fx.multiplierUpgradeValue) : fx.multiplierUpgradeValue,
+    }
+  }
   if (fx.upgradeValue === undefined || fx.upgradeValue <= 0) return fx
   return { ...fx, upgradeValue: foilCeil50(fx.upgradeValue) }
 }
 
 function foilEffectAmounts(fx: Effect): Effect {
+  if (fx.kind === 'CRITICAL') {
+    return {
+      ...fx,
+      chancePercent: foilCeil50(fx.chancePercent),
+      multiplierPercent: foilCeil50(fx.multiplierPercent),
+    }
+  }
   if (!('amount' in fx)) return fx
   if (typeof fx.amount !== 'number') return fx
   return { ...fx, amount: foilCeil50(fx.amount) }

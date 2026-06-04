@@ -1,3 +1,6 @@
+@import './cardTypography.css';
+@import './cardHover.css';
+
 /* .stageFrame sets cursor: default for all UI text (index.css). Restore interactable cursors here. */
 .stageFrame .gameCard--clickable:not(.gameCard--disabled),
 .stageFrame [role='button']:not([aria-disabled='true']),
@@ -771,6 +774,76 @@
   height: 100%;
 }
 
+/* Combat burden add — spawn anchor, glow burst + card fade-in (see tokens.css --burden-add-*). */
+.burdenAddCard {
+  position: fixed;
+  left: var(--burden-add-spawn-x);
+  top: var(--burden-add-spawn-y);
+  z-index: var(--burden-add-card-z-index);
+  width: var(--game-card-w);
+  height: var(--game-card-h);
+  transform: translate(
+      calc(-50% + var(--burden-add-offset-x, 0px)),
+      calc(-50% + var(--burden-add-offset-y, 0px))
+    )
+    scale(var(--burden-add-card-scale));
+  transform-origin: center center;
+  pointer-events: none;
+}
+
+.burdenAddCard__glow {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 0;
+  display: block;
+  width: var(--burden-add-effect-size);
+  height: var(--burden-add-effect-size);
+  transform: translate(-50%, -50%);
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+  mix-blend-mode: var(--burden-add-effect-blend-mode);
+  opacity: var(--burden-add-effect-opacity-start);
+  animation: burdenAddEffectFade var(--duration-burden-add-effect-fade) var(--ease-burden-add-effect-fade)
+    forwards;
+  will-change: opacity;
+}
+
+.burdenAddCard__cardWrap {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  opacity: var(--burden-add-card-fade-in-opacity-start);
+  animation: burdenAddCardFadeIn var(--duration-burden-add-card-fade-in) var(--ease-burden-add-card-fade-in)
+    forwards;
+  will-change: opacity;
+}
+
+.burdenAddCard--traveling .burdenAddCard__glow,
+.burdenAddCard--traveling .burdenAddCard__cardWrap {
+  visibility: hidden;
+}
+
+@keyframes burdenAddEffectFade {
+  from {
+    opacity: var(--burden-add-effect-opacity-start);
+  }
+  to {
+    opacity: var(--burden-add-effect-opacity-end);
+  }
+}
+
+@keyframes burdenAddCardFadeIn {
+  from {
+    opacity: var(--burden-add-card-fade-in-opacity-start);
+  }
+  to {
+    opacity: var(--burden-add-card-fade-in-opacity-end);
+  }
+}
+
 .collectorOfferedCard--glow .collectorOfferedCard__card .gameCard {
   outline: var(--collector-offered-card-glow-outline-width) solid
     var(--collector-offered-card-glow-outline-color);
@@ -937,15 +1010,19 @@
   position: fixed;
   inset: 0;
   z-index: var(--font-of-lethe-forget-overlay-z);
-  display: grid;
-  place-items: center;
   background: var(--font-of-lethe-forget-overlay-bg);
+  overflow: hidden;
 }
 
 .fontOfLetheForgetPanel {
-  position: relative;
+  position: absolute;
+  left: var(--font-of-lethe-forget-panel-x);
+  top: var(--font-of-lethe-forget-panel-y);
+  transform: translate(-50%, -50%);
   width: var(--font-of-lethe-forget-panel-width);
   height: var(--font-of-lethe-forget-panel-height);
+  max-width: var(--font-of-lethe-forget-panel-width);
+  max-height: var(--font-of-lethe-forget-panel-height);
   border: var(--font-of-lethe-forget-panel-rim-width) solid var(--font-of-lethe-forget-panel-rim-color);
   border-radius: var(--font-of-lethe-forget-panel-border-radius);
   background: var(--font-of-lethe-forget-panel-bg);
@@ -955,9 +1032,12 @@
   display: flex;
   flex-direction: column;
   gap: var(--font-of-lethe-forget-panel-gap);
+  overflow: hidden;
+  min-height: 0;
 }
 
 .fontOfLetheForgetTitle {
+  flex-shrink: 0;
   font-size: var(--font-of-lethe-forget-title-font-size);
   font-weight: 900;
   letter-spacing: var(--font-of-lethe-forget-title-letter-spacing);
@@ -968,6 +1048,7 @@
 }
 
 .fontOfLetheForgetSub {
+  flex-shrink: 0;
   font-size: var(--font-of-lethe-forget-sub-font-size);
   color: var(--font-of-lethe-forget-sub-color);
   pointer-events: none;
@@ -975,6 +1056,7 @@
 }
 
 .fontOfLetheForgetActions {
+  flex-shrink: 0;
   display: flex;
   gap: var(--font-of-lethe-forget-actions-gap);
   align-items: center;
@@ -1412,11 +1494,30 @@ button.relicIcon {
 
 .relicIcon__img {
   display: block;
-  width: 100%;
-  height: 100%;
+  width: calc(100% * var(--relic-icon-art-size-modifier, 1));
+  height: calc(100% * var(--relic-icon-art-size-modifier, 1));
   max-width: none;
   max-height: none;
   object-fit: contain;
+  transform: translate(var(--relic-icon-art-x, 0px), var(--relic-icon-art-y, 0px));
+}
+
+.relicIcon__img--RED_HAT {
+  --relic-icon-art-size-modifier: var(--relic-red-hat-size-modifier);
+  --relic-icon-art-x: var(--relic-red-hat-art-x);
+  --relic-icon-art-y: var(--relic-red-hat-art-y);
+}
+
+.relicIcon__img--GREEN_HAT {
+  --relic-icon-art-size-modifier: var(--relic-green-hat-size-modifier);
+  --relic-icon-art-x: var(--relic-green-hat-art-x);
+  --relic-icon-art-y: var(--relic-green-hat-art-y);
+}
+
+.relicIcon__img--PURPLE_HAT {
+  --relic-icon-art-size-modifier: var(--relic-purple-hat-size-modifier);
+  --relic-icon-art-x: var(--relic-purple-hat-art-x);
+  --relic-icon-art-y: var(--relic-purple-hat-art-y);
 }
 
 .relicIcon__fallback {
@@ -1537,6 +1638,78 @@ button.relicIcon {
   height: auto;
   pointer-events: none;
   user-select: none;
+}
+
+/* Study option: brief upgraded-card reveal overlay (non-interactive). */
+.restStudyReveal {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  z-index: var(--rest-study-reveal-z-index);
+  transform: translate(-50%, -55%) scale(var(--rest-study-reveal-scale));
+  pointer-events: none;
+  opacity: 0;
+  animation:
+    restStudyRevealFadeIn var(--rest-study-reveal-fade-in-ms) ease-out forwards,
+    restStudyRevealFadeOut var(--rest-study-reveal-fade-out-ms) linear
+      var(--rest-study-reveal-fade-in-ms) forwards;
+}
+
+.restStudyReveal::before {
+  content: '';
+  position: absolute;
+  inset: -14px;
+  border-radius: 18px;
+  box-shadow:
+    0 0 var(--rest-study-reveal-glow-size) var(--rest-study-reveal-glow-spread)
+      var(--rest-study-reveal-glow-color);
+  opacity: 0.95;
+  animation: restStudyRevealGlowFade var(--rest-study-reveal-glow-fade-out-ms) linear
+    var(--rest-study-reveal-fade-in-ms) forwards;
+}
+
+.restStudyReveal__card {
+  position: relative;
+  z-index: 1;
+  width: var(--rest-study-reveal-max-width);
+}
+
+.restStudyReveal__cast {
+  position: absolute;
+  left: 50%;
+  top: 55%;
+  z-index: 2;
+  transform: translate(-50%, -50%) scale(var(--rest-study-reveal-cast-burst-scale));
+  opacity: 0.96;
+}
+
+@keyframes restStudyRevealFadeIn {
+  from {
+    opacity: 0;
+    filter: brightness(1.05);
+  }
+  to {
+    opacity: 1;
+    filter: brightness(1);
+  }
+}
+
+@keyframes restStudyRevealFadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes restStudyRevealGlowFade {
+  from {
+    opacity: 0.95;
+  }
+  to {
+    opacity: 0;
+  }
 }
 
 /* Fixed over the resting scene (see --rest-*-btn-* tokens). */
@@ -1767,6 +1940,192 @@ button.gemIcon {
   z-index: var(--fire-release-fx-z);
   pointer-events: none;
   overflow: visible;
+}
+
+/* Bubble enchantment pop — stage layer (see tokens.css --bubble-pop-fx-z, --enchantment-bubble-pop-*). */
+.bubblePopFxLayer {
+  position: absolute;
+  inset: 0;
+  z-index: var(--bubble-pop-fx-z);
+  pointer-events: none;
+  overflow: visible;
+}
+
+.bubblePopFxHost {
+  position: absolute;
+  z-index: 1;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.bubblePopFx__img {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+  width: var(--enchantment-bubble-pop-size);
+  height: var(--enchantment-bubble-pop-size);
+  object-fit: contain;
+  transform: translate(-50%, -50%);
+  opacity: var(--enchantment-bubble-pop-opacity-start);
+  animation: enchantmentBubblePopFade var(--duration-enchantment-bubble-pop-fade) var(--ease-enchantment-bubble-pop-fade)
+    forwards;
+  will-change: opacity;
+}
+
+/* Poison card HP_LOSS hit — stage layer (see tokens.css --poison-card-hit-*). */
+.poisonCardHitFxLayer {
+  position: absolute;
+  inset: 0;
+  z-index: var(--poison-card-hit-fx-z);
+  pointer-events: none;
+  overflow: visible;
+}
+
+.poisonCardHitFxHost {
+  position: absolute;
+  z-index: 1;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.poisonCardHitFx__img {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+  width: var(--poison-card-hit-size);
+  height: var(--poison-card-hit-size);
+  object-fit: contain;
+  object-position: center;
+  transform: translate(-50%, -50%);
+  opacity: var(--poison-card-hit-opacity-start);
+  filter: brightness(1);
+  animation:
+    poisonCardHitDarken var(--duration-poison-card-hit-darken) var(--ease-poison-card-hit-darken) forwards,
+    poisonCardHitRestore var(--duration-poison-card-hit-restore) var(--ease-poison-card-hit-restore) forwards,
+    poisonCardHitFade var(--duration-poison-card-hit-fade) var(--ease-poison-card-hit-fade) forwards;
+  animation-delay:
+    0s,
+    var(--duration-poison-card-hit-darken),
+    calc(var(--duration-poison-card-hit-darken) + var(--duration-poison-card-hit-restore));
+  will-change: filter, opacity;
+}
+
+@keyframes poisonCardHitDarken {
+  from {
+    filter: brightness(1);
+  }
+  to {
+    filter: brightness(var(--poison-card-hit-brightness-min));
+  }
+}
+
+@keyframes poisonCardHitRestore {
+  from {
+    filter: brightness(var(--poison-card-hit-brightness-min));
+  }
+  to {
+    filter: brightness(1);
+  }
+}
+
+@keyframes poisonCardHitFade {
+  from {
+    opacity: var(--poison-card-hit-opacity-start);
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* Fire damage hit — stage layer (see tokens.css --fire-damage-hit-*). */
+.fireDamageHitFxLayer {
+  position: absolute;
+  inset: 0;
+  z-index: var(--fire-damage-hit-fx-z);
+  pointer-events: none;
+  overflow: visible;
+}
+
+.fireDamageHitFxHost {
+  position: absolute;
+  z-index: 1;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.fireDamageHitFx__img {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+  width: var(--fire-damage-hit-size);
+  height: var(--fire-damage-hit-size);
+  object-fit: contain;
+  object-position: center;
+  transform: translate(-50%, -50%);
+  opacity: var(--fire-damage-hit-opacity-min);
+  animation:
+    fireDamageHitIntensify var(--duration-fire-damage-hit-intensify) var(--ease-fire-damage-hit-intensify) forwards,
+    fireDamageHitFade var(--duration-fire-damage-hit-fade) var(--ease-fire-damage-hit-fade) forwards;
+  animation-delay:
+    0s,
+    var(--duration-fire-damage-hit-intensify);
+  will-change: opacity;
+}
+
+@keyframes fireDamageHitIntensify {
+  from {
+    opacity: var(--fire-damage-hit-opacity-min);
+  }
+  to {
+    opacity: var(--fire-damage-hit-opacity-max);
+  }
+}
+
+@keyframes fireDamageHitFade {
+  from {
+    opacity: var(--fire-damage-hit-opacity-max);
+  }
+  to {
+    opacity: var(--fire-damage-hit-opacity-min);
+  }
+}
+
+/* Anti-Magic Shell enchantment pop — stage layer (see tokens.css --anti-magic-shell-pop-fx-z, --enchantment-anti-magic-shell-pop-*). */
+.antiMagicShellPopFxLayer {
+  position: absolute;
+  inset: 0;
+  z-index: var(--anti-magic-shell-pop-fx-z);
+  pointer-events: none;
+  overflow: visible;
+}
+
+.antiMagicShellPopFxHost {
+  position: absolute;
+  z-index: 1;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.antiMagicShellPopFx__img {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+  width: var(--enchantment-anti-magic-shell-pop-size);
+  height: var(--enchantment-anti-magic-shell-pop-size);
+  object-fit: contain;
+  transform: translate(-50%, -50%);
+  opacity: var(--enchantment-anti-magic-shell-pop-opacity-start);
+  animation: enchantmentAntiMagicShellPopFade var(--duration-enchantment-anti-magic-shell-pop-fade)
+    var(--ease-enchantment-anti-magic-shell-pop-fade) forwards;
+  will-change: opacity;
 }
 
 .fireReleaseHost {
@@ -2298,11 +2657,13 @@ button.gemIcon {
 @keyframes shopShelfPriceRejectFlash {
   0%,
   100% {
-    color: #fbbf24;
+    color: var(--shop-price-color-unaffordable);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
   }
   35%,
   55% {
-    color: var(--shop-unaffordable-reject-color);
+    color: #fca5a5;
+    text-shadow: 0 0 10px var(--shop-unaffordable-reject-color), 0 1px 2px rgba(0, 0, 0, 0.6);
   }
 }
 
@@ -2337,7 +2698,8 @@ button.gemIcon {
 .inkJarDisplay__jar.triggerFx--debuff,
 .inspectDeckBtn__img.triggerFx--source,
 .inspectDeckBtn__img.triggerFx--buff,
-.inspectDeckBtn__img.triggerFx--debuff {
+.inspectDeckBtn__img.triggerFx--debuff,
+.gameCard.triggerFx--debuff {
   transform-origin: center center;
 }
 
@@ -2364,7 +2726,8 @@ button.gemIcon {
 .shieldIconDisplay__art.triggerFx--debuff,
 .bunnyMeterCauldron__art.triggerFx--debuff,
 .inkJarDisplay__jar.triggerFx--debuff,
-.inspectDeckBtn__img.triggerFx--debuff {
+.inspectDeckBtn__img.triggerFx--debuff,
+.gameCard.triggerFx--debuff {
   animation: triggerFxDebuff var(--duration-trigger-fx) var(--ease-trigger-fx) var(--delay-trigger-fx-target);
 }
 
@@ -2459,7 +2822,8 @@ button.gemIcon {
   .shieldIconDisplay__art.triggerFx--debuff,
   .bunnyMeterCauldron__art.triggerFx--debuff,
   .inkJarDisplay__jar.triggerFx--debuff,
-  .inspectDeckBtn__img.triggerFx--debuff {
+  .inspectDeckBtn__img.triggerFx--debuff,
+  .gameCard.triggerFx--debuff {
     animation-name: triggerFxDebuffReduced;
   }
 }
@@ -2536,6 +2900,16 @@ button.gemIcon {
   white-space: pre-wrap;
 }
 
+.gameTooltip__text .gameCard__amtUp {
+  color: var(--color-card-text-amt-up);
+  font-weight: var(--font-card-text-emphasis-weight);
+}
+
+.gameTooltip__text .gameCard__amtDown {
+  color: var(--color-card-text-amt-down);
+  font-weight: var(--font-card-text-emphasis-weight);
+}
+
 .relicOfferText {
   display: flex;
   flex-direction: column;
@@ -2545,6 +2919,54 @@ button.gemIcon {
   font-size: 16px;
   opacity: 0.9;
   margin-top: 6px;
+}
+
+.defeatScreen__panel {
+  position: relative;
+}
+
+.defeatScreen__title {
+  transform: translate(var(--defeat-title-x), var(--defeat-title-y));
+  font-size: var(--defeat-title-font-size);
+  color: var(--defeat-title-color);
+}
+
+.defeatScreen__text {
+  transform: translate(var(--defeat-text-x), var(--defeat-text-y));
+  font-size: var(--defeat-text-font-size);
+  color: var(--defeat-text-color);
+  opacity: var(--defeat-text-opacity);
+  margin-top: 6px;
+}
+
+.defeatScreen__stats {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: color-mix(in srgb, #000000 18%, transparent);
+  border: 1px solid color-mix(in srgb, #ffffff 22%, transparent);
+  color: var(--color-hud-text);
+  font-size: 14px;
+  line-height: 1.25;
+}
+
+.defeatScreen__statsRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 2px 0;
+}
+
+.defeatScreen__statsLabel {
+  opacity: 0.9;
+}
+
+.defeatScreen__statsValue {
+  font-weight: 800;
+}
+
+.defeatScreen__button {
+  transform: translate(var(--defeat-button-x), var(--defeat-button-y));
 }
 
 .pathLockedBadge {
@@ -3509,19 +3931,37 @@ button.gemIcon {
   color: var(--color-monster-locked-shield-value);
 }
 
-.combatMonsterBarHud
-  .barHud__shieldIcons--monsterEnd:has(.shieldIconDisplay--shield):has(.shieldIconDisplay--lockedShield)
-  .shieldIconDisplay--shield {
+.combatMonsterBarHud .barHud__shieldIcons--monsterEnd.barHud__shieldIcons--dual .shieldIconDisplay--shield {
   transform: translate(var(--monster-dual-shield-icon-offset-x), var(--monster-dual-shield-icon-offset-y));
 }
 
-.combatMonsterBarHud
-  .barHud__shieldIcons--monsterEnd:has(.shieldIconDisplay--shield):has(.shieldIconDisplay--lockedShield)
-  .shieldIconDisplay--lockedShield {
+.combatMonsterBarHud .barHud__shieldIcons--monsterEnd.barHud__shieldIcons--dual .shieldIconDisplay--lockedShield {
   transform: translate(
     var(--monster-dual-locked-shield-icon-offset-x),
     var(--monster-dual-locked-shield-icon-offset-y)
   );
+}
+
+.combatMonsterBarHud .barHud__shieldIcons--dual > .shieldIconDisplay--lockedShield {
+  z-index: 1;
+}
+
+.combatMonsterBarHud .barHud__shieldIcons--dual > .shieldIconDisplay--shield {
+  z-index: 2;
+}
+
+/* Monster shields share one anchor; transforms position each icon (flex gap broke dual layout). */
+.combatMonsterBarHud .barHud__shieldIcons--monsterEnd {
+  gap: 0;
+  width: 0;
+  overflow: visible;
+}
+
+.combatMonsterBarHud .barHud__shieldIcons--monsterEnd > .shieldIconDisplay {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  margin-top: calc(var(--monster-shield-icon-size) / -2);
 }
 
 /* Bar-only layout box; shields overlay the ends without shifting the bar. */
@@ -3551,7 +3991,6 @@ button.gemIcon {
 
 .barHud--combat .barHud__shieldIcons--monsterEnd {
   left: 0;
-  gap: var(--combat-monster-shield-icon-gap, 8px);
 }
 
 .barHud__shieldIcons {
@@ -3799,6 +4238,19 @@ button.gemIcon {
   transition: width 0.2s ease;
 }
 
+.barDisplay--hpTick .barDisplay__fill {
+  transition: width var(--bar-display-tick-duration, var(--duration-ticking-number, 400ms))
+    var(--ease-bar-display-hp-tick, ease-out);
+}
+
+.barDisplay--poisonHpDrop .barDisplay__fill {
+  background: var(--bar-display-poison-fill, #3dcc3d);
+}
+
+.barDisplay--fireHpDrop .barDisplay__fill {
+  background: var(--bar-display-fire-fill, #ff8c00);
+}
+
 .barDisplay__text {
   position: relative;
   z-index: 1;
@@ -4022,17 +4474,11 @@ button.gemIcon {
 .gemstoneSocketCardList > .gemstoneSocketCard.gameCard {
   width: var(--gem-socket-card-w);
   height: var(--gem-socket-card-h);
-  transform-origin: center center;
-  transition: transform var(--game-card-hover-duration) ease;
 }
 
 .gemstoneSocketCardList > .gemstoneSocketCard.gameCard--selected {
   outline: var(--gem-socket-card-selected-outline-width) solid var(--gem-socket-card-selected-outline-color);
   box-shadow: var(--gem-socket-card-selected-shadow);
-}
-
-.gemstoneSocketCardList > .gemstoneSocketCard.gameCard:hover:not(.gameCard--disabled) {
-  transform: scale(var(--gem-socket-card-hover-scale));
 }
 
 .cardOfferPanel {
@@ -4084,61 +4530,26 @@ button.gemIcon {
   display: inline-block;
 }
 
-/* Enlarge-on-hover: deck inspect, rewards, shop, combat hand, hand selection */
-.inspectDeckCardSlot,
-.cardOfferSlot,
-.shopShelfSlot,
-.handFan__slot,
-.handSelectionHand > .gameCard,
-.gemstoneSocketCardList > .gemstoneSocketCard.gameCard {
-  position: relative;
-  z-index: 0;
-}
+/* Card enlarge-on-hover: see cardHover.css */
 
-.inspectDeckCardSlot:hover,
-.cardOfferSlot:has(.cardOfferBtn:hover:not(:disabled)),
-.cardOfferSlot:has(.shopCardOffer:hover:not(:disabled)),
-.shopShelfSlot:hover,
-.shopShelfSlot:has(.shopCardOffer:hover:not(:disabled):not(.shopCardOffer--unaffordable)),
-.shopShelfSlot:has(.shopKeyOffer:hover:not(:disabled):not(.shopKeyOffer--unaffordable)),
-.shopShelfSlot:has(.relicIcon--clickable:hover:not(:disabled)):not(.shopShelfSlot--unaffordable),
-.handFan__slot:hover,
-.handFan__slot:focus-within,
-.handSelectionHand > .gameCard:hover,
-.gemstoneSocketCardList > .gemstoneSocketCard.gameCard:hover {
-  z-index: 10;
-}
-
-.inspectDeckCardSlot .gameCard,
-.cardOfferSlot .gameCard,
-.handFan__slot .gameCard,
-.handSelectionHand > .gameCard {
-  transform-origin: center center;
-  transition: transform var(--game-card-hover-duration) ease;
-}
-
-.inspectDeckCardSlot:hover .gameCard,
-.cardOfferBtn:hover:not(:disabled) .gameCard:not(.gameCard--traveling):not(.gameCard--rejected),
-.shopCardOffer:hover:not(:disabled):not(.shopCardOffer--unaffordable) .gameCard:not(.gameCard--traveling):not(.gameCard--rejected),
-.handFan__slot:hover .gameCard:not(.gameCard--traveling):not(.gameCard--rejected),
-.handFan__slot:focus-within .gameCard:not(.gameCard--traveling):not(.gameCard--rejected),
-.handSelectionHand > .gameCard:hover:not(.gameCard--disabled) {
-  transform: scale(var(--game-card-hover-scale));
-}
-
-.shopShelfSlot.cardOfferSlot .gameCard {
+.shopShelfSlot.cardOfferSlot {
+  transform: scale(var(--shop-shelves-card-scale));
   transform-origin: center bottom;
 }
 
+.shopShelfSlot.cardOfferSlot .gameCard {
+  transform-origin: center center;
+}
+
 .shopShelfSlot.cardOfferSlot .gameCard:not(.gameCard--traveling):not(.gameCard--rejected) {
-  transform: scale(var(--shop-shelves-card-scale));
+  transform: none;
 }
 
 .shopShelfSlot.cardOfferSlot:has(.shopCardOffer:hover:not(:disabled):not(.shopCardOffer--unaffordable))
   .gameCard:not(.gameCard--traveling):not(.gameCard--rejected),
 .shopShelfSlot.cardOfferSlot:has(.shopCardOffer:focus-visible:not(:disabled):not(.shopCardOffer--unaffordable))
   .gameCard:not(.gameCard--traveling):not(.gameCard--rejected) {
-  transform: scale(calc(var(--shop-shelves-card-scale) * var(--game-card-hover-scale)));
+  transform: scale(var(--game-card-hover-scale));
 }
 
 .gameCard--rejected {
@@ -4174,6 +4585,18 @@ button.gemIcon {
     top 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+.cardTravelFlyer--burdenToDeck.cardTravelFlyer--moving {
+  transition:
+    left var(--duration-burden-add-to-deck-travel) var(--ease-burden-add-to-deck-travel),
+    top var(--duration-burden-add-to-deck-travel) var(--ease-burden-add-to-deck-travel);
+}
+
+.cardTravelFlyer--burdenToDiscard.cardTravelFlyer--moving {
+  transition:
+    left var(--duration-burden-add-to-deck-travel) var(--ease-burden-add-to-deck-travel),
+    top var(--duration-burden-add-to-deck-travel) var(--ease-burden-add-to-deck-travel);
+}
+
 .cardTravelFlyer--fromDeck.cardTravelFlyer--moving {
   transition:
     left var(--duration-card-draw-travel) cubic-bezier(0.16, 1, 0.3, 1),
@@ -4203,6 +4626,26 @@ button.gemIcon {
 
 .cardTravelMotion--moving {
   transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: translate(-50%, -50%) scale(0.5) rotate(40deg);
+}
+
+.cardTravelMotion--burdenToDeck {
+  transition: transform var(--duration-burden-add-to-deck-travel) var(--ease-burden-add-to-deck-travel);
+  transform: translate(-50%, -50%) scale(1) rotate(0deg);
+}
+
+.cardTravelMotion--burdenToDeck.cardTravelMotion--moving {
+  transition: transform var(--duration-burden-add-to-deck-travel) var(--ease-burden-add-to-deck-travel);
+  transform: translate(-50%, -50%) scale(0.5) rotate(40deg);
+}
+
+.cardTravelMotion--burdenToDiscard {
+  transition: transform var(--duration-burden-add-to-deck-travel) var(--ease-burden-add-to-deck-travel);
+  transform: translate(-50%, -50%) scale(1) rotate(0deg);
+}
+
+.cardTravelMotion--burdenToDiscard.cardTravelMotion--moving {
+  transition: transform var(--duration-burden-add-to-deck-travel) var(--ease-burden-add-to-deck-travel);
   transform: translate(-50%, -50%) scale(0.5) rotate(40deg);
 }
 
@@ -4260,6 +4703,10 @@ button.gemIcon {
   transform: rotateY(0deg);
   transform-style: preserve-3d;
   transition: transform 0.45s ease-in-out;
+}
+
+.cardTravelFlyer--burdenToDeck .cardTravelFlipper {
+  transition: transform var(--duration-burden-add-to-deck-flip) var(--ease-burden-add-to-deck-flip);
 }
 
 .cardTravelFlipper--flipped {
@@ -4322,14 +4769,24 @@ button.gemIcon {
 .shopCardOffer__price {
   font-weight: 900;
   font-size: 14px;
-  color: #fbbf24;
+  color: var(--shop-price-color);
   pointer-events: none;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.shopShelfSlot--unaffordable .shopRelicPrice,
+.shopShelfSlot--unaffordable .shopCardOffer__price {
+  color: var(--shop-price-color-unaffordable);
 }
 
 .combatArena {
   position: absolute;
   inset: 0;
+}
+
+.combatArena:has(.handFan__slot:hover),
+.combatArena:has(.handFan__slot:focus-within) {
+  z-index: var(--game-card-hover-z-index);
 }
 
 .bunnyMeter {
@@ -4360,6 +4817,9 @@ button.gemIcon {
   pointer-events: none;
   user-select: none;
   z-index: var(--combat-bunny-meter-placeholder-z);
+  /* Bubble overlay is larger than the box; keep it from shifting bunny meter flex layout. */
+  contain: layout style;
+  overflow: visible;
 }
 
 .combatPlayerPlaceholder--hasEnchantments {
@@ -4367,7 +4827,13 @@ button.gemIcon {
   cursor: help;
 }
 
+.combatPlayerPlaceholder--fireCrownAboveBar {
+  z-index: var(--enchantment-fire-crown-above-bar-z);
+}
+
 .combatPlayerPlaceholder__art {
+  position: relative;
+  z-index: var(--combat-placeholder-art-z);
   display: block;
   width: 100%;
   height: 100%;
@@ -4382,6 +4848,12 @@ button.gemIcon {
   transform-origin: center center;
   filter: blur(0) drop-shadow(var(--monster-defeat-glow-art-spread));
   animation: playerDefeatArtFall var(--duration-monster-defeat) var(--ease-monster-defeat) forwards;
+}
+
+.combatPlaceholderAnchor {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
 }
 
 .combatMonsterPlaceholder {
@@ -4409,7 +4881,13 @@ button.gemIcon {
   cursor: help;
 }
 
+.combatMonsterPlaceholder--fireCrownAboveBar {
+  z-index: var(--enchantment-fire-crown-above-bar-z);
+}
+
 .combatMonsterPlaceholder__art {
+  position: relative;
+  z-index: var(--combat-placeholder-art-z);
   display: block;
   width: 100%;
   height: 100%;
@@ -4454,6 +4932,192 @@ button.gemIcon {
   50% {
     transform: translate(-50%, -50%) scale(1.06);
     opacity: var(--enchantment-glow-opacity);
+  }
+}
+
+/* Sprite overlay enchantments (e.g. Bubble — see tokens.css --enchantment-bubble-*). */
+.enchantmentSpriteOverlays {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  user-select: none;
+  z-index: 1;
+  overflow: visible;
+}
+
+.enchantmentSpriteOverlay {
+  --enchantment-sprite-overlay-size: var(--enchantment-bubble-size);
+  --enchantment-sprite-overlay-offset-x: var(--enchantment-bubble-offset-x);
+  --enchantment-sprite-overlay-offset-y: var(--enchantment-bubble-offset-y);
+  --enchantment-sprite-overlay-opacity: var(--enchantment-bubble-opacity);
+  --enchantment-sprite-overlay-z: var(--enchantment-bubble-z);
+
+  --enchantment-sprite-overlay-pop-size: var(--enchantment-bubble-pop-size);
+  --enchantment-sprite-overlay-pop-offset-x: var(--enchantment-bubble-pop-offset-x);
+  --enchantment-sprite-overlay-pop-offset-y: var(--enchantment-bubble-pop-offset-y);
+  --enchantment-sprite-overlay-pop-opacity-start: var(--enchantment-bubble-pop-opacity-start);
+  --enchantment-sprite-overlay-pop-opacity-end: var(--enchantment-bubble-pop-opacity-end);
+  --duration-enchantment-sprite-overlay-pop-fade: var(--duration-enchantment-bubble-pop-fade);
+  --ease-enchantment-sprite-overlay-pop-fade: var(--ease-enchantment-bubble-pop-fade);
+
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(
+    calc(-50% + var(--enchantment-sprite-overlay-offset-x)),
+    calc(-50% + var(--enchantment-sprite-overlay-offset-y))
+  );
+  z-index: var(--enchantment-sprite-overlay-z);
+}
+
+.enchantmentSpriteOverlay--bubble {
+  --enchantment-sprite-overlay-size: var(--enchantment-bubble-size);
+  --enchantment-sprite-overlay-offset-x: var(--enchantment-bubble-offset-x);
+  --enchantment-sprite-overlay-offset-y: var(--enchantment-bubble-offset-y);
+  --enchantment-sprite-overlay-opacity: var(--enchantment-bubble-opacity);
+  --enchantment-sprite-overlay-z: var(--enchantment-bubble-z);
+  --enchantment-sprite-overlay-pop-size: var(--enchantment-bubble-pop-size);
+  --enchantment-sprite-overlay-pop-offset-x: var(--enchantment-bubble-pop-offset-x);
+  --enchantment-sprite-overlay-pop-offset-y: var(--enchantment-bubble-pop-offset-y);
+  --enchantment-sprite-overlay-pop-opacity-start: var(--enchantment-bubble-pop-opacity-start);
+  --enchantment-sprite-overlay-pop-opacity-end: var(--enchantment-bubble-pop-opacity-end);
+  --duration-enchantment-sprite-overlay-pop-fade: var(--duration-enchantment-bubble-pop-fade);
+  --ease-enchantment-sprite-overlay-pop-fade: var(--ease-enchantment-bubble-pop-fade);
+}
+
+.enchantmentSpriteOverlay--antiMagicShell {
+  --enchantment-sprite-overlay-size: var(--enchantment-anti-magic-shell-size);
+  --enchantment-sprite-overlay-offset-x: var(--enchantment-anti-magic-shell-offset-x);
+  --enchantment-sprite-overlay-offset-y: var(--enchantment-anti-magic-shell-offset-y);
+  --enchantment-sprite-overlay-opacity: var(--enchantment-anti-magic-shell-opacity);
+  --enchantment-sprite-overlay-z: var(--enchantment-anti-magic-shell-z);
+  --enchantment-sprite-overlay-pop-size: var(--enchantment-anti-magic-shell-pop-size);
+  --enchantment-sprite-overlay-pop-offset-x: var(--enchantment-anti-magic-shell-pop-offset-x);
+  --enchantment-sprite-overlay-pop-offset-y: var(--enchantment-anti-magic-shell-pop-offset-y);
+  --enchantment-sprite-overlay-pop-opacity-start: var(--enchantment-anti-magic-shell-pop-opacity-start);
+  --enchantment-sprite-overlay-pop-opacity-end: var(--enchantment-anti-magic-shell-pop-opacity-end);
+  --duration-enchantment-sprite-overlay-pop-fade: var(--duration-enchantment-anti-magic-shell-pop-fade);
+  --ease-enchantment-sprite-overlay-pop-fade: var(--ease-enchantment-anti-magic-shell-pop-fade);
+}
+
+.enchantmentSpriteOverlay--poison {
+  --enchantment-sprite-overlay-size: var(--enchantment-poison-size);
+  --enchantment-sprite-overlay-offset-x: var(--enchantment-poison-offset-x);
+  --enchantment-sprite-overlay-offset-y: var(--enchantment-poison-offset-y);
+  --enchantment-sprite-overlay-opacity: var(--enchantment-poison-opacity);
+  --enchantment-sprite-overlay-z: var(--enchantment-poison-z);
+  --enchantment-sprite-overlay-pop-size: var(--enchantment-poison-pop-size);
+  --enchantment-sprite-overlay-pop-offset-x: var(--enchantment-poison-pop-offset-x);
+  --enchantment-sprite-overlay-pop-offset-y: var(--enchantment-poison-pop-offset-y);
+  --enchantment-sprite-overlay-pop-opacity-start: var(--enchantment-poison-pop-opacity-start);
+  --enchantment-sprite-overlay-pop-opacity-end: var(--enchantment-poison-pop-opacity-end);
+  --duration-enchantment-sprite-overlay-pop-fade: var(--duration-enchantment-poison-pop-fade);
+  --ease-enchantment-sprite-overlay-pop-fade: var(--ease-enchantment-poison-pop-fade);
+}
+
+.enchantmentSpriteOverlay--fireCrown {
+  --enchantment-sprite-overlay-size: var(--enchantment-fire-crown-size);
+  --enchantment-sprite-overlay-offset-x: var(--enchantment-fire-crown-offset-x);
+  --enchantment-sprite-overlay-offset-y: var(--enchantment-fire-crown-offset-y);
+  --enchantment-sprite-overlay-opacity: var(--enchantment-fire-crown-opacity);
+  --enchantment-sprite-overlay-z: var(--enchantment-fire-crown-z);
+  --enchantment-sprite-overlay-pop-size: var(--enchantment-fire-crown-pop-size);
+  --enchantment-sprite-overlay-pop-offset-x: var(--enchantment-fire-crown-pop-offset-x);
+  --enchantment-sprite-overlay-pop-offset-y: var(--enchantment-fire-crown-pop-offset-y);
+  --enchantment-sprite-overlay-pop-opacity-start: var(--enchantment-fire-crown-pop-opacity-start);
+  --enchantment-sprite-overlay-pop-opacity-end: var(--enchantment-fire-crown-pop-opacity-end);
+  --duration-enchantment-sprite-overlay-pop-fade: var(--duration-enchantment-fire-crown-pop-fade);
+  --ease-enchantment-sprite-overlay-pop-fade: var(--ease-enchantment-fire-crown-pop-fade);
+}
+
+.enchantmentSpriteOverlay__idle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 1;
+  display: block;
+  width: var(--enchantment-sprite-overlay-size);
+  height: var(--enchantment-sprite-overlay-size);
+  transform: translate(-50%, -50%);
+  object-fit: contain;
+  object-position: center;
+  opacity: var(--enchantment-sprite-overlay-opacity);
+  pointer-events: none;
+}
+
+/* Poison (and future sprite overlays) — darken then restore on trigger (tokens.css --enchantment-poison-trigger-*). */
+.enchantmentSpriteOverlay--poison .enchantmentSpriteOverlay__idle--triggerPulse {
+  animation:
+    enchantmentPoisonTriggerDarken var(--duration-enchantment-poison-trigger-darken)
+      var(--ease-enchantment-poison-trigger-darken) forwards,
+    enchantmentPoisonTriggerRestore var(--duration-enchantment-poison-trigger-restore)
+      var(--ease-enchantment-poison-trigger-restore) forwards;
+  animation-delay: 0s, var(--duration-enchantment-poison-trigger-darken);
+}
+
+@keyframes enchantmentPoisonTriggerDarken {
+  from {
+    filter: brightness(1);
+  }
+  to {
+    filter: brightness(var(--enchantment-poison-trigger-brightness-min));
+  }
+}
+
+@keyframes enchantmentPoisonTriggerRestore {
+  from {
+    filter: brightness(var(--enchantment-poison-trigger-brightness-min));
+  }
+  to {
+    filter: brightness(1);
+  }
+}
+
+.enchantmentSpriteOverlay__pop {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 2;
+  display: block;
+  width: var(--enchantment-sprite-overlay-pop-size);
+  height: var(--enchantment-sprite-overlay-pop-size);
+  transform: translate(
+    calc(-50% + var(--enchantment-sprite-overlay-pop-offset-x)),
+    calc(-50% + var(--enchantment-sprite-overlay-pop-offset-y))
+  );
+  object-fit: contain;
+  object-position: center;
+  opacity: var(--enchantment-sprite-overlay-pop-opacity-start);
+  animation: enchantmentSpriteOverlayPopFade var(--duration-enchantment-sprite-overlay-pop-fade)
+    var(--ease-enchantment-sprite-overlay-pop-fade) forwards;
+  pointer-events: none;
+  will-change: opacity;
+}
+
+@keyframes enchantmentBubblePopFade {
+  from {
+    opacity: var(--enchantment-bubble-pop-opacity-start);
+  }
+  to {
+    opacity: var(--enchantment-bubble-pop-opacity-end);
+  }
+}
+
+@keyframes enchantmentAntiMagicShellPopFade {
+  from {
+    opacity: var(--enchantment-anti-magic-shell-pop-opacity-start);
+  }
+  to {
+    opacity: var(--enchantment-anti-magic-shell-pop-opacity-end);
+  }
+}
+
+@keyframes enchantmentSpriteOverlayPopFade {
+  from {
+    opacity: var(--enchantment-sprite-overlay-pop-opacity-start);
+  }
+  to {
+    opacity: var(--enchantment-sprite-overlay-pop-opacity-end);
   }
 }
 
@@ -4547,6 +5211,16 @@ button.gemIcon {
   text-overflow: ellipsis;
   pointer-events: none;
   user-select: none;
+}
+
+.combatMonsterPlaceholder__name--wrap {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.combatMonsterPlaceholder__name--small {
+  font-size: var(--combat-monster-name-font-size-small);
 }
 
 .combatMonsterPlaceholder--defeating {
@@ -4720,13 +5394,11 @@ button.gemIcon {
 
 .handFan__slot:hover,
 .handFan__slot:focus-within {
+  z-index: var(--game-card-hover-z-index);
   transform: rotate(0deg) translateY(var(--hand-fan-hover-lift));
 }
 
 .gameCard {
-  --card-font-scale-name: var(--card-font-scale-name-default);
-  --card-font-scale-ink: var(--card-font-scale-ink-default);
-  --card-font-scale-text: var(--card-font-scale-text-default);
   width: var(--game-card-w);
   height: var(--game-card-h);
   position: relative;
@@ -4796,153 +5468,25 @@ button.gemIcon {
   z-index: 3;
 }
 
-.gameCard__overlay {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  padding: 12% 10% 11%;
-  box-sizing: border-box;
-  pointer-events: none;
-  overflow: hidden;
-  min-height: 0;
-  z-index: 2;
-}
-
-.gameCard__header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 4px;
-  flex: 0 0 auto;
-  min-height: 12%;
-}
-
-.gameCard__name {
-  font-family: var(--font-card);
-  font-size: calc(var(--font-card-name-size) * var(--card-font-scale-name));
-  font-weight: var(--font-card-name-weight);
-  line-height: var(--font-card-name-line-height);
-  color: var(--color-card-name);
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  max-height: calc(2 * var(--font-card-name-line-height) * 1em);
-}
-
-.gameCard__name--upgraded {
-  color: var(--color-card-name-upgraded);
-}
-
-.gameCard__ink {
-  flex: 0 0 auto;
-  font-family: var(--font-card);
-  /* Size/weight from tokens.css; scale stays 1 (see cardFontScale.ts). */
-  font-size: calc(var(--font-card-ink-size) * var(--card-font-scale-ink));
-  font-weight: var(--font-card-ink-weight);
-  line-height: var(--font-card-ink-line-height);
-  color: var(--color-card-ink);
-  white-space: nowrap;
-}
-
-.gameCard__ink--modified {
-  color: var(--color-card-ink-modified);
-}
-
-.gameCard__art {
-  flex: 1 1 auto;
-  display: grid;
-  place-items: center;
-  min-height: 0;
-  margin: 1% 0;
-  overflow: hidden;
-}
-
-.gameCard__artImg {
-  width: calc(
-    var(--card-illustration-w, var(--card-illustration-default-w)) * var(--card-illustration-size-modifier)
-  );
-  height: calc(
-    var(--card-illustration-h, var(--card-illustration-default-h)) * var(--card-illustration-size-modifier)
-  );
-  object-fit: contain;
-  filter: var(--card-illustration-filter);
-  transform: translate(
-    var(--card-illustration-x, var(--card-illustration-default-x)),
-    var(--card-illustration-y, var(--card-illustration-default-y))
-  );
-  pointer-events: none;
-}
-
-.gameCard--potion .gameCard__artImg {
-  filter: var(--card-illustration-potion-filter);
-}
-
-.gameCard__artImg--placeholder {
-  opacity: 0.5;
-}
-
-.gameCard__desc {
-  flex: 0 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  font-family: var(--font-card);
-  font-size: calc(var(--font-card-text-size) * var(--card-font-scale-text));
-  font-weight: var(--font-card-text-weight);
-  line-height: var(--font-card-text-line-height);
-  color: var(--color-card-text);
-  max-height: 34%;
-  overflow: hidden;
-  min-height: 0;
-}
-
-.gameCard__descLine {
-  display: block;
-  line-height: var(--font-card-text-line-height);
-}
-
-.gameCard__keyword {
-  font-weight: 800;
-  color: inherit;
-}
-
 .gemOfferDesc__line {
   line-height: 1.35;
-}
-
-.gameCard__tags {
-  flex: 0 0 auto;
-  font-family: var(--font-card);
-  font-size: calc(var(--font-card-tags-size) * var(--card-font-scale-text));
-  font-weight: var(--font-card-tags-weight);
-  line-height: var(--font-card-tags-line-height);
-  opacity: 0.72;
-  color: var(--color-card-tags);
-  margin-top: 2px;
-}
-
-.gameCard__amtUp,
-.gameCard__bunnyAmtUp {
-  color: var(--color-card-text-amt-up);
-  font-weight: var(--font-card-text-emphasis-weight);
-}
-
-.gameCard__amtDown,
-.gameCard__bunnyAmtDown {
-  color: var(--color-card-text-amt-down);
-  font-weight: var(--font-card-text-emphasis-weight);
 }
 
 .gameCard--clickable {
   cursor: pointer;
 }
 
-.gameCard--exhausted {
+.gameCard__face {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.gameCard__face.gameCard--exhausted {
   filter: brightness(var(--card-exhausted-brightness));
 }
 
-.gameCard--exhausted::after {
+.gameCard__face.gameCard--exhausted::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -4950,6 +5494,29 @@ button.gemIcon {
   background: var(--color-card-exhausted-shade);
   pointer-events: none;
   z-index: 2;
+}
+
+.gameCard__disabledStamp {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 4;
+  pointer-events: none;
+  font-family: var(--font-card-disabled-stamp);
+  color: var(--color-card-disabled-stamp);
+  font-size: var(--font-card-disabled-stamp-size);
+  font-weight: var(--font-card-disabled-stamp-weight);
+  letter-spacing: var(--card-disabled-stamp-letter-spacing);
+  transform: rotate(var(--card-disabled-stamp-angle))
+    translate(var(--card-disabled-stamp-offset-x), var(--card-disabled-stamp-offset-y));
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.gameCard--combatDisabled {
+  cursor: not-allowed;
 }
 
 .gameCard--disabled {
@@ -5085,6 +5652,184 @@ button.gemIcon {
 }
 .floatInfo {
   color: #fbbf24;
+}
+
+/* Critical hit FX (see criticalFxConfig.ts, CriticalFxContext.tsx). */
+.criticalFxLayer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: var(--critical-fx-z);
+}
+
+.criticalFxFloat {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  font-size: var(--critical-fx-font-size);
+  font-weight: 800;
+  line-height: 1;
+  text-shadow: 0 3px 0 rgba(0, 0, 0, 0.45);
+  animation: criticalFxFloatDrift var(--duration-critical-fx-fade) var(--ease-critical-fx) forwards;
+}
+
+.criticalFxFloat--attack {
+  color: var(--critical-fx-attack-color);
+}
+
+.criticalFxFloat--bunnies {
+  color: var(--critical-fx-bunnies-color);
+}
+
+.criticalFxFloat--shield {
+  color: var(--critical-fx-shield-color);
+}
+
+@keyframes criticalFxFloatDrift {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, calc(-50% + var(--critical-fx-drift-y)));
+  }
+}
+
+.combatMonsterPlaceholder__art.criticalFxShake--attack,
+.combatPlayerPlaceholder__art.criticalFxShake--shield,
+.bunnyMeterCauldron__art.criticalFxShake--bunnies {
+  animation: criticalFxTargetShake var(--duration-critical-fx-shake) var(--ease-critical-fx);
+}
+
+.combatMonsterPlaceholder__art.criticalFxShake--attack {
+  filter: drop-shadow(0 0 var(--critical-fx-glow-spread) var(--critical-fx-attack-glow));
+}
+
+.combatPlayerPlaceholder__art.criticalFxShake--shield {
+  filter: drop-shadow(0 0 var(--critical-fx-glow-spread) var(--critical-fx-shield-glow));
+}
+
+.bunnyMeterCauldron__art.criticalFxShake--bunnies {
+  filter: drop-shadow(0 0 var(--critical-fx-glow-spread) var(--critical-fx-bunnies-glow));
+}
+
+@keyframes criticalFxTargetShake {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  20% {
+    transform: translate(calc(var(--critical-fx-shake-x) * -1), var(--critical-fx-shake-y));
+  }
+  40% {
+    transform: translate(var(--critical-fx-shake-x), calc(var(--critical-fx-shake-y) * -1));
+  }
+  60% {
+    transform: translate(calc(var(--critical-fx-shake-x) * -1), calc(var(--critical-fx-shake-y) * -1));
+  }
+  80% {
+    transform: translate(var(--critical-fx-shake-x), var(--critical-fx-shake-y));
+  }
+}
+
+/* Player dodge FX (see dodgeFxConfig.ts, DodgeFxContext.tsx). */
+.dodgeFxLayer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: var(--dodge-fx-z);
+}
+
+.dodgeFxFloat {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  font-size: var(--dodge-fx-font-size);
+  font-weight: 800;
+  line-height: 1;
+  color: var(--dodge-fx-text-color);
+  text-shadow:
+    0 3px 0 rgba(0, 0, 0, 0.45),
+    0 0 12px var(--dodge-fx-text-glow);
+  animation: dodgeFxFloatDrift var(--duration-dodge-fx-fade) var(--ease-dodge-fx) forwards;
+}
+
+@keyframes dodgeFxFloatDrift {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, calc(-50% + var(--dodge-fx-drift-y)));
+  }
+}
+
+.combatPlayerPlaceholder__art.playerHitFx {
+  animation:
+    playerHitFxShake var(--duration-player-hit-fx-shake) var(--ease-player-hit-fx),
+    playerHitFxRedGlow var(--duration-player-hit-fx-glow) var(--ease-player-hit-fx);
+}
+
+@keyframes playerHitFxShake {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  12% {
+    transform: translate(calc(var(--player-hit-fx-shake-x) * -1), var(--player-hit-fx-shake-y));
+  }
+  24% {
+    transform: translate(var(--player-hit-fx-shake-x), calc(var(--player-hit-fx-shake-y) * -1));
+  }
+  36% {
+    transform: translate(calc(var(--player-hit-fx-shake-x) * -1), calc(var(--player-hit-fx-shake-y) * -1));
+  }
+  48% {
+    transform: translate(var(--player-hit-fx-shake-x), var(--player-hit-fx-shake-y));
+  }
+  60% {
+    transform: translate(calc(var(--player-hit-fx-shake-x) * -0.5), calc(var(--player-hit-fx-shake-y) * 0.5));
+  }
+}
+
+@keyframes playerHitFxRedGlow {
+  0%,
+  100% {
+    filter: none;
+  }
+  18%,
+  72% {
+    filter: drop-shadow(0 0 var(--player-hit-fx-glow-tight) var(--color-player-hit-fx-glow))
+      drop-shadow(0 0 var(--player-hit-fx-glow-wide) var(--color-player-hit-fx-glow-soft))
+      brightness(1.08)
+      saturate(1.15);
+  }
+}
+
+.combatPlayerPlaceholder__art.dodgeFxWiggle {
+  animation: dodgeFxPlayerWiggle var(--duration-dodge-fx-wiggle) var(--ease-dodge-fx);
+}
+
+@keyframes dodgeFxPlayerWiggle {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  15% {
+    transform: translateX(calc(var(--dodge-fx-wiggle-x) * -1));
+  }
+  30% {
+    transform: translateX(var(--dodge-fx-wiggle-x));
+  }
+  45% {
+    transform: translateX(calc(var(--dodge-fx-wiggle-x) * -1));
+  }
+  60% {
+    transform: translateX(var(--dodge-fx-wiggle-x));
+  }
+  75% {
+    transform: translateX(calc(var(--dodge-fx-wiggle-x) * -0.5));
+  }
 }
 
 .footerRow {

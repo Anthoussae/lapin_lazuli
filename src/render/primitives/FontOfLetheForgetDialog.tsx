@@ -4,6 +4,7 @@ import type { CardInstance } from '../../core/types/state'
 import type { ScreenProps } from '../screens/types'
 import { useCardConsume } from '../CardConsumeContext'
 import { fontOfLetheForgetConsumeDelayMs, fontOfLetheForgetPoofViewportPoint } from '../fontOfLetheForgetFxConfig'
+import { powerDisplayContextFromPlayer } from '../../systems/combat/powerDisplay'
 import { GameCardView } from './GameCardView'
 
 function deckCardsSorted(instances: ReadonlyArray<CardInstance>): ReadonlyArray<CardInstance> {
@@ -25,10 +26,7 @@ export function FontOfLetheForgetDialog(props: Readonly<{ state: ScreenProps['st
   const pendingConsumeRef = useRef(false)
   const prevForgottenRef = useRef(false)
   const cards = deckCardsSorted(Object.values(state.player.deck.cardById))
-  const power = state.player.power
-  const firepower = state.player.firepower
-  const firepowerMultiplier = state.player.firepowerMultiplier
-  const shieldPower = state.player.shieldPower
+  const powerDisplay = powerDisplayContextFromPlayer(state.player)
 
   useEffect(() => {
     const forgotten = fol?.cardForgotten === true
@@ -100,17 +98,14 @@ export function FontOfLetheForgetDialog(props: Readonly<{ state: ScreenProps['st
             return (
               <div
                 key={inst.id}
-                className="fontOfLetheForgetCardSlot"
+                className="fontOfLetheForgetCardSlot gameCardHoverHost"
                 data-fol-card-instance-id={inst.id}
               >
                 <GameCardView
                   inst={inst}
                   template={t}
-                  power={power}
-                  firepower={firepower}
-                  firepowerMultiplier={firepowerMultiplier}
-                  shieldPower={shieldPower}
-                  hasGreenHat={state.player.relics.some((r) => r.templateId === 'GREEN_HAT')}
+                  powerDisplay={powerDisplay}
+                  gameLevel={state.level}
                   selected={selected}
                   className="fontOfLetheForgetCard"
                   onClick={() => enqueue({ type: 'FONT_OF_LETHE/SELECT_CARD', cardInstanceId: inst.id })}

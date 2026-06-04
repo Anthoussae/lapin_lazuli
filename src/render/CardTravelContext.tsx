@@ -17,8 +17,15 @@ import {
   cardPullFromDeckEndpoints,
 } from './cardLayout'
 import { pullFromDeckTotalMs } from './cardPullFromDeckConfig'
+import {
+  burdenAddToDeckFinishBufferMs,
+  burdenAddToDeckFlipBufferMs,
+  burdenAddToDeckFlipMs,
+  burdenAddToDeckTotalMs,
+  burdenAddToDeckTravelMs,
+} from './burdenAddFxConfig'
 import type { CardDescLine } from '../ui/describe'
-import { Card } from './primitives/Card'
+import { GameCardView } from './primitives/GameCardView'
 import { useRelicTravel } from './RelicTravelContext'
 import { readRootDurationMs } from './relicTooltipPosition'
 
@@ -33,11 +40,14 @@ export type CardTravelPayload = Readonly<{
   foil?: boolean
 }>
 
+export type CardTravelProfile = 'default' | 'burden'
+
 export type CardTravelToDeckRequest = Readonly<{
   cardKey: string
   sourceEl: HTMLElement
   card: CardTravelPayload
   onComplete: () => void
+  travelProfile?: CardTravelProfile
 }>
 
 export type CardTravelFromDeckRequest = Readonly<{
@@ -61,6 +71,7 @@ export type CardTravelToDiscardRequest = Readonly<{
   sourceRect?: DOMRect
   card: CardTravelPayload
   onComplete: () => void
+  travelProfile?: CardTravelProfile
 }>
 
 type TravelPoint = Readonly<{ x: number; y: number }>
@@ -83,6 +94,7 @@ type ActiveFlight = Readonly<{
   moving: boolean
   /** Only present for `toDeck` so we can recompute endpoints at move start. */
   sourceEl?: HTMLElement
+  travelProfile?: CardTravelProfile
 }>
 
 type CardTravelContextValue = Readonly<{
@@ -284,7 +296,13 @@ export function CardTravelProvider(props: Readonly<{ children: ReactNode }>) {
         flipped: false,
         moving: false,
         sourceEl: req.sourceEl,
+        travelProfile: req.travelProfile,
       }
+
+      const burdenProfile = req.travelProfile === 'burden'
+      const flipMs = burdenProfile ? burdenAddToDeckFlipMs() : TO_DECK_FLIP_MS
+      const flipBufferMs = burdenProfile ? burdenAddToDeckFlipBufferMs() : 40
+      const totalMs = burdenProfile ? burdenAddToDeckTotalMs() : TO_DECK_FLIP_MS + TO_DECK_TRAVEL_MS + 120
 
       flushSync(() => {
         setTravelingCardKey(req.cardKey)
@@ -301,8 +319,8 @@ export function CardTravelProvider(props: Readonly<{ children: ReactNode }>) {
         })
       })
 
-      window.setTimeout(() => beginToDeckMoving(req.cardKey), TO_DECK_FLIP_MS + 40)
-      window.setTimeout(finishFlight, TO_DECK_FLIP_MS + TO_DECK_TRAVEL_MS + 120)
+      window.setTimeout(() => beginToDeckMoving(req.cardKey), flipMs + flipBufferMs)
+      window.setTimeout(finishFlight, totalMs)
     },
     [beginToDeckMoving, stageLayerRef],
   )
@@ -407,6 +425,7 @@ export function CardTravelProvider(props: Readonly<{ children: ReactNode }>) {
         phase: 'moving',
         flipped: false,
         moving: false,
+        travelProfile: req.travelProfile,
       }
 
       flushSync(() => {
@@ -425,8 +444,13 @@ export function CardTravelProvider(props: Readonly<{ children: ReactNode }>) {
         })
       })
 
-      const travelMs = readRootDurationMs('--duration-card-discard-travel')
-      const bufferMs = readRootDurationMs('--duration-card-discard-finish-buffer')
+      const burdenProfile = req.travelProfile === 'burden'
+      const travelMs = burdenProfile
+        ? burdenAddToDeckTravelMs()
+        : readRootDurationMs('--duration-card-discard-travel')
+      const bufferMs = burdenProfile
+        ? burdenAddToDeckFinishBufferMs()
+        : readRootDurationMs('--duration-card-discard-finish-buffer')
       window.setTimeout(finishFlight, travelMs + bufferMs)
     },
     [stageLayerRef],
@@ -542,6 +566,7 @@ function CardTravelFlyer(props: Readonly<{
   const pullFromDeck = isPullFromDeckDirection(flight.direction)
   const pullFromDeckTokenized = flight.direction === 'pullFromDeck'
   const toDiscard = flight.direction === 'toDiscard'
+  const burdenTravel = flight.travelProfile === 'burden'
   const moving = flight.moving
   const pullAtOrigin = pullFromDeck && flight.phase === 'moving' && !moving
 
@@ -552,6 +577,8 @@ function CardTravelFlyer(props: Readonly<{
         pullFromDeck && !pullFromDeckTokenized ? 'cardTravelFlyer--fromDeck' : null,
         pullFromDeckTokenized ? 'cardTravelFlyer--pullFromDeck' : null,
         toDiscard ? 'cardTravelFlyer--toDiscard' : null,
+        burdenTravel && toDiscard ? 'cardTravelFlyer--burdenToDiscard' : null,
+        burdenTravel && !toDiscard && !pullFromDeck ? 'cardTravelFlyer--burdenToDeck' : null,
         moving ? 'cardTravelFlyer--moving' : null,
       ]
         .filter(Boolean)
@@ -577,6 +604,8 @@ function CardTravelFlyer(props: Readonly<{
           pullAtOrigin && !pullFromDeckTokenized ? 'cardTravelMotion--fromDeckOrigin' : null,
           pullAtOrigin && pullFromDeckTokenized ? 'cardTravelMotion--pullFromDeckOrigin' : null,
           toDiscard ? 'cardTravelMotion--toDiscard' : null,
+          burdenTravel && toDiscard ? 'cardTravelMotion--burdenToDiscard' : null,
+          burdenTravel && !toDiscard && !pullFromDeck ? 'cardTravelMotion--burdenToDeck' : null,
           moving ? 'cardTravelMotion--moving' : null,
         ]
           .filter(Boolean)
@@ -594,18 +623,7 @@ function CardTravelFlyer(props: Readonly<{
           }}
         >
           <div className="cardTravelFlipper__face cardTravelFlipper__face--front">
-            <Card
-              face="front"
-              cardId={flight.card.cardId}
-              name={flight.card.name}
-              nameUpgraded={flight.card.nameUpgraded}
-              inkLabel={flight.card.inkLabel}
-              inkModified={flight.card.inkModified}
-              descriptionLines={flight.card.descriptionLines}
-              socketedGemId={flight.card.socketedGemId ?? null}
-              foil={flight.card.foil === true}
-              staticDisplay
-            />
+            <GameCardView travelPayload={flight.card} />
           </div>
           <div className="cardTravelFlipper__face cardTravelFlipper__face--back">
             <img className="cardTravelFlipper__backImg" src={cardBackArt} alt="" draggable={false} />

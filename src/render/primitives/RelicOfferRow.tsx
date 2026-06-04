@@ -27,6 +27,7 @@ export function RelicOfferRow(
           <div key={id} className="relicOfferSlot">
             {isRejected ? <RelicRejectPuffs /> : null}
             <RelicIcon
+              relicId={id}
               imageSrc={relicImageMap[id]}
               fallback={r?.thumb ?? '?'}
               alt={r?.name}

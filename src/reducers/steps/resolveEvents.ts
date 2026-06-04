@@ -29,6 +29,9 @@ export function resolveEventQueue(state: GameState, eventsIn: ReadonlyArray<Game
 
     // 2) Check win/lose after deaths.
     if (evt.type === 'EVT/UNIT_DIED') {
+      if (s.combat?.enemies.enemyById[evt.unit as any]) {
+        s = { ...s, runStats: { ...s.runStats, enemiesDefeated: s.runStats.enemiesDefeated + 1 } }
+      }
       const ended = maybeEndCombat(s)
       if (ended.state !== s) s = ended.state
       for (const e of ended.events) {
@@ -62,7 +65,9 @@ function maybeEndCombat(state: GameState): { state: GameState; events: GameEvent
   if (!state.combat) return { state, events: [] }
   const resetExhausted = (s: GameState): GameState => {
     const deck = s.player.deck
-    const nextById = Object.fromEntries(Object.entries(deck.cardById).map(([id, c]) => [id, { ...c, exhausted: false }]))
+    const nextById = Object.fromEntries(
+      Object.entries(deck.cardById).map(([id, c]) => [id, { ...c, exhausted: false, disabled: false }]),
+    )
     return { ...s, player: { ...s.player, deck: { ...deck, cardById: nextById } } }
   }
   if (state.player.hp <= 0) {
@@ -78,6 +83,10 @@ function maybeEndCombat(state: GameState): { state: GameState; events: GameEvent
         : setPhase(
             {
               ...cleared,
+              runStats: {
+                ...cleared.runStats,
+                maxLevelReached: Math.max(cleared.runStats.maxLevelReached, cleared.level),
+              },
               defeat: cleared.defeat ?? { enemyName: 'Unknown enemy', level: cleared.level },
             },
             'DEFEAT',

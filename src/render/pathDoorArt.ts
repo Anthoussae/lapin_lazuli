@@ -3,6 +3,7 @@ import { Paths } from '../data/paths'
 import {
   bossDoor,
   cardDoor,
+  enchantedDoor,
   fallbackDoor,
   gemDoor,
   monsterDoor,
@@ -24,6 +25,7 @@ const PATH_DOOR_BY_ID: Readonly<Partial<Record<PathId, string>>> = {
 }
 
 export function pathDoorArt(pathId: PathId): string {
+  if (pathId === 'MINIBOSS') return enchantedDoor
   const kind = Paths[pathId]?.kind
   if (kind === 'boss') return bossDoor
   if (kind === 'combat') return monsterDoor
@@ -31,6 +33,7 @@ export function pathDoorArt(pathId: PathId): string {
 }
 
 export function pathOpenDoorArt(pathId: PathId): string {
+  if (pathId === 'MINIBOSS') return openBossDoor
   const kind = Paths[pathId]?.kind
   if (kind === 'boss') return openBossDoor
   return openDoor

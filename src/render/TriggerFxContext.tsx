@@ -9,8 +9,7 @@ import {
   type ReactNode,
 } from 'react'
 import type { EnemyBoonId } from '../data/enemyBoons'
-import type { RelicId } from '../core/types/ids'
-import type { EnemyInstanceId } from '../core/types/ids'
+import type { CardInstanceId, EnemyInstanceId, RelicId } from '../core/types/ids'
 import type { GameState } from '../core/types/state'
 import { triggerFxTotalMs } from './triggerFxConfig'
 import {
@@ -33,7 +32,7 @@ type TriggerFxContextValue = Readonly<{
 const TriggerFxContext = createContext<TriggerFxContextValue | null>(null)
 
 const RELIC_EVENT_RE = /^RELIC (\w+) \((.+)\)$/
-const BOON_EVENT_RE = /^BOON (\S+) (\w+) \((.+)\)$/
+const BOON_EVENT_RE = /^BOON (\S+) (\w+) \(([^)]+)\)(?: cards:([\w,]+))?$/
 
 function parseRelicTriggeredEvent(line: string): { relicId: RelicId; triggerId: string } | null {
   const m = RELIC_EVENT_RE.exec(line)
@@ -43,10 +42,11 @@ function parseRelicTriggeredEvent(line: string): { relicId: RelicId; triggerId: 
 
 function parseBoonTriggeredEvent(
   line: string,
-): { enemyId: EnemyInstanceId; boonId: EnemyBoonId; triggerId: string } | null {
+): { enemyId: EnemyInstanceId; boonId: EnemyBoonId; triggerId: string; targetCardInstanceIds: CardInstanceId[] } | null {
   const m = BOON_EVENT_RE.exec(line)
   if (!m) return null
-  return { enemyId: m[1]!, boonId: m[2] as EnemyBoonId, triggerId: m[3]! }
+  const targetCardInstanceIds = m[4] ? (m[4].split(',').filter(Boolean) as CardInstanceId[]) : []
+  return { enemyId: m[1]!, boonId: m[2] as EnemyBoonId, triggerId: m[3]!, targetCardInstanceIds }
 }
 
 export function TriggerFxProvider(
@@ -109,6 +109,7 @@ export function TriggerFxProvider(
           boonParsed.enemyId,
           boonParsed.boonId,
           boonParsed.triggerId,
+          boonParsed.targetCardInstanceIds,
         )
         if (plan) batch.push(...plan)
         continue
@@ -134,9 +135,9 @@ export function TriggerFxProvider(
   return <TriggerFxContext.Provider value={value}>{children}</TriggerFxContext.Provider>
 }
 
-export function useTriggerFxArtProps(anchor: TriggerFxAnchor): { className: string; key: number } {
+export function useTriggerFxArtProps(anchor: TriggerFxAnchor | null): { className: string; key: number } {
   const ctx = useContext(TriggerFxContext)
-  const flash = ctx?.getFlash(anchor) ?? null
+  const flash = anchor ? (ctx?.getFlash(anchor) ?? null) : null
   return {
     className: flash ? `triggerFx--${flash.role}` : '',
     key: flash?.key ?? 0,

@@ -1,4 +1,4 @@
-import type { CardId } from '../../core/types/ids'
+import type { CardId, EnchantmentId } from '../../core/types/ids'
 import type { DiceSpec } from '../../core/rng/dice'
 import type { EnemyIntent, EnemyIntentExtraEffect } from '../../core/types/state'
 import type { EnemyIntentKind } from '../../data/enemyIntentKinds'
@@ -12,6 +12,7 @@ export type EnemyIntentExtraEffectKind = EnemyIntentExtraEffect['effect']
 const INTENT_EXTRA_EFFECT_ENEMY_BUFF: ReadonlySet<EnemyIntentExtraEffectKind> = new Set([
   'strengthgain',
   'enemyLockedShieldGain',
+  'enemyShieldGain',
   'vampiric',
 ])
 
@@ -21,6 +22,7 @@ const INTENT_EXTRA_EFFECT_ENEMY_BUFF: ReadonlySet<EnemyIntentExtraEffectKind> = 
 const INTENT_EXTRA_EFFECT_PLAYER_DEBUFF: ReadonlySet<EnemyIntentExtraEffectKind> = new Set([
   'playerTurnStartBunnyDrain',
   'shuffleBurdenIntoDeck',
+  'applyEnchantment',
 ])
 
 export function isEnemyBuffEffect(effect: EnemyIntentExtraEffect): boolean {
@@ -43,7 +45,15 @@ export function enemyIntentKind(intent: EnemyIntent): EnemyIntentKind {
   return intent.intentKind
 }
 
-/** Sum of all `strengthgain` values on an intent (other effect kinds ignored until implemented). */
+/**
+ * Extra damage from enemy strength on an attack intent: +1 flat damage per strength point.
+ * This is intentionally NOT scaled by enemy level or intent instances.
+ */
+export function enemyAttackStrengthDamageBonus(strength: number): number {
+  return Math.max(0, strength | 0)
+}
+
+/** Sum of all `strengthgain` amounts on an intent (other effect kinds ignored until implemented). */
 export function strengthDeltaFromIntentEffects(
   effects: ReadonlyArray<EnemyIntentExtraEffect> | undefined,
 ): number {
@@ -51,7 +61,7 @@ export function strengthDeltaFromIntentEffects(
   let d = 0
   for (const e of effects) {
     if (e.effect !== 'strengthgain') continue
-    d += e.value
+    d += e.amount
   }
   return d
 }
@@ -82,6 +92,19 @@ export function enemyLockedShieldGainFromIntentEffects(
   return d
 }
 
+/** Regular shield granted to the acting enemy when an attack resolves. */
+export function enemyShieldGainFromIntentEffects(
+  effects: ReadonlyArray<EnemyIntentExtraEffect> | undefined,
+): number {
+  if (!effects?.length) return 0
+  let d = 0
+  for (const e of effects) {
+    if (e.effect !== 'enemyShieldGain') continue
+    d += e.amount
+  }
+  return d
+}
+
 export function intentHasVampiric(effects: ReadonlyArray<EnemyIntentExtraEffect> | undefined): boolean {
   return !!effects?.some((e) => e.effect === 'vampiric')
 }
@@ -96,4 +119,20 @@ export function burdenShuffleEntriesFromIntentEffects(
     totals.set(e.cardId, (totals.get(e.cardId) ?? 0) + e.count)
   }
   return [...totals.entries()].map(([cardId, count]) => ({ cardId, count }))
+}
+
+export function applyEnchantmentGrantsFromIntentEffects(
+  effects: ReadonlyArray<EnemyIntentExtraEffect> | undefined,
+): ReadonlyArray<{ enchantmentId: EnchantmentId; stacks: number; amountOverride?: number }> {
+  if (!effects?.length) return []
+  const grants: Array<{ enchantmentId: EnchantmentId; stacks: number; amountOverride?: number }> = []
+  for (const e of effects) {
+    if (e.effect !== 'applyEnchantment') continue
+    grants.push({
+      enchantmentId: e.enchantmentId,
+      stacks: e.stacks ?? 1,
+      amountOverride: e.setEnchantmentEffectsAmounts,
+    })
+  }
+  return grants
 }

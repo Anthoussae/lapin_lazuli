@@ -42,13 +42,17 @@ export function cardInstanceInkCostModified(
   return effective !== printed
 }
 
+export function cardInstanceLooksExhausted(inst: CardInstance): boolean {
+  return inst.exhausted || inst.disabled
+}
+
 export function cardInstanceIsPlayable(
   inst: CardInstance,
   card: CardTemplate,
   energy: number,
   opts?: InkCostOpts,
 ): boolean {
-  if (inst.exhausted) return false
+  if (cardInstanceLooksExhausted(inst)) return false
   const cost = cardInstanceInkCost(inst, card, opts)
   if (cost === null) return false
   return energy >= cost
