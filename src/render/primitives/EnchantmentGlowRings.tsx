@@ -50,7 +50,11 @@ function primaryBaseAmount(templateId: string): number | null {
     return fx?.amount ?? null
   }
   if (t.ability.kind === 'TRIGGERED') {
-    const fx = t.ability.effects.find((e) => e.kind === 'HP_LOSS') ?? t.ability.effects.find((e) => e.kind === 'DEAL_DAMAGE')
+    const fx =
+      t.ability.effects.find((e) => e.kind === 'HP_LOSS') ??
+      t.ability.effects.find((e) => e.kind === 'DEAL_DAMAGE') ??
+      t.ability.effects.find((e) => e.kind === 'GAIN_SHIELD') ??
+      t.ability.effects.find((e) => e.kind === 'GAIN_TEMPORARY_BUNNY_POWER')
     return fx?.amount ?? null
   }
   return null

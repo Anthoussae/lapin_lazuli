@@ -5,7 +5,7 @@ import type { GameEvent } from '../../reducers/events'
 import type { EnchantmentId } from '../../core/types/ids'
 import { Enchantments } from '../../data/enchantments'
 import { resolveShieldGainAmount } from '../cards/shieldPower'
-import { effectiveShieldPower } from '../combat/combatBonuses'
+import { addCombatPower, effectiveShieldPower } from '../combat/combatBonuses'
 import { resolveEnchantmentPoisonHpLoss } from '../combat/powerDisplay'
 import { shieldPowerPenaltyFromEnchantments } from './staticEffects'
 import { applyIncomingDamageAndHpLossModifiers } from './incomingDamageModifiers'
@@ -127,6 +127,12 @@ function applyTurnStartForTarget(
           }
           if (died) events.push({ type: 'EVT/UNIT_DIED', unit: e0.id })
         }
+      }
+      if (fx.kind === 'GAIN_TEMPORARY_BUNNY_POWER') {
+        const amt = inst.amountOverride ?? fx.amount
+        if (amt <= 0 || inst.target.kind !== 'PLAYER') continue
+        s = addCombatPower(s, amt)
+        continue
       }
       if (fx.kind === 'GAIN_SHIELD') {
         let amt = inst.amountOverride ?? fx.amount

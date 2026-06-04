@@ -60,7 +60,7 @@ export const Enemies: Readonly<Record<EnemyId, EnemyTemplate>> = {
     boss: true,
     forceEnchantment: 'BUBBLE',
     hp: { count: 20, sides: 6, plus: 50 },
-    intents: [{ intentId: 'SMALL_POISON_CURSE', renameDisplayIntent: 'Stinky Tofu', alwaysFirst: true },
+    intents: [
       {intentId: 'MEDIUM_ATTACK', choiceWeight: 1, renameDisplayIntent: 'Tofu Punch' },
       {intentId: 'SMALL_DIZZYING_BLOW', renameDisplayIntent: 'Tofu Spin', choiceWeight: 1, neverRepeat: true },
       {intentId: 'SMALL_PREPARE', renameDisplayIntent: 'Tofu Charge', choiceWeight: 1 },
@@ -75,7 +75,7 @@ export const Enemies: Readonly<Record<EnemyId, EnemyTemplate>> = {
     boss: true,
     forceEnchantment: 'BUBBLE',
     hp: { count: 40, sides: 6, plus: 100 },
-    intents: [{ intentId: 'SMALL_POISON_CURSE', renameDisplayIntent: 'Stinky Tofu', alwaysFirst: true },
+    intents: [
       {intentId: 'MEDIUM_ATTACK', choiceWeight: 1, renameDisplayIntent: 'Tofu Punch' },
       {intentId: 'SMALL_DIZZYING_BLOW', renameDisplayIntent: 'Tofu Spin', choiceWeight: 1, neverRepeat: true },
       {intentId: 'SMALL_PREPARE', renameDisplayIntent: 'Tofu Charge', choiceWeight: 1 },
@@ -91,7 +91,7 @@ export const Enemies: Readonly<Record<EnemyId, EnemyTemplate>> = {
     gameWinOnVictory: true,
     forceEnchantment: 'BUBBLE',
     hp: { count: 60, sides: 6, plus: 150 },
-    intents: [{ intentId: 'SMALL_POISON_CURSE', renameDisplayIntent: 'Stinky Tofu', alwaysFirst: true },
+    intents: [
       {intentId: 'MEDIUM_ATTACK', choiceWeight: 1, renameDisplayIntent: 'Tofu Punch' },
       {intentId: 'SMALL_DIZZYING_BLOW', renameDisplayIntent: 'Tofu Spin', choiceWeight: 1, neverRepeat: true },
       {intentId: 'SMALL_PREPARE', renameDisplayIntent: 'Tofu Charge', choiceWeight: 1 },

@@ -4,7 +4,7 @@ import { rngInt } from '../../core/rng/rng'
 import type { CardInstance, GameState } from '../../core/types/state'
 import { Cards } from '../../data/cards'
 import type { Effect } from '../../data/effects'
-import { foilCardEffectAmounts, foilCardEffectUpgradeValues } from './foil'
+import { foilCardEffectBaseValues } from './foil'
 
 export function isCardUpgradeable(templateId: CardId): boolean {
   return !Cards[templateId]?.unupgradeable
@@ -74,7 +74,7 @@ export function scaleCardEffects(effects: ReadonlyArray<Effect>, upgrades: numbe
 
 /**
  * Card + gem effects with instance upgrades and optional foil.
- * Order: foil upgradeValues → upgrade scaling → foil amounts (before power/fire/shield boosts).
+ * Order: foil base values → upgrade scaling (before power/fire/shield boosts).
  */
 export function applyCardInstanceEffectModifiers(
   effects: ReadonlyArray<Effect>,
@@ -82,10 +82,8 @@ export function applyCardInstanceEffectModifiers(
   foil: boolean,
 ): ReadonlyArray<Effect> {
   let scaled = effects
-  if (foil) scaled = foilCardEffectUpgradeValues(scaled)
-  scaled = scaleCardEffects(scaled, upgrades)
-  if (foil) scaled = foilCardEffectAmounts(scaled)
-  return scaled
+  if (foil) scaled = foilCardEffectBaseValues(scaled)
+  return scaleCardEffects(scaled, upgrades)
 }
 
 export function upgradeCardInstance(state: GameState, cardInstanceId: CardInstanceId, amount: number): GameState {

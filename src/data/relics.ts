@@ -68,6 +68,8 @@ export type RelicTemplate = Readonly<{
   notOfferableByShop?: boolean
   /** When true, at least one copy is guaranteed in the starter relic offer row (for playtesting). */
   forceStartOffer?: boolean
+  /** When true, the player begins a new run with this relic already on the belt (debug / playtesting). */
+  forceStartInBelt?: boolean
   /** Special render properties for this relic's icon (UI-only). */
   render?: RelicCounterRender
   /** Optional: cadence for relics whose effects trigger every N player turns (persistent counters). */
@@ -445,7 +447,6 @@ export const Relics: Readonly<Record<RelicId, RelicTemplate>> = {
     thumb: 'B',
     starter: true,
     unique: true,
-    
     text: 'Every 3 turns, gain 1 shield for each card in your deck.',
     counterEveryTurns: 4,
     render: {
@@ -497,7 +498,6 @@ export const Relics: Readonly<Record<RelicId, RelicTemplate>> = {
     thumb: 'C',
     starter: true,
     unique: true,
-    
     text: 'At the start of each combat, add a random potion to your hand. It gains Expire.',
     triggers: [
       {

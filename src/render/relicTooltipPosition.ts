@@ -29,11 +29,17 @@ export function relicTooltipViewportPosition(rect: DOMRect): { x: number; y: num
   return iconTooltipViewportPosition(rect, { gap, nudgeX, nudgeY })
 }
 
+function relicIconHoverScale(element: HTMLElement): number {
+  const inherited = getComputedStyle(element).getPropertyValue('--relic-icon-hover-scale').trim()
+  const n = Number.parseFloat(inherited)
+  if (Number.isFinite(n) && n > 0) return n
+  return readRootNumber('--relic-icon-hover-scale', 1)
+}
+
 /** Relic icon tooltip — anchored as if the icon is at full hover scale. */
 export function relicIconTooltipViewportPosition(element: HTMLElement): { x: number; y: number } {
   const rect = element.getBoundingClientRect()
-  const hoverScale = readRootNumber('--relic-icon-hover-scale', 1)
-  const anchor = hoverTooltipAnchorRect(element, rect, hoverScale)
+  const anchor = hoverTooltipAnchorRect(element, rect, relicIconHoverScale(element))
   return relicTooltipViewportPosition(anchor)
 }
 

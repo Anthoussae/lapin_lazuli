@@ -542,6 +542,7 @@ export function CombatScreen(props: CombatScreenProps) {
           <Fragment key={id}>
             <CombatMonsterPlaceholder
               name={displayTitle}
+              enemyTemplateId={e.templateId}
               sprite={tmpl?.sprite}
               color={tmpl?.color}
               enemyInstanceId={id}

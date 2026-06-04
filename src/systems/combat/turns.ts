@@ -17,8 +17,8 @@ import { applyTurnStartRelicTriggers } from '../relics/triggers'
 import { Enemies } from '../../data/enemies'
 import { applyDrainingAtPlayerTurnStart } from './drainingBoon'
 import { damageEnemy } from './damageEnemy'
-import { cardInstanceExpiresAtTurnEnd, cardInstanceRetains } from '../cards/cardEffects'
-import { consumeCardFromDeck } from './zones'
+import { cardInstanceRetains } from '../cards/cardEffects'
+import { consumeExpireCardsInHand } from '../cards/expireAtTurnEnd'
 import { bunnyReleaseSpriteCount } from '../bunnies'
 import { bunnyReleaseTargetEnemyId } from './bunnyReleaseTarget'
 import { livingEnemyCount } from './livingEnemies'
@@ -106,11 +106,7 @@ function finishPlayerTurnAfterBunnies(
   }
   s = { ...s, player: { ...s.player, bunnies: 0 } }
 
-  for (const cardInstanceId of [...s.player.deck.hand]) {
-    const inst = s.player.deck.cardById[cardInstanceId]
-    if (!inst || !cardInstanceExpiresAtTurnEnd(inst)) continue
-    s = consumeCardFromDeck(s, cardInstanceId)
-  }
+  s = consumeExpireCardsInHand(s)
 
   // Discard hand (retained cards stay in hand).
   const retainedHand: CardInstanceId[] = []

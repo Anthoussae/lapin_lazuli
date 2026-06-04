@@ -3,7 +3,8 @@ import type { EnemyBoonId } from '../../data/enemyBoons'
 import { monsterSpriteForFilename } from '../assets/monsterSprites'
 import { useRecoloredImageSrc } from '../hooks/useRecoloredImageSrc'
 import { useTriggerFxArtProps } from '../TriggerFxContext'
-import type { EnemyInstanceId } from '../../core/types/ids'
+import type { EnemyId, EnemyInstanceId } from '../../core/types/ids'
+import { enemyNameDisplayLayoutStyle } from '../enemyNameDisplayLayout'
 import { MonsterDefeatPoof } from './MonsterDefeatPoof'
 import { CombatTargetHoverHost } from './CombatTargetHoverHost'
 import {
@@ -16,6 +17,8 @@ import {
 type CombatMonsterPlaceholderProps = Readonly<{
   /** Label shown beneath the placeholder art (may include boon prefix). */
   name: string
+  /** Enemy template id for per-enemy name label layout. */
+  enemyTemplateId?: EnemyId
   /** PNG filename from the enemy template's `sprite` field. */
   sprite?: string
   /** Hex tint for dark sprite line art (`#rrggbb`); omit for default black art. */
@@ -45,6 +48,7 @@ type CombatMonsterPlaceholderProps = Readonly<{
 export function CombatMonsterPlaceholder(props: CombatMonsterPlaceholderProps) {
   const {
     name,
+    enemyTemplateId,
     sprite,
     color,
     enemyInstanceId,
@@ -135,6 +139,7 @@ export function CombatMonsterPlaceholder(props: CombatMonsterPlaceholderProps) {
         ]
           .filter(Boolean)
           .join(' ')}
+        style={enemyNameDisplayLayoutStyle(enemyTemplateId)}
       >
         {nameNode}
       </div>

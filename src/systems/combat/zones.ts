@@ -5,6 +5,8 @@ import type { GameEvent } from '../../reducers/events'
 import { rngInt } from '../../core/rng/rng'
 import { applyNonOpenerCardDrawRelicTriggers } from '../relics/triggers'
 
+export const MAX_HAND_SIZE = 10
+
 export type DrawCardsOpts = Readonly<{
   /** Combat opening hand at startCombat; skips onNonOpenerCardDraw relic triggers. */
   openingHand?: boolean
@@ -73,6 +75,7 @@ export function drawCards(
   let s = state
   const events: GameEvent[] = []
   for (let i = 0; i < count; i++) {
+    if (s.player.deck.hand.length >= MAX_HAND_SIZE) break
     s = shuffleDiscardIntoDrawIfNeeded(s)
     const top = s.player.deck.drawPile[0]
     if (!top) return { state: s, events }

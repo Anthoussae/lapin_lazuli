@@ -44,7 +44,7 @@ export const Gems: Readonly<Record<GemId, GemTemplate>> = {
   AMETHYST: {
     id: 'AMETHYST',
     name: 'Amethyst',
-    effects: [{ kind: 'MULTIPLY_BUNNIES', amount: 1.5, upgradeValue: 0.25 }],
+    effects: [{ kind: 'MULTIPLY_BUNNIES', amount: 1.25, upgradeValue: 0.25 }],
   },
   TOPAZ: {
     id: 'TOPAZ',

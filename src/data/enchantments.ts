@@ -14,7 +14,7 @@ export const Enchantments: Readonly<Record<EnchantmentId, EnchantmentTemplate>> 
     ability: {
       kind: 'TRIGGERED',
       trigger: 'onTargetTurnStart',
-      effects: [{ kind: 'GAIN_SHIELD', amount: 4 }],
+      effects: [{ kind: 'GAIN_SHIELD', amount: 3 }],
     },
   },
   HARE_RAISING: {
@@ -27,6 +27,21 @@ export const Enchantments: Readonly<Record<EnchantmentId, EnchantmentTemplate>> 
     duration: 'combat',
     stackable: true,
     ability: { kind: 'STATIC', effects: [{ kind: 'ADD_POWER', amount: 1 }] },
+  },
+  BUNNYFORM: {
+    id: 'BUNNYFORM',
+    name: 'Bunnyform',
+    color: '#5a4570',
+    tooltipText: 'At the start of your turn, gain +$amount bunny power.',
+    tags: ['enchantment', 'boon'],
+    target: 'self',
+    duration: 'combat',
+    stackable: true,
+    ability: {
+      kind: 'TRIGGERED',
+      trigger: 'onTargetTurnStart',
+      effects: [{ kind: 'GAIN_TEMPORARY_BUNNY_POWER', amount: 1 }],
+    },
   },
   WARM: {
     id: 'WARM',

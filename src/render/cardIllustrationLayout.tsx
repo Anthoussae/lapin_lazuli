@@ -22,6 +22,7 @@ export const CARD_ILLUSTRATION_LAYOUT_OVERRIDES: Record<keyof typeof Cards, Card
   BUNNYMANCY: {sizeModifier:1.7, x: '-0px', y: '0px'},
   BUNNY_POTION: { sizeModifier: 1.3, x: '0px', y: '0px' },
   BUNNY_SUMMONS: {sizeModifier:1.8, x: '-0px', y: '0px'},
+  BUNNYFORM: { sizeModifier: 1.9, x: '0px', y: '-6px' },
   BUBBLE_MIX: {sizeModifier:1.7, x: '-2px', y: '-13px'},
   CARROT_CAKE: {},
   CLOUDBUNNY: {sizeModifier:1.7, x: '-0px', y: '0px'},

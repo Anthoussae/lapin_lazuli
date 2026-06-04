@@ -44,6 +44,7 @@ import { pickThreeShopRelics, populateShop } from '../../systems/shop/populateSh
 import { assignShopPrices } from '../../systems/shop/assignPrice'
 import { addCardInstanceToDeck } from '../../systems/cards/addCardToDeck'
 import { applyCardPickupEffects } from '../../systems/cards/pickupEffects'
+import { applyForceStartInBeltRelics } from '../../systems/relics/forceStartInBelt'
 import { applyChoosingPathRelicTriggers, applyLevelUpRelicTriggers, applyRelicTriggers } from '../../systems/relics/triggers'
 import { computeSleepHealAmount } from '../../systems/rest/sleepHeal'
 import { applyRandomStudyUpgrade, restChoiceMade } from '../../systems/rest/studyUpgrade'
@@ -375,7 +376,14 @@ function startStarterRelicSelection(state: GameState): GameState {
   // New Game should be random each run: reseed RNG here.
   const freshSeed = ((Date.now() ^ (Math.random() * 0xffffffff)) >>> 0) || 1
   let rng = rngFromSeed(freshSeed)
-  const owned = new Set(state.player.relics.map((r) => r.templateId))
+
+  let sForced = applyForceStartInBeltRelics({
+    ...state,
+    seed: freshSeed,
+    rng,
+    player: { ...state.player, relics: [] },
+  })
+  const owned = new Set(sForced.player.relics.map((r) => r.templateId))
   const pool = StarterRelicPool.filter((id) => isRelicOfferable(id, owned))
   const offered: RelicId[] = []
   const forcedInPool = pool.filter((id) => Relics[id]?.forceStartOffer)
@@ -407,24 +415,23 @@ function startStarterRelicSelection(state: GameState): GameState {
   }
 
   const s2: GameState = {
-    ...state,
-    seed: freshSeed,
+    ...sForced,
     rng,
     restOutcome: null,
     shop: null,
     pathCooldownUntil: {},
     mysteryRoomCooldownUntil: {},
     runStats: {
+      ...sForced.runStats,
       maxLevelReached: 0,
       totalGoldObtained: 0,
-      relicsObtained: 0,
       cardsObtained: starterDeckSize,
       gemsObtained: 0,
       enemiesDefeated: 0,
       totalCardUpgrades: 0,
     },
     player: {
-      ...state.player,
+      ...sForced.player,
       nextCardInstanceSerial: 1,
       shield: 0,
       lockedShield: 0,

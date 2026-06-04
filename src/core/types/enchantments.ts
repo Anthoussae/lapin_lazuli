@@ -12,6 +12,8 @@ export type IncomingDamageType = 'BUNNY' | 'FIRE' | 'POISON'
 
 export type EnchantmentEffect =
   | Readonly<{ kind: 'ADD_POWER'; amount: number }>
+  /** Combat-only bunny power (cleared when combat ends); stacks across repeated triggers. */
+  | Readonly<{ kind: 'GAIN_TEMPORARY_BUNNY_POWER'; amount: number }>
   | Readonly<{ kind: 'ADD_FIREPOWER'; amount: number }>
   | Readonly<{ kind: 'ADD_SHIELD_POWER'; amount: number }>
   | Readonly<{ kind: 'GAIN_SHIELD'; amount: number }>

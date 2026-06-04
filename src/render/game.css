@@ -3246,6 +3246,11 @@ button.gemIcon {
   contain: layout style;
 }
 
+.relicBelt:has(.relicBeltRow--fan) {
+  overflow: visible;
+  contain: none;
+}
+
 .relicBelt::before {
   content: '';
   position: absolute;
@@ -3286,16 +3291,42 @@ button.gemIcon {
   contain: layout style;
 }
 
+.relicBeltRow--fan {
+  gap: 0;
+  overflow: visible;
+  contain: none;
+  --relic-icon-hover-scale: var(--relic-belt-fan-hover-scale);
+}
+
 .relicBeltRow .relicIcon {
   cursor: help;
 }
 
 .relicBeltSlot {
+  position: relative;
   display: inline-block;
   width: var(--relic-icon-height);
   height: var(--relic-icon-height);
   line-height: 0;
   flex: 0 0 auto;
+  z-index: 0;
+}
+
+.relicBeltRow--fan .relicBeltSlot {
+  flex: 0 0 var(--relic-icon-height);
+  margin-left: calc(-1 * var(--relic-belt-fan-overlap, 0px));
+  z-index: var(--relic-belt-fan-z, 1);
+  transform: translateX(var(--relic-belt-fan-shift, 0px));
+  transition: transform var(--relic-belt-fan-shift-duration) ease;
+}
+
+.relicBeltRow--fan .relicBeltSlot:first-child {
+  margin-left: 0;
+}
+
+.relicBeltRow--fan .relicBeltSlot:hover,
+.relicBeltRow--fan .relicBeltSlot:focus-within {
+  z-index: var(--game-card-hover-z-index);
 }
 
 .relicIcon--traveling {
@@ -5190,10 +5221,17 @@ button.gemIcon {
   text-overflow: ellipsis;
 }
 
+.combatMonsterIntent__name--multiline {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+}
+
 .combatMonsterPlaceholder__name {
   position: absolute;
   left: 50%;
   top: calc(100% + var(--combat-monster-name-gap));
+  z-index: var(--combat-monster-name-z);
   transform: translate(
     calc(-50% + var(--combat-monster-name-x-offset)),
     var(--combat-monster-name-y-offset)

@@ -5,24 +5,10 @@ export function foilCeil50(n: number): number {
   return Math.ceil(n * 1.5)
 }
 
-function foilEffectUpgradeValues(fx: Effect): Effect {
+function foilEffectBaseValues(fx: Effect): Effect {
   if (fx.kind === 'ADD_BUNNIES_EQUAL_TO_GAME_LEVEL') {
-    if (fx.multiplierUpgradePerLevel <= 0) return fx
-    return { ...fx, multiplierUpgradePerLevel: foilCeil50(fx.multiplierUpgradePerLevel) }
+    return { ...fx, multiplier: foilCeil50(fx.multiplier) }
   }
-  if (fx.kind === 'CRITICAL') {
-    return {
-      ...fx,
-      chanceUpgradeValue: fx.chanceUpgradeValue > 0 ? foilCeil50(fx.chanceUpgradeValue) : fx.chanceUpgradeValue,
-      multiplierUpgradeValue:
-        fx.multiplierUpgradeValue > 0 ? foilCeil50(fx.multiplierUpgradeValue) : fx.multiplierUpgradeValue,
-    }
-  }
-  if (fx.upgradeValue === undefined || fx.upgradeValue <= 0) return fx
-  return { ...fx, upgradeValue: foilCeil50(fx.upgradeValue) }
-}
-
-function foilEffectAmounts(fx: Effect): Effect {
   if (fx.kind === 'CRITICAL') {
     return {
       ...fx,
@@ -35,12 +21,7 @@ function foilEffectAmounts(fx: Effect): Effect {
   return { ...fx, amount: foilCeil50(fx.amount) }
 }
 
-/** Foils `upgradeValue` on each effect (before upgrade scaling). */
-export function foilCardEffectUpgradeValues(effects: ReadonlyArray<Effect>): ReadonlyArray<Effect> {
-  return effects.map(foilEffectUpgradeValues)
-}
-
-/** Foils `amount` on each effect (after upgrade scaling). */
-export function foilCardEffectAmounts(effects: ReadonlyArray<Effect>): ReadonlyArray<Effect> {
-  return effects.map(foilEffectAmounts)
+/** Foils base numeric fields on each effect (before upgrade scaling; `upgradeValue` is unchanged). */
+export function foilCardEffectBaseValues(effects: ReadonlyArray<Effect>): ReadonlyArray<Effect> {
+  return effects.map(foilEffectBaseValues)
 }

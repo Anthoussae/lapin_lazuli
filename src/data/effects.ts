@@ -3,7 +3,7 @@ import type { CardId, EnchantmentId } from '../core/types/ids'
 /**
  * Added to an effect's numeric fields per card-instance upgrade counter
  * ({@link applyCardInstanceEffectModifiers}). Omit or `0` when the effect does not scale.
- * Foiled cards apply +50% (rounded up) to `upgradeValue` before scaling and to `amount` after.
+ * Foiled cards apply +50% (rounded up) to base numeric fields before scaling; `upgradeValue` is unchanged.
  */
 export type EffectUpgrade = Readonly<{ upgradeValue?: number }>
 

@@ -85,10 +85,10 @@ export const Cards: Readonly<Record<CardId, CardTemplate>> = {
     id: 'DODGE',
     name: 'Dodge',
     poolFrequency: 3,
-    cost: 2,
+    cost: 1,
     tags: ['addShield', 'drawcards'],
     effects: [
-      { kind: 'GAIN_SHIELD', amount: 6, upgradeValue: 3 },
+      { kind: 'GAIN_SHIELD', amount: 4, upgradeValue: 3 },
       { kind: 'DRAW_CARDS', amount: 1, upgradeValue: 1 },
     ],
   },
@@ -340,6 +340,17 @@ export const Cards: Readonly<Record<CardId, CardTemplate>> = {
       { kind: 'APPLY_ENCHANTMENT', enchantmentId: 'HARE_RAISING', target: 'self', amount: 1, upgradeValue: 1 },
     ],
   },
+  BUNNYFORM: {
+    id: 'BUNNYFORM',
+    name: 'Bunnyform',
+    poolFrequency: 2,
+    cost: 1,
+    unsocketable: true,
+    tags: ['enchantment'],
+    effects: [
+      { kind: 'APPLY_ENCHANTMENT', enchantmentId: 'BUNNYFORM', target: 'self', amount: 1, upgradeValue: 1 },
+    ],
+  },
   WARM: {
     id: 'WARM',
     name: 'Warm',
@@ -399,7 +410,7 @@ export const Cards: Readonly<Record<CardId, CardTemplate>> = {
     tags: ['damage', 'fire'],
     effects: [
       { kind: 'SHATTER' },
-      { kind: 'DEAL_DAMAGE', amount: 3, upgradeValue: 3 },
+      { kind: 'DEAL_DAMAGE', amount: 6, upgradeValue: 4 },
     ],
   },
   FLAME_SLASH: {
@@ -433,7 +444,7 @@ export const Cards: Readonly<Record<CardId, CardTemplate>> = {
     id: 'DISPEL',
     name: 'Dispel',
     poolFrequency: 3,
-    cost: 1,
+    cost: 0,
     tags: ['dispel'],
     effects: [{ kind: 'DISPEL', amount: 1, upgradeValue: 1 }],
   },
@@ -447,7 +458,7 @@ export const Cards: Readonly<Record<CardId, CardTemplate>> = {
       {
         kind: 'ADD_BUNNIES_EQUAL_TO_GAME_LEVEL',
         multiplier: 1,
-        multiplierUpgradePerLevel: 1,
+        multiplierUpgradePerLevel: 0.5,
       },
     ],
   },

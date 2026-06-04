@@ -195,7 +195,7 @@ export const EnemyIntents: Readonly<Record<EnemyIntentId, EnemyIntentDef>> = {
     scalesWithLevel: true,
     
     levelsPerInstance: 2,
-    damage: { dice: 1, sides: 4, bonusDamage: 2 },
+    damage: { dice: 1, sides: 4, bonusDamage: 1 },
   },
   SMALL_SHIELD_BASH: {
     id: 'SMALL_SHIELD_BASH',
@@ -229,8 +229,8 @@ export const EnemyIntents: Readonly<Record<EnemyIntentId, EnemyIntentDef>> = {
     name: 'Fury Swipes',
     scalesWithLevel: true,
     levelsPerInstance: 2,
-    damage: { dice: 1, sides: 4, bonusDamage: 2 },
-    effects: [{ effect: 'strengthgain', amount: 3, nonScaling: true }],
+    damage: { dice: 1, sides: 4, bonusDamage: 1 },
+    effects: [{ effect: 'strengthgain', amount: 2, nonScaling: true }],
   },
   SMALL_SMOKE_ATTACK: {
     id: 'SMALL_SMOKE_ATTACK',
@@ -256,7 +256,7 @@ export const EnemyIntents: Readonly<Record<EnemyIntentId, EnemyIntentDef>> = {
     name: 'Weakening blow',
     scalesWithLevel: true,
     levelsPerInstance: 2,
-    damage: { dice: 1, sides: 4, bonusDamage: 2 },
+    damage: { dice: 1, sides: 4, bonusDamage: 1 },
     effects: [{ effect: 'applyEnchantment', enchantmentId: 'WEAKEN', nonScaling: true }],
   },
   RUSTING_BLOW: {
@@ -265,7 +265,7 @@ export const EnemyIntents: Readonly<Record<EnemyIntentId, EnemyIntentDef>> = {
     name: 'Rusting blow',
     scalesWithLevel: true,
     levelsPerInstance: 2,
-    damage: { dice: 1, sides: 4, bonusDamage: 2 },
+    damage: { dice: 1, sides: 4, bonusDamage: 1 },
     effects: [{ effect: 'applyEnchantment', enchantmentId: 'RUST', nonScaling: true }],
   },
   AMPLIFYING_BLOW: {
@@ -274,7 +274,7 @@ export const EnemyIntents: Readonly<Record<EnemyIntentId, EnemyIntentDef>> = {
     name: 'Amplifying blow',
     scalesWithLevel: true,
     levelsPerInstance: 2,
-    damage: { dice: 1, sides: 4, bonusDamage: 2 },
+    damage: { dice: 1, sides: 4, bonusDamage: 1 },
     effects: [{ effect: 'applyEnchantment', enchantmentId: 'AMPLIFY_DAMAGE', nonScaling: true }],
   },
   SMALL_POISON_CURSE: {
@@ -301,19 +301,19 @@ export const EnemyIntents: Readonly<Record<EnemyIntentId, EnemyIntentDef>> = {
     id: 'SMALL_CHARGE_UP',
     intentKind: 'buffOnly',
     name: 'Charge up',
-    effects: [{ effect: 'strengthgain', amount: 5 }],
+    effects: [{ effect: 'strengthgain', amount: 4 }],
   },
   MEDIUM_CHARGE_UP: {
     id: 'MEDIUM_CHARGE_UP',
     intentKind: 'buffOnly',
     name: 'Charge up',
-    effects: [{ effect: 'strengthgain', amount: 10 }],
+    effects: [{ effect: 'strengthgain', amount: 7 }],
   },
   LARGE_CHARGE_UP: {
     id: 'LARGE_CHARGE_UP',
     intentKind: 'buffOnly',
     name: 'Charge up',
-    effects: [{ effect: 'strengthgain', amount: 15 }],
+    effects: [{ effect: 'strengthgain', amount: 10 }],
   },
   SMALL_PREPARE: {
     id: 'SMALL_PREPARE',
@@ -323,7 +323,7 @@ export const EnemyIntents: Readonly<Record<EnemyIntentId, EnemyIntentDef>> = {
     levelsPerInstance: 3,
     effects: [
       { effect: 'enemyLockedShieldGain', amount: 3 },
-      { effect: 'strengthgain', amount: 5, nonScaling: true },
+      { effect: 'strengthgain', amount: 3, nonScaling: true },
     ],
   },
   MEDIUM_PREPARE: {
@@ -334,7 +334,7 @@ export const EnemyIntents: Readonly<Record<EnemyIntentId, EnemyIntentDef>> = {
     levelsPerInstance: 3,
     effects: [
       { effect: 'enemyLockedShieldGain', amount: 4 },
-      { effect: 'strengthgain', amount: 10, nonScaling: true },
+      { effect: 'strengthgain', amount: 6, nonScaling: true },
     ],
   },
   MEDIUM_ATTACK: {
@@ -343,7 +343,7 @@ export const EnemyIntents: Readonly<Record<EnemyIntentId, EnemyIntentDef>> = {
     name: 'Bash',
     scalesWithLevel: true,
     levelsPerInstance: 2,
-    damage: { dice: 1, sides: 4, bonusDamage: 2 },
+    damage: { dice: 1, sides: 4, bonusDamage: 1 },
   },
   MEDIUM_DEFEND: {
     id: 'MEDIUM_DEFEND',
@@ -359,7 +359,7 @@ export const EnemyIntents: Readonly<Record<EnemyIntentId, EnemyIntentDef>> = {
     name: 'Bash',
     scalesWithLevel: true,
     levelsPerInstance: 2,
-    damage: { dice: 1, sides: 4, bonusDamage: 3 },
+    damage: { dice: 1, sides: 4, bonusDamage: 2 },
   },
   LARGE_DEFEND: {
     id: 'LARGE_DEFEND',

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { RelicId } from '../../core/types/ids'
 import type { GameState } from '../../core/types/state'
 import { Relics, type RelicTemplate } from '../../data/relics'
@@ -7,16 +8,24 @@ import { useTriggerFxArtProps } from '../TriggerFxContext'
 import { longbeltSprite } from '../assets/displayImages'
 import { relicImageMap } from '../assets/relicImages'
 import { RelicIcon } from './RelicIcon'
+import {
+  relicBeltFanContainerStyle,
+  relicBeltFanSlotStyle,
+  relicBeltUsesFanLayout,
+} from '../relicBeltFanLayout'
 
 function RelicBeltSlot(
   props: Readonly<{
     slotIndex: number
+    displayCount: number
+    hoveredSlotIndex: number | null
+    onHoverSlot: (index: number) => void
     templateId: RelicId
     relic: RelicTemplate | undefined
     state: GameState
   }>,
 ) {
-  const { slotIndex, templateId, relic, state } = props
+  const { slotIndex, displayCount, hoveredSlotIndex, onHoverSlot, templateId, relic, state } = props
   const triggerFx = useTriggerFxArtProps({ kind: 'relic', slotIndex })
   const render = relic?.render
   const relicInst = state.player.relics[slotIndex]
@@ -41,7 +50,12 @@ function RelicBeltSlot(
           : undefined
       : undefined
   return (
-    <div className="relicBeltSlot" data-relic-belt-slot={slotIndex}>
+    <div
+      className="relicBeltSlot"
+      data-relic-belt-slot={slotIndex}
+      style={relicBeltFanSlotStyle(slotIndex, displayCount, hoveredSlotIndex)}
+      onMouseEnter={() => onHoverSlot(slotIndex)}
+    >
       <RelicIcon
         relicId={templateId}
         imageSrc={relicImageMap[templateId]}
@@ -66,17 +80,30 @@ export function RelicBelt(props: Readonly<{ state: GameState }>) {
     state.player.relics.some((r) => r.templateId === travelingTemplateId)
   const pendingTemplate = travelingTemplateId && !relicAlreadyOnBelt ? travelingTemplateId : null
   const pendingRelic = pendingTemplate ? Relics[pendingTemplate] : null
+  const relicCount = state.player.relics.length
+  const displayCount = pendingTemplate ? relicCount + 1 : relicCount
+  const beltFan = relicBeltUsesFanLayout(displayCount)
+  const [hoveredSlotIndex, setHoveredSlotIndex] = useState<number | null>(null)
+  const clearHoveredSlot = () => setHoveredSlotIndex(null)
 
   return (
     <div className="relicBelt">
       <img className="relicBelt__bg" src={longbeltSprite} alt="" draggable={false} />
-      <div ref={beltRowRef} className="relicBeltRow">
+      <div
+        ref={beltRowRef}
+        className={['relicBeltRow', beltFan ? 'relicBeltRow--fan' : null].filter(Boolean).join(' ')}
+        style={beltFan ? relicBeltFanContainerStyle(displayCount) : undefined}
+        onMouseLeave={beltFan ? clearHoveredSlot : undefined}
+      >
       {state.player.relics.map((ri, slotIndex) => {
         const r = Relics[ri.templateId]
         return (
           <RelicBeltSlot
             key={ri.id}
             slotIndex={slotIndex}
+            displayCount={displayCount}
+            hoveredSlotIndex={beltFan ? hoveredSlotIndex : null}
+            onHoverSlot={setHoveredSlotIndex}
             templateId={ri.templateId}
             relic={r}
             state={state}
@@ -90,6 +117,7 @@ export function RelicBelt(props: Readonly<{ state: GameState }>) {
           className="relicBeltSlot relicBeltSlot--pending"
           data-relic-belt-slot={pendingSlotIndex}
           data-relic-belt-pending=""
+          style={relicBeltFanSlotStyle(pendingSlotIndex, displayCount, beltFan ? hoveredSlotIndex : null)}
           aria-hidden
         >
           <RelicIcon

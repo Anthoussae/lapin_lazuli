@@ -17,6 +17,21 @@ function intentDisplayName(intent: EnemyIntent): string {
   return intent.intentName
 }
 
+function IntentDisplayName({ name }: Readonly<{ name: string }>) {
+  if (!name.includes(' ')) return <>{name}</>
+  const words = name.split(' ')
+  return (
+    <>
+      {words.map((word, index) => (
+        <span key={index}>
+          {index > 0 ? <br /> : null}
+          {word}
+        </span>
+      ))}
+    </>
+  )
+}
+
 export function CombatEnemyIntentDisplay(props: CombatEnemyIntentDisplayProps) {
   const { state, enemyInstanceId, intent, strength } = props
   if (!intent) return null
@@ -30,6 +45,10 @@ export function CombatEnemyIntentDisplay(props: CombatEnemyIntentDisplayProps) {
   const attackValue = showAttackValue
     ? displayIncomingEnemyAttackDamage(state, enemyInstanceId, baseAttack)
     : null
+  const name = intentDisplayName(intent)
+  const nameClassName = name.includes(' ')
+    ? 'combatMonsterIntent__name combatMonsterIntent__name--multiline'
+    : 'combatMonsterIntent__name'
 
   return (
     <div
@@ -43,8 +62,8 @@ export function CombatEnemyIntentDisplay(props: CombatEnemyIntentDisplayProps) {
         </div>
       ) : null}
       <img className="combatMonsterIntent__icon" src={src} alt="" draggable={false} aria-hidden />
-      <div className="combatMonsterIntent__name" aria-hidden>
-        {intentDisplayName(intent)}
+      <div className={nameClassName} aria-hidden>
+        <IntentDisplayName name={name} />
       </div>
     </div>
   )

@@ -25,6 +25,7 @@ import conflagration from '../../assets/images/cardillustrations/conflagration.p
 import crownOfFlames from '../../assets/images/cardillustrations/crownOfFlames.png'
 import guardianAngel from '../../assets/images/cardillustrations/guardianAngel.png'
 import hareRaising from '../../assets/images/cardillustrations/hareRaising.png'
+import bunnyform from '../../assets/images/cardillustrations/bunnyform.png'
 import warm from '../../assets/images/cardillustrations/warm.png'
 import letheanWater from '../../assets/images/potions/letheanWater.png'
 import wiseBunny from '../../assets/images/cardillustrations/wiseBunny.png'
@@ -75,6 +76,7 @@ export const CARD_ILLUSTRATIONS_BY_ID: Readonly<Partial<Record<CardId, string>>>
   CONFLAGRATION: conflagration,
   GUARDIAN_ANGEL: guardianAngel,
   HARE_RAISING: hareRaising,
+  BUNNYFORM: bunnyform,
   WARM: warm,
   SMOG: smog,
   DISPEL: dispel,

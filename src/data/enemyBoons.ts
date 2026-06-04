@@ -242,7 +242,7 @@ export const EnemyBoons: Readonly<Record<EnemyBoonId, EnemyBoon>> = {
     name: 'Blessed',
     frequency: 3,
     scalesWithLevel: true,
-    levelsPerInstance: 4,
+    levelsPerInstance: 5,
     combatStartEnchantment: { enchantmentId: 'GUARDIAN_ANGEL', amount: 1 },
     tooltipText: 'Gains shields at the start of turn.',
   },

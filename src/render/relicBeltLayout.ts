@@ -1,6 +1,12 @@
-const BELT_SLOT_GAP_PX = 10
+import {
+  RELIC_BELT_ICON_WIDTH_PX,
+  RELIC_BELT_ROW_GAP_PX,
+  relicBeltFanSlotStepPx,
+  relicBeltUsesFanLayout,
+} from './relicBeltFanLayout'
+
 /** Keep in sync with `--relic-icon-height` in tokens.css (72px × 1.3). */
-const DEFAULT_ICON_SIZE_PX = 94
+const DEFAULT_ICON_SIZE_PX = RELIC_BELT_ICON_WIDTH_PX
 
 /** Map a viewport rect into an ancestor's local coordinate space (e.g. the game stage layer). */
 export function rectRelativeTo(root: HTMLElement, rect: DOMRect): DOMRect {
@@ -54,5 +60,19 @@ export function getBeltSlotRect(beltRow: HTMLElement, slotIndex: number): DOMRec
   }
 
   const last = relicIconViewportRect(slots[slots.length - 1]!)
-  return new DOMRect(last.right + BELT_SLOT_GAP_PX, last.top, last.width, last.height)
+  const totalCount = Math.max(slotIndex + 1, slots.length + 1)
+  if (relicBeltUsesFanLayout(totalCount)) {
+    const stepPx = relicBeltFanSlotStepPx(totalCount, beltRowInnerWidthPx(beltRow))
+    return new DOMRect(last.left + stepPx, last.top, last.width, last.height)
+  }
+  return new DOMRect(last.right + RELIC_BELT_ROW_GAP_PX, last.top, last.width, last.height)
 }
+
+function beltRowInnerWidthPx(beltRow: HTMLElement): number | undefined {
+  const style = getComputedStyle(beltRow)
+  const paddingX =
+    (Number.parseFloat(style.paddingLeft) || 0) + (Number.parseFloat(style.paddingRight) || 0)
+  const inner = beltRow.clientWidth - paddingX
+  return inner > 0 ? inner : undefined
+}
+

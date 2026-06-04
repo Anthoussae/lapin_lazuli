@@ -42,7 +42,7 @@ export type CardInstance = Readonly<{
   unsocketable: boolean
   /** When true, this instance cannot be upgraded by any effects. */
   unupgradable?: boolean
-  /** Foil: +50% (rounded up) to effect amounts after upgrades and to upgradeValues before upgrades. */
+  /** Foil: +50% (rounded up) to effect base values before upgrades; upgrade scaling is unchanged. */
   foil?: boolean
   /** Sticker modification (not yet implemented in gameplay). */
   sticker?: boolean

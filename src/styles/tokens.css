@@ -241,6 +241,8 @@
   --combat-monster-name-gap: 9px;
   --combat-monster-name-x-offset: -20px;
   --combat-monster-name-y-offset: -90px;
+  /* Above placeholder sprite art (--combat-placeholder-art-z). */
+  --combat-monster-name-z: 2;
   --combat-monster-name-max-width: 320px;
   --combat-monster-name-font-size: 28px;
   --combat-monster-name-font-size-small: 22px;
@@ -719,6 +721,7 @@
   --relic-belt-hud-padding-y: 16px;
   --game-hud-height: calc(var(--relic-icon-height) + var(--relic-belt-hud-padding-y));
   --relic-icon-hover-scale: 1.2;
+  --relic-belt-fan-hover-scale: 1.4;
   --relic-thumb-height: 54px;
   --relic-thumb-fallback-font-size: 22px;
   --relic-icon-hover-duration: 0.5s;
@@ -761,6 +764,8 @@
   --relic-belt-slots-z: 1;
   --relic-belt-row-padding-x: 12px;
   --relic-belt-row-gap: 10px;
+  --relic-belt-fan-overlap: 28px;
+  --relic-belt-fan-shift-duration: 0.15s;
   --duration-relic-travel: 700ms;
   --ease-relic-travel: cubic-bezier(0.16, 1, 0.3, 1);
   --relic-travel-finish-buffer: 80ms;

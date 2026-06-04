@@ -145,6 +145,9 @@ export function describeEffect(fx: Effect): string {
       if (fx.enchantmentId === 'POISON') return `enemy takes ${amt} poison damage each turn`
       if (fx.enchantmentId === 'FLAMEWREATH') return `deal ${amt} fire damage when attacked`
       if (fx.enchantmentId === 'GUARDIAN_ANGEL') return `Enchantment. Gain +${amt} shields each turn`
+      if (fx.enchantmentId === 'BUNNYFORM') {
+        return `Enchantment. At the start of your turn, gain +${amt} bunny power until end of combat`
+      }
       if (fx.enchantmentId === 'BUBBLE') return amt === 1 ? 'gain 1 bubble' : `gain ${amt} bubbles`
       if (fx.enchantmentId === 'ANTI_MAGIC_SHELL') {
         const word = amt === 1 ? 'shell' : 'shells'

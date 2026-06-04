@@ -13,6 +13,7 @@ import { applyCombatEndRelicTriggers, applyMinibossDefeatedRelicTriggers } from 
 import { populateCardReward } from '../rewards/cardRewards'
 import { initialRewardLootFlags } from '../rewards/rewardLoot'
 import { pickThreeShopRelics } from '../shop/populateShop'
+import { consumeExpireCardsInHand } from '../cards/expireAtTurnEnd'
 import { clearActiveCombat } from './endCombat'
 import { purgeCombatEphemeralCards } from './purgeEphemeralCards'
 
@@ -151,7 +152,7 @@ export function applyCombatVictory(state: GameState): { state: GameState; events
     rng: goldKeys.rng,
   }
 
-  const shuffled = shuffleAllZonesIntoDeck(sTrig)
+  const shuffled = shuffleAllZonesIntoDeck(consumeExpireCardsInHand(sTrig))
   let s2: GameState = shuffled.state
   const phaseInEvents: GameEvent[] = shuffled.phasedIn.map((id) => ({ type: 'EVT/CARD_PHASED_IN', cardInstanceId: id as any }))
 
