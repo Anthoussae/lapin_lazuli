@@ -25,7 +25,7 @@ export function initialState(seed = 12345): GameState {
     },
     phase: 'BOOT',
     phasePrev: null,
-    assets: { status: 'UNLOADED', loaded: [], failed: [] },
+    assets: { status: 'UNLOADED', progress: { loaded: 0, total: 0 }, loaded: [], failed: [] },
     currentCombatPathId: null,
     activeRoomPathId: null,
     player: {

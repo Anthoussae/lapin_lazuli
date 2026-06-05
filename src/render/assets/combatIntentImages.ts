@@ -24,3 +24,5 @@ export const COMBAT_INTENT_IMAGES: Readonly<Record<EnemyIntentKind, string>> = O
 export function combatIntentImageForKind(kind: EnemyIntentKind): string {
   return COMBAT_INTENT_IMAGES[kind]
 }
+
+export const COMBAT_INTENT_PRELOAD_URLS: readonly string[] = Object.values(COMBAT_INTENT_IMAGES)

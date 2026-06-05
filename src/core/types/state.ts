@@ -405,6 +405,7 @@ export type GameState = Readonly<{
   phasePrev: Phase | null
   assets: Readonly<{
     status: 'UNLOADED' | 'LOADING' | 'READY' | 'ERROR'
+    progress: Readonly<{ loaded: number; total: number }>
     loaded: ReadonlyArray<string>
     failed: ReadonlyArray<string>
   }>

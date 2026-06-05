@@ -11,7 +11,9 @@ export function startRuntimeEffects(store: GameStore): () => void {
     if (!bootStarted && s.phase === 'BOOT') {
       bootStarted = true
       store.dispatch({ type: 'BOOT/START' })
-      void preloadAssets().then(({ loaded, failed }) => {
+      void preloadAssets((loaded, total) => {
+        store.dispatch({ type: 'BOOT/ASSETS_PROGRESS', loaded, total })
+      }).then(({ loaded, failed }) => {
         store.dispatch({ type: 'BOOT/ASSETS_READY', loaded, failed })
       })
     }

@@ -61,13 +61,27 @@ import { initialState } from '../initialState'
 export function applyAction(state: GameState, action: GameAction): { state: GameState; events: GameEvent[] } {
   if (action.type === 'BOOT/START') {
     if (state.assets.status !== 'UNLOADED') return { state, events: [] }
-    const s2: GameState = { ...state, assets: { ...state.assets, status: 'LOADING' } }
+    const s2: GameState = {
+      ...state,
+      assets: { ...state.assets, status: 'LOADING', progress: { loaded: 0, total: 0 } },
+    }
+    return { state: s2, events: [] }
+  }
+
+  if (action.type === 'BOOT/ASSETS_PROGRESS') {
+    const s2: GameState = {
+      ...state,
+      assets: { ...state.assets, progress: { loaded: action.loaded, total: action.total } },
+    }
     return { state: s2, events: [] }
   }
 
   if (action.type === 'BOOT/ASSETS_READY') {
     const status = action.failed.length ? 'ERROR' : 'READY'
-    const s2: GameState = { ...state, assets: { status, loaded: action.loaded, failed: action.failed } }
+    const s2: GameState = {
+      ...state,
+      assets: { ...state.assets, status, loaded: action.loaded, failed: action.failed },
+    }
     if (status === 'READY') return { state: setPhase(s2, 'TITLE'), events: [] }
     return { state: s2, events: [] }
   }

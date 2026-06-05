@@ -2,6 +2,7 @@ import type { CardId, EnemyInstanceId, CardInstanceId, GemId, PathId, RelicId } 
 
 export type GameAction =
   | { type: 'BOOT/START' }
+  | { type: 'BOOT/ASSETS_PROGRESS'; loaded: number; total: number }
   | { type: 'BOOT/ASSETS_READY'; loaded: ReadonlyArray<string>; failed: ReadonlyArray<string> }
   | { type: 'TICK/FIXED'; frames: number } // fixed-timestep UI/animation updates
   | { type: 'INPUT/INTENT_ENQUEUE'; action: PlayerAction }

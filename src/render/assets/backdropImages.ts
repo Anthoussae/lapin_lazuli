@@ -25,3 +25,18 @@ export {
   printerBackdrop,
   shopBackdrop,
 }
+
+export const BACKDROP_PRELOAD_URLS: readonly string[] = [
+  darkGreenBackdrop,
+  forestBackdrop,
+  darkPurpleBackdrop,
+  plainCelesteBackdrop,
+  plainCrimsonBackdrop,
+  plainGreenBackdrop,
+  plainGreyBackdrop,
+  plainGreyBackdropCombat,
+  plainPinkBackdrop,
+  plainYellowBackdrop,
+  printerBackdrop,
+  shopBackdrop,
+]

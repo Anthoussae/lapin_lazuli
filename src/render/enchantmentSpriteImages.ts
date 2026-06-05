@@ -16,3 +16,12 @@ const ENCHANTMENT_SPRITE_OVERLAYS: Readonly<Record<EnchantmentSpriteOverlayId, {
 export function enchantmentSpriteOverlaySrc(sprite: EnchantmentSpriteOverlayId, phase: 'idle' | 'pop'): string {
   return ENCHANTMENT_SPRITE_OVERLAYS[sprite][phase]
 }
+
+export const ENCHANTMENT_PRELOAD_URLS: readonly string[] = [
+  bubbleSprite,
+  bubblePopSprite,
+  antiMagicShellSprite,
+  antiMagicShellPopSprite,
+  poisonSprite,
+  fireCrownSprite,
+]

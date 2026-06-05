@@ -7,6 +7,7 @@ import { RoomInfoHud } from './primitives/RoomInfoHud'
 import { RelicBelt } from './primitives/RelicBelt'
 import { DeckInspect } from './primitives/DeckInspect'
 import { CombatScreen } from './screens/CombatScreen'
+import { LoadingScreen } from './screens/LoadingScreen'
 import { TitleScreen } from './screens/TitleScreen'
 import { StarterRelicScreen } from './screens/StarterRelicScreen'
 import { PathScreen } from './screens/PathScreen'
@@ -106,6 +107,7 @@ export function GameView(props: Readonly<{ state: GameState; dispatch: (a: GameA
           onCompleteTurnStartDraw={onCompleteTurnStartDraw}
         />
       )}
+      {state.phase === 'BOOT' && <LoadingScreen state={state} />}
       {state.phase === 'TITLE' && <TitleScreen {...screenProps} />}
       {state.phase === 'RELIC_SELECT_STARTER' && <StarterRelicScreen {...screenProps} />}
       {state.phase === 'PATH_SELECT' && <PathScreen {...screenProps} />}

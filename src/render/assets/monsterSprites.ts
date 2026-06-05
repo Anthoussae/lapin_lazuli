@@ -44,3 +44,8 @@ export function monsterSpriteForFilename(filename: string | undefined): string {
   if (filename == null) return MONSTER_PLACEHOLDER_SPRITE
   return MONSTER_SPRITES_BY_FILENAME[filename] ?? MONSTER_PLACEHOLDER_SPRITE
 }
+
+export const MONSTER_PRELOAD_URLS: readonly string[] = [
+  MONSTER_PLACEHOLDER_SPRITE,
+  ...Object.values(MONSTER_SPRITES_BY_FILENAME),
+]
