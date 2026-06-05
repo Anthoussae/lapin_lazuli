@@ -1,5 +1,6 @@
 import { useCallback, useLayoutEffect, useRef, type KeyboardEvent, type MouseEvent } from 'react'
 import { inspectPileCloseIcon } from '../assets/displayImages'
+import { getAlphaMask, rasterizeAlphaMaskFromSrc, setAlphaMask } from '../alphaMaskCache'
 
 /** Treat softer anti-aliased edges as non-hit so only visibly opaque art closes. */
 const INSPECT_CLOSE_ICON_ALPHA_THRESHOLD = 40
@@ -72,25 +73,54 @@ export function InspectPileCloseButton(props: InspectPileCloseButtonProps) {
   const inspectCloseImgRef = useRef<HTMLImageElement>(null)
   const inspectCloseAlphaRef = useRef<ImageData | null>(null)
 
-  const primeInspectCloseAlpha = useCallback(() => {
+  const primeInspectCloseAlpha = useCallback(async () => {
+    const cached = getAlphaMask(inspectPileCloseIcon)
+    if (cached) {
+      inspectCloseAlphaRef.current = cached
+      return
+    }
+
     const img = inspectCloseImgRef.current
     if (!img) return
-    inspectCloseAlphaRef.current = rasterizeImageAlpha(img)
+
+    if (img.complete && img.naturalWidth > 0) {
+      const data = rasterizeImageAlpha(img)
+      if (data) {
+        setAlphaMask(inspectPileCloseIcon, data)
+        inspectCloseAlphaRef.current = data
+      }
+      return
+    }
+
+    try {
+      const data = await rasterizeAlphaMaskFromSrc(inspectPileCloseIcon)
+      setAlphaMask(inspectPileCloseIcon, data)
+      inspectCloseAlphaRef.current = data
+    } catch {
+      // Fall back to runtime rasterization on first interaction.
+    }
   }, [])
 
   useLayoutEffect(() => {
     if (!active) return
-    const img = inspectCloseImgRef.current
-    if (img?.complete && img.naturalWidth > 0) primeInspectCloseAlpha()
+    void primeInspectCloseAlpha()
   }, [active, primeInspectCloseAlpha])
 
   const ensureInspectCloseAlpha = useCallback((): ImageData | null => {
+    let data = inspectCloseAlphaRef.current ?? getAlphaMask(inspectPileCloseIcon) ?? null
+    if (data) {
+      inspectCloseAlphaRef.current = data
+      return data
+    }
+
     const img = inspectCloseImgRef.current
     if (!img) return null
-    let data = inspectCloseAlphaRef.current
-    if (!data && img.complete && img.naturalWidth > 0) {
+    if (img.complete && img.naturalWidth > 0) {
       data = rasterizeImageAlpha(img)
-      inspectCloseAlphaRef.current = data
+      if (data) {
+        setAlphaMask(inspectPileCloseIcon, data)
+        inspectCloseAlphaRef.current = data
+      }
     }
     return data
   }, [])
@@ -160,7 +190,7 @@ export function InspectPileCloseButton(props: InspectPileCloseButtonProps) {
         src={inspectPileCloseIcon}
         alt=""
         draggable={false}
-        onLoad={primeInspectCloseAlpha}
+        onLoad={() => void primeInspectCloseAlpha()}
       />
     </button>
   )

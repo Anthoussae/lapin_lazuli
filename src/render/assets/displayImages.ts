@@ -82,6 +82,7 @@ export {
   castStar as castBurstSprite,
   deckInspectSprite,
   discardInspectSprite,
+  discardInspectSpriteFull,
   xtoCloseIcon as inspectPileCloseIcon,
   senjafudaFrame,
   tallscroll,

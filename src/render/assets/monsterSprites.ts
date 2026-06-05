@@ -32,6 +32,7 @@ export const MONSTER_SPRITES_BY_FILENAME: Readonly<Record<string, string>> = {
   'onionmonster.png': onionmonster,
   'pearHoplite.png': pearHoplite,
   'skeleton.png': skeleton,
+  'skeletonwarrior.png': skeleton,
   'tofuTyrant.png': tofuTyrant,
   'witch.png': witch,
   'weird.png': weird,

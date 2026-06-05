@@ -1,15 +1,10 @@
 import { useEffect, useState } from 'react'
+import { getRecoloredSrc, setRecoloredSrc } from '../recolorCache'
 import {
   MONSTER_SPRITE_RECOLOR_THRESHOLD,
   MONSTER_SPRITE_SOLID_COLOR_LUMA,
   recolorImageSrcToDataUrl,
 } from '../recolorDarkPixels'
-
-const recolorCache = new Map<string, string>()
-
-function cacheKey(imageSrc: string, hexColor: string): string {
-  return `${imageSrc}|${hexColor}|${MONSTER_SPRITE_RECOLOR_THRESHOLD}|${MONSTER_SPRITE_SOLID_COLOR_LUMA}`
-}
 
 /**
  * Returns `imageSrc`, or a cached recolored data URL when `hexColor` is set.
@@ -24,8 +19,7 @@ export function useRecoloredImageSrc(imageSrc: string, hexColor: string | undefi
       return
     }
 
-    const key = cacheKey(imageSrc, hexColor)
-    const cached = recolorCache.get(key)
+    const cached = getRecoloredSrc(imageSrc, hexColor)
     if (cached) {
       setDisplaySrc(cached)
       return
@@ -38,7 +32,7 @@ export function useRecoloredImageSrc(imageSrc: string, hexColor: string | undefi
     })
       .then((dataUrl) => {
         if (cancelled) return
-        recolorCache.set(key, dataUrl)
+        setRecoloredSrc(imageSrc, hexColor, dataUrl)
         setDisplaySrc(dataUrl)
       })
       .catch(() => {

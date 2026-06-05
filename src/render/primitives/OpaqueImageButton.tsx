@@ -1,12 +1,14 @@
 import {
   forwardRef,
   useCallback,
+  useLayoutEffect,
   useRef,
   useState,
   type MouseEvent,
   type MutableRefObject,
   type ReactNode,
 } from 'react'
+import { getAlphaMask, rasterizeAlphaMaskFromSrc, setAlphaMask } from '../alphaMaskCache'
 
 const ALPHA_HIT_THRESHOLD = 24
 
@@ -40,21 +42,38 @@ export const OpaqueImageButton = forwardRef<HTMLButtonElement, OpaqueImageButton
   const sizeRef = useRef({ w: 0, h: 0 })
   const [lit, setLit] = useState(false)
 
-  const loadAlphaMask = useCallback((img: HTMLImageElement) => {
-    const w = img.naturalWidth
-    const h = img.naturalHeight
-    if (w === 0 || h === 0) return
-
-    const canvas = document.createElement('canvas')
-    canvas.width = w
-    canvas.height = h
-    const ctx = canvas.getContext('2d', { willReadFrequently: true })
-    if (!ctx) return
-
-    ctx.drawImage(img, 0, 0)
-    alphaRef.current = ctx.getImageData(0, 0, w, h).data
-    sizeRef.current = { w, h }
+  const applyAlphaMask = useCallback((data: ImageData) => {
+    alphaRef.current = data.data
+    sizeRef.current = { w: data.width, h: data.height }
   }, [])
+
+  const loadAlphaMask = useCallback(
+    async (img: HTMLImageElement) => {
+      const cached = getAlphaMask(src)
+      if (cached) {
+        applyAlphaMask(cached)
+        return
+      }
+
+      const w = img.naturalWidth
+      const h = img.naturalHeight
+      if (w === 0 || h === 0) return
+
+      try {
+        const data = await rasterizeAlphaMaskFromSrc(src)
+        setAlphaMask(src, data)
+        applyAlphaMask(data)
+      } catch {
+        // Hit-testing falls back to rejecting clicks until alpha is available.
+      }
+    },
+    [applyAlphaMask, src],
+  )
+
+  useLayoutEffect(() => {
+    const cached = getAlphaMask(src)
+    if (cached) applyAlphaMask(cached)
+  }, [applyAlphaMask, src])
 
   const hitOpaque = useCallback((clientX: number, clientY: number): boolean => {
     const img = hitImgRef.current
@@ -107,7 +126,7 @@ export const OpaqueImageButton = forwardRef<HTMLButtonElement, OpaqueImageButton
         src={src}
         alt=""
         draggable={false}
-        onLoad={(e) => loadAlphaMask(e.currentTarget)}
+        onLoad={(e) => void loadAlphaMask(e.currentTarget)}
       />
       {lit && hoverOverlay != null ? (
         <span className="opaqueImageBtn__hoverOverlay" aria-hidden>

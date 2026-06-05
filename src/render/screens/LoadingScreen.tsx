@@ -1,4 +1,12 @@
-import type { GameState } from '../../core/types/state'
+import type { BootStage, GameState } from '../../core/types/state'
+
+const STAGE_LABELS: Readonly<Record<BootStage, string>> = {
+  IMAGES: 'Loading images…',
+  RECOLORS: 'Preparing monsters…',
+  MASKS: 'Preparing UI…',
+  FONTS: 'Almost ready…',
+  DONE: 'Ready',
+}
 
 export function LoadingScreen(props: Readonly<{ state: GameState }>) {
   const { state } = props
@@ -6,6 +14,7 @@ export function LoadingScreen(props: Readonly<{ state: GameState }>) {
   const { loaded, total } = assets.progress
   const percent = total > 0 ? Math.min(100, Math.round((loaded / total) * 100)) : 0
   const hasError = assets.status === 'ERROR'
+  const stageLabel = STAGE_LABELS[assets.bootStage]
 
   return (
     <div className="loadingScreen" role="status" aria-live="polite" aria-busy={!hasError}>
@@ -27,7 +36,8 @@ export function LoadingScreen(props: Readonly<{ state: GameState }>) {
             <div className="loadingScreen__progressTrack" aria-hidden>
               <div className="loadingScreen__progressFill" style={{ width: `${percent}%` }} />
             </div>
-            <p className="loadingScreen__progressLabel">Loading… {percent}%</p>
+            <p className="loadingScreen__stageLabel">{stageLabel}</p>
+            <p className="loadingScreen__progressLabel">{percent}%</p>
           </div>
         )}
       </div>

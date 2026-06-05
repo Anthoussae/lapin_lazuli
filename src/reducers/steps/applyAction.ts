@@ -63,7 +63,7 @@ export function applyAction(state: GameState, action: GameAction): { state: Game
     if (state.assets.status !== 'UNLOADED') return { state, events: [] }
     const s2: GameState = {
       ...state,
-      assets: { ...state.assets, status: 'LOADING', progress: { loaded: 0, total: 0 } },
+      assets: { ...state.assets, status: 'LOADING', bootStage: 'IMAGES', progress: { loaded: 0, total: 0 } },
     }
     return { state: s2, events: [] }
   }
@@ -71,7 +71,11 @@ export function applyAction(state: GameState, action: GameAction): { state: Game
   if (action.type === 'BOOT/ASSETS_PROGRESS') {
     const s2: GameState = {
       ...state,
-      assets: { ...state.assets, progress: { loaded: action.loaded, total: action.total } },
+      assets: {
+        ...state.assets,
+        bootStage: action.bootStage,
+        progress: { loaded: action.loaded, total: action.total },
+      },
     }
     return { state: s2, events: [] }
   }

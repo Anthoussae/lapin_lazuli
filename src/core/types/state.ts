@@ -27,6 +27,8 @@ export type Phase =
   | 'GAME_WIN'
   | 'EVENT'
 
+export type BootStage = 'IMAGES' | 'RECOLORS' | 'MASKS' | 'FONTS' | 'DONE'
+
 export type Zone = 'DRAW' | 'HAND' | 'DISCARD'
 
 export type CardInstance = Readonly<{
@@ -405,6 +407,7 @@ export type GameState = Readonly<{
   phasePrev: Phase | null
   assets: Readonly<{
     status: 'UNLOADED' | 'LOADING' | 'READY' | 'ERROR'
+    bootStage: BootStage
     progress: Readonly<{ loaded: number; total: number }>
     loaded: ReadonlyArray<string>
     failed: ReadonlyArray<string>
