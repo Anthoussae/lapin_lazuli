@@ -17,7 +17,7 @@ export const RELIC_BELT_ICON_WIDTH_PX = 94
 const RELIC_BELT_MIN_VISIBLE_ICON_PX = 14
 
 /** Max horizontal scoot for the immediate neighbor of a hovered relic (px). */
-export const RELIC_BELT_FAN_HOVER_SCOOT_PX = 84
+export const RELIC_BELT_FAN_HOVER_SCOOT_PX = 44
 
 /** How many slots on each side of the hover still shift (inclusive of immediate neighbor). */
 export const RELIC_BELT_FAN_HOVER_SCOOT_RADIUS = 8
