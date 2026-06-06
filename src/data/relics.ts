@@ -529,6 +529,7 @@ export const Relics: Readonly<Record<RelicId, RelicTemplate>> = {
     name: "Gladiator's Helmet",
     thumb: 'G',
     starter: true,
+    forceStartOffer: true,
     unique: true,
     text: 'Whenever you choose a combat path, gain 15 gold.',
     triggers: [

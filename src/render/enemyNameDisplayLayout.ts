@@ -39,22 +39,22 @@ export function enemyKindFromTemplateId(enemyId: EnemyId): EnemyKindId {
 
 /** Per-kind combat name label position and stacking (all tiers of a kind share one entry). */
 export const ENEMY_NAME_DISPLAY_LAYOUT_BY_KIND: Record<EnemyKindId, EnemyNameDisplayLayout> = {
-  CARROT_ORC: {},
+  CARROT_ORC: {y: '-20px'},
   DARK_MAGE: {y: '-20px'},
-  GIANT_SKULL: {},
-  GLORB: {},
+  GIANT_SKULL: {y: '-20px'},
+  GLORB: {y: '-40px'},
   GOLEM: {y: '-20px'},
   MIMIC: {},
   MISO_MONSTROSITY: {},
-  MUSHROOM_LEGIONNAIRE: {},
+  MUSHROOM_LEGIONNAIRE: {y: '-40px'},
   ONION_GOBLIN: {},
-  PEAR_HOPLITE: {},
+  PEAR_HOPLITE: {y: '-40px'},
   SKELETON_WARRIOR: {},
   SOYBEAN_EMPEROR: {},
   TOFU_TYRANT: {},
   WEIRD: {},
   WITCH: {y: '-20px'},
-  WYVERN: {},
+  WYVERN: {y: '-45px'},
   ZERRY_CUBE: {y: '-60px'},
 }
 
